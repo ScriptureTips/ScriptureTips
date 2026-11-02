@@ -1,0 +1,14 @@
+HTTP/2 200 
+cache-control: private
+content-type: text/html; charset=utf-8
+content-encoding: gzip
+vary: Accept-Encoding
+content-security-policy: frame-ancestors none; object-src https://cloud.faithlife.net https://cloud.mail.logos.com; base-uri https://optimize.google.com; block-all-mixed-content
+x-frame-options: deny
+request-context: appId=cid-v1:e3ca4b43-a231-4cf4-a40a-e58316efafeb
+access-control-expose-headers: Request-Context
+date: Sun, 01 Nov 2026 16:51:53 GMT
+strict-transport-security: max-age=31536000
+set-cookie: builder.userAttributes={"urlPath":"/product/37521/lexham-english-bible","host":"www.logos.com","site":"www.logos.com","queryString":[],"userState":"NSI","isUserSubscribed":false,"isUserLogos10Owner":false,"isUserEligibleForLegacyFallbackLicense":false,"subscriptionLevel":"NONE","segments":[],"doesUserQualifyForSubscriptionFreeTrial":true,"doesUserHaveALogosSubscriptionInCart":false,"subscribableProductIdInCart":"","logosSubscribableProductOptionIdsInCart":[],"ownedResourceIds":[],"canAccessResourceIds":[]}; path=/; secure
+SERVERID=47fd96f3c4e646e588338d71e2ae66ca|auduL|audos; path=/; HttpOnly; Secure
+X-Firefox-Spdy: h2

@@ -1,0 +1,12 @@
+200 https://ebible.org/
+2026-11-01T16:02:04.414Z
+cf-cache-status: DYNAMIC
+cf-ray: a53c1f24cd9201ae-AKL
+content-encoding: br
+content-type: text/html; charset=UTF-8
+date: Sun, 01 Nov 2026 16:02:03 GMT
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Luv5yhc588cejs5DOdKvVs6IWTE6niZR557YuqdfRs9qul3Gl7u6oaMKBxfEZcn4y%2BAQgQfTlLzIo%2BMnbVUGLSq2Jg%2Fl3iu7xrE6WWZ34vIbSmo9PllJzvGnVHk%3D"}]}
+server: cloudflare
+strict-transport-security: max-age=15552000; includeSubDomains; preload
+vary: accept-encoding

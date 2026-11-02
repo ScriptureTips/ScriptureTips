@@ -1,0 +1,50 @@
+HTTP/2 200 
+server: nginx
+date: Sun, 01 Nov 2026 16:19:51 GMT
+content-type: text/html; charset=UTF-8
+x-archive-orig-date: Mon, 15 Jun 2026 22:46:26 GMT
+x-archive-orig-transfer-encoding: chunked
+x-archive-orig-connection: close
+x-archive-orig-server: cloudflare
+x-archive-orig-vary: Accept-Encoding,Cookie
+x-archive-orig-last-modified: Mon, 15 Jun 2026 21:50:01 GMT
+x-archive-orig-nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+x-archive-orig-server-timing: cfCacheStatus;desc="DYNAMIC"
+x-archive-orig-server-timing: cfEdge;dur=24,cfOrigin;dur=167
+x-archive-orig-cache-control: max-age=215, public
+x-archive-orig-expires: Mon, 15 Jun 2026 22:50:01 GMT
+x-archive-orig-referrer-policy: no-referrer-when-downgrade
+x-archive-orig-pragma: public
+x-archive-orig-link: </wp-content/cache/minify/842ae.css>; rel=preload; as=style
+x-archive-orig-link: </wp-content/cache/minify/183c5.css>; rel=preload; as=style
+x-archive-orig-link: </wp-content/cache/minify/23d45.css>; rel=preload; as=style
+x-archive-orig-link: </wp-content/cache/minify/45dbc.css>; rel=preload; as=style
+x-archive-orig-report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=9LtDOyI9aidUyTRcPSNGAeIy9ihB5nJ9%2BPxD1k0XWGOZsi%2B8%2FOupw%2Fq1FzFC9Ebd4I%2F8odv9Ty8ui9bCpXIXSO5kZohedfCKoHmstUvAY1wDDFEGdHawihZZXqS7r8PukQ%3D%3D"}]}
+x-archive-orig-cf-cache-status: DYNAMIC
+content-encoding: zstd
+x-archive-orig-cf-ray: a0c51c5dcca576e0-SEA
+x-archive-orig-alt-svc: h3=":443"; ma=86400
+cache-control: max-age=1800
+accept-ranges: bytes
+memento-datetime: Mon, 15 Jun 2026 22:46:26 GMT
+link: <https://opensiddur.org/about-this-project/policies/terms-of-use/>; rel="original", <https://web.archive.org/web/timemap/link/https://opensiddur.org/about-this-project/policies/terms-of-use/>; rel="timemap"; type="application/link-format", <https://web.archive.org/web/https://opensiddur.org/about-this-project/policies/terms-of-use/>; rel="timegate"
+content-security-policy: default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob: archive.org web.archive.org web-static.archive.org wayback-api.archive.org athena.archive.org analytics.archive.org pragma.archivelab.org wwwb-events.archive.org
+x-archive-src: SPNOUTLINKS-20260611170328704-00037-zeno-k8s-spn-outlinks-71/SPNOUTLINKS-20260611184855404-00039-zeno-k8s-spn-outlinks-crawl.warc.gz
+server-timing: captures_list;dur=0.465750, exclusion.robots;dur=0.032138, exclusion.robots.policy;dur=0.023362, esindex;dur=0.006008, cdx.remote;dur=9.214574, LoadShardBlock;dur=1132.534899, PetaboxLoader3.resolve;dur=127.783557, PetaboxLoader3.datanode;dur=1079.355248, load_resource;dur=81.690743
+x-app-server: wwwb-app220-dc8
+x-ts: 200
+x-tr: 1242
+server-timing: TR;dur=0,Tw;dur=0,Tc;dur=0
+set-cookie: wb-p-SERVER=wwwb-app220; path=/
+cache-control: private
+x-location: All
+x-as: 45177
+x-rl: 0
+x-na: 0
+x-page-cache: MISS
+server-timing: MISS
+x-nid: Devoli
+referrer-policy: no-referrer-when-downgrade
+permissions-policy: interest-cohort=()
+x-sd: 0
+

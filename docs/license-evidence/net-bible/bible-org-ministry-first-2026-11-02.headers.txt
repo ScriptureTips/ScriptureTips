@@ -1,0 +1,22 @@
+HTTP/2 200 
+date: Sun, 01 Nov 2026 18:17:29 GMT
+content-type: text/html; charset=utf-8
+server: cloudflare
+x-content-type-options: nosniff
+x-drupal-cache: HIT
+expect-ct: max-age=86400, enforce
+content-language: en
+x-frame-options: SAMEORIGIN
+permissions-policy: interest-cohort=()
+x-generator: Drupal 7 (http://drupal.org)
+link: <https://bible.org/ministryfirst>; rel="canonical",<https://bible.org/node/3393>; rel="shortlink"
+cache-control: public, max-age=10800
+last-modified: Sun, 01 Nov 2026 18:17:26 GMT
+expires: Sun, 19 Nov 1978 05:00:00 GMT
+vary: Cookie,Accept-Encoding
+referrer-policy: same-origin
+x-xss-protection: 1; mode=block
+cf-cache-status: DYNAMIC
+content-encoding: br
+cf-ray: a53ce5850f9228c3-AKL
+X-Firefox-Spdy: h2

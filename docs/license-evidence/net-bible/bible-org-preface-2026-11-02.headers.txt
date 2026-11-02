@@ -1,0 +1,15 @@
+HTTP/2 200 
+date: Sun, 01 Nov 2026 17:58:02 GMT
+content-type: text/html
+server: cloudflare
+x-content-type-options: nosniff
+last-modified: Sat, 02 Jun 2007 00:47:38 GMT
+referrer-policy: same-origin
+expect-ct: max-age=86400, enforce
+vary: Accept-Encoding
+x-xss-protection: 1; mode=block
+x-frame-options: SAMEORIGIN
+cf-cache-status: DYNAMIC
+content-encoding: br
+cf-ray: a53cc9062a1501ae-AKL
+X-Firefox-Spdy: h2

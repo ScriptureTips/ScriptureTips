@@ -17,6 +17,24 @@ Original captures of the Lexham English Bible (LEB) license and download pages, 
 - **Same terms inside the data file:** the license text is also embedded in `LEB.xml`. The original download (`tex-bible` commit `2ef97e4`, `leb/sources/LEB.xml`, 8,645,383 bytes) has SHA-256 `65aaf39c0ffab06196eb8189aad45359a3dfdab40b53e2f387990023d41932d2`. The working copy at `leb/processing/sources/0.raw/LEB.xml` was edited later for typesetting, so its hash (`bce97e5b…0bf0`) differs.
 - **The text files themselves** (`LEB.xml`, `LEB.txt`, `LEB.epub`, as originally downloaded) are kept in `source-texts/lexham-english-bible/`, listed in `../source-files.json`.
 
+## Current Logos pages (captured 2026-11-02)
+
+Captured by the project owner in Firefox.
+
+**Product page**, https://www.logos.com/product/37521/lexham-english-bible (`logos-product-page-2026-11-02.*`): the LEB is a Logos Edition from Lexham Press (2012) at $0.00 (list price $39.99). The page has no license text. Its only wording on terms is: "Freely available. The LEB is one of the only freely licensed English Bible translations. Download it, read it, and study—all for free." (in the PDF and in `.rendered.html`, the DOM with the section expanded; the plain `.html` is the page as first loaded). It shows the LEB is still offered free, but **isn't a license** and doesn't change the 2020 terms above.
+
+**Terms of Service**, https://www.logos.com/terms, last amended 2026-05-01 (`logos-terms-2026-11-02.*`): they cover Logos accounts, the app (web version included) and Logos's content: per-user licenses, no scraping, no AI/LLM training. They say nothing about the LEB, so they don't change its terms.
+
+```
+76103d37793f15d9855ae0c34cd1f2bd51118adb79a6131576a6660f2da72c81  logos-product-page-2026-11-02.pdf
+2dc262ad47c1a224de66c24629603b1a43ef3b8b9debd78afa4395c096e75c9c  logos-product-page-2026-11-02.html
+100bc7b2f45c48282c824407d23554017218ff1b267fcfc321f9c0aea13424fc  logos-product-page-2026-11-02.rendered.html
+72355c8b7d275bf4871025253f8c100acc1c4330c3ba4fe41c3180556446b58e  logos-product-page-2026-11-02.headers.txt
+d8eb6df1db111abc4524894ddeac1742448592711c80b225d5ecc6aec112eb7c  logos-terms-2026-11-02.pdf
+07c0acd35604a362363eba04bceb61b61112f6e78e8f084dc3947b76a10fd903  logos-terms-2026-11-02.html
+4dd274ca058119ab10c13a6803f018dd47e4c8d75cc7461a6c47a0b9a75c2117  logos-terms-2026-11-02.headers.txt
+```
+
 ## Checksums (SHA-256)
 
 ```

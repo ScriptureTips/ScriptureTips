@@ -1,0 +1,13 @@
+200 https://software.sil.org/terms-of-use/
+2026-11-01T16:02:44.765Z
+cache-control: public, no-transform, must-revalidate
+connection: Keep-Alive
+content-encoding: gzip
+content-length: 16971
+content-type: text/html; charset=UTF-8
+date: Sun, 01 Nov 2026 16:02:41 GMT
+expires: Wed, 04 Nov 2026 16:02:41 GMT
+keep-alive: timeout=5, max=99
+link: <https://software.sil.org/wp-json/>; rel="https://api.w.org/", <https://software.sil.org/wp-json/wp/v2/pages/86>; rel="alternate"; title="JSON"; type="application/json", <https://software.sil.org/?p=86>; rel=shortlink
+server: Apache/2.4.58 (Ubuntu)
+vary: Accept-Encoding,Cookie

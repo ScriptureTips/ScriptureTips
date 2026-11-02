@@ -1,0 +1,12 @@
+200 https://ebible.org/privacy.php
+2026-11-01T16:05:02.945Z
+cf-cache-status: DYNAMIC
+cf-ray: a53c2380bfc34f65-AKL
+content-encoding: br
+content-type: text/html; charset=UTF-8
+date: Sun, 01 Nov 2026 16:05:02 GMT
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=pQp3AujBL0dCjKhSZdHaw%2Bh20cfRbHMXMu9nU3UgmHvAOvZeRPq82b3kVLCvjp9e0urtlOWcgsGPu36imQln673mlppJwYsuXclWPh2gEoOq%2FWu9DCmxK6IycyY%3D"}]}
+server: cloudflare
+strict-transport-security: max-age=15552000; includeSubDomains; preload
+vary: accept-encoding

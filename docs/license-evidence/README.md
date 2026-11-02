@@ -44,6 +44,22 @@ A record of the license and distribution terms for every text ScriptureTips obta
 | [`open-english-translation`](open-english-translation/) | Open English Translation (OET) | Not for now: CC BY-SA 4.0, but its translators don't yet recommend it for Bible sites |
 | [`youngs-literal-translation`](youngs-literal-translation/) | Young's Literal Translation (1898) | Ready (public domain) |
 
+## Distributor terms
+
+Site-wide terms of the hosts our source files come from (captured 2026-11-01; each folder has a `SOURCE.md`). They frame, but never replace, each text's own terms above.
+
+| Folder | Distributor |
+|---|---|
+| [`ebible-org`](ebible-org/) | eBible.org: About, Legal (intellectual property policy), Privacy, home. Each translation is licensed on its own terms; no blanket license |
+| [`door43`](door43/) | Door43 / unfoldingWord: copyright and licensing (CC BY-SA 4.0 unless noted), About |
+| [`archive-org`](archive-org/) | Internet Archive terms of use (also covers web.archive.org) |
+| [`github`](github/) | GitHub Terms of Service (host only; licenses are the repositories' own) |
+| [`opensiddur-org`](opensiddur-org/) | Open Siddur: home page (captured in Chrome); Copyright Policy and Terms of Use from the Wayback Machine, live site down (§8 item 25) |
+| [`sil-software`](sil-software/) | software.sil.org terms of use |
+| [`literalbible-com`](literalbible-com/), [`interlinearbible-com`](interlinearbible-com/) | Home pages of the Berean download sites (their terms are in `berean-standard-bible/`) |
+
+Not captured: lexhamenglishbible.com (sources.md §8, item 26).
+
 ## Publisher policies
 
 Policies that cover several translations, kept because the license engine applies them.

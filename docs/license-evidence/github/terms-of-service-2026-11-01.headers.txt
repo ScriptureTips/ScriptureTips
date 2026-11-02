@@ -1,0 +1,32 @@
+200 https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
+2026-11-01T16:02:37.707Z
+accept-ranges: bytes
+access-control-allow-origin: *
+age: 21829
+cache-control: public, max-age=60
+content-encoding: br
+content-length: 38974
+content-security-policy: default-src 'none';connect-src 'self' https://collector.githubapp.com;font-src 'self' data:;img-src 'self' github.com *.github.com *.githubusercontent.com *.githubassets.com data: placehold.it;object-src 'self';script-src 'self' github.com *.github.com *.githubusercontent.com *.githubassets.com 'self' data: 'sha256-U3LWw3Ab3GkeLl43emMGkOL69tCBBkGDB4UldMshHq0=';script-src-attr 'self';frame-src 'self' github.com *.github.com *.githubusercontent.com *.githubassets.com https://support.github.com;frame-ancestors 'self' github.com *.github.com *.githubusercontent.com *.githubassets.com;style-src 'self' github.com *.github.com *.githubusercontent.com *.githubassets.com 'self' 'unsafe-inline' data:;child-src 'self';manifest-src 'self';upgrade-insecure-requests;base-uri 'self';form-action 'self'
+content-type: text/html; charset=utf-8
+cross-origin-opener-policy: same-origin
+cross-origin-resource-policy: same-origin
+date: Sun, 01 Nov 2026 16:02:36 GMT
+origin-agent-cluster: ?1
+referrer-policy: no-referrer-when-downgrade
+strict-transport-security: max-age=31557600
+vary: accept, Accept-Encoding
+via: 1.1 varnish, 1.1 varnish
+x-cache: HIT, HIT
+x-cache-hits: 2, 0
+x-content-type-options: nosniff
+x-dns-prefetch-control: off
+x-download-options: noopen
+x-frame-options: SAMEORIGIN
+x-github-backend: Kubernetes
+x-github-edge-region: iad
+x-github-request-id: B06A:2AC9B:3D30B24:464C863:6AE70D56
+x-permitted-cross-domain-policies: none
+x-powered-by: Next.js
+x-served-by: cache-iad-khef600066-IAD, cache-akl10321-AKL
+x-timer: S1793548956.069564,VS0,VE1
+x-xss-protection: 0

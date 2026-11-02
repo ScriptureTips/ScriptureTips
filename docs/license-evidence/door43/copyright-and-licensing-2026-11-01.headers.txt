@@ -1,0 +1,16 @@
+200 https://door43.org/en/copyright-and-licensing/
+2026-11-01T16:02:27.644Z
+connection: keep-alive
+content-encoding: gzip
+content-type: text/html
+date: Sun, 01 Nov 2026 16:02:26 GMT
+etag: W/"fd2c7778a8396395bbf69d868bbfa698"
+last-modified: Thu, 11 Apr 2024 04:19:10 GMT
+server: AmazonS3
+transfer-encoding: chunked
+vary: Accept-Encoding
+via: 1.1 e0986b69c54be9992056be33fda6b6da.cloudfront.net (CloudFront)
+x-amz-cf-id: F6mVPGLVtLdVdlRqvFZdPpWGl8b53efW8a_4xu7NWd5Vhj8Fa-UW6Q==
+x-amz-cf-pop: AKL53-P3
+x-cache: Miss from cloudfront
+x-amz-version-id: fXB6HzVsf2RFTsDksDXIw5YNRJyLupB6

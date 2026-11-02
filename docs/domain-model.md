@@ -540,14 +540,15 @@ Viewpoint signals for a user are calculated only while that user's consent is ac
 
 The share check runs whenever a compilation changes (so the user sees the effect while curating) and again on every export, because an edition adds its own content (annotations, links, pages) to the total.
 
-### 7.1 Planned: the NET's notes aren't imported
+### 7.1 The NET's notes: held for study, never quoted
 
-**Decided** (project owner, 2026-10-30): the NET's free permission covers "the NET Bible® Scripture text (without the NET Bible notes)" and grants nothing for the notes, which it says need permission asked for by email. So ScriptureTips doesn't hold or show them until that permission is given (sources.md §8, item 20). **The change is made after the compilation editor's UI work is committed.**
+**Decided** (project owner, 2026-11-02, replacing the 2026-10-30 decision to remove them): the NET's license permits **copying** the NET Bible for personal and noncommercial study and teaching preparation, and its first permission, for **quoting**, covers "the Scripture text (without the NET Bible notes)". The owner reads the notes as copyable for study but not quotable, and accepts that the license can be read the other way (sources.md §8, item 20). Reasoning: *copy* is the whole work made for study; *quote* is a part lifted into another work, with attribution. A quotation is a partial copy, but the license grants the two for different purposes and on different conditions.
 
-- **The import skips them.** The loader (tools/scripture-import, `load.ts`) writes no translator's notes, and no note marks in the text, for a translation whose license has `notes_excluded` (read from the license module, not hard-coded to the NET).
-- **Notes already loaded are removed.** Reloading the NET drops its notes from the database, with their marks. Compilation data that came from them goes too: edited verses' source snapshots lose the NET's notes, and compilation notes reworded from or removing a NET note are deleted. The user's own notes stay.
-- **The check stays as a safety net.** The pre-publish `notes-excluded` problem (and the `notes_excluded` rule) are kept, so a note that somehow got through still can't be published. Once the notes are gone it never shows.
-- **Tests:** the import of a `notes_excluded` translation keeps its text and drops its notes; a compilation built on it has no NET notes anywhere (reader, editor, compare, PDF, publication), and its own notes are kept.
+- **Held and used for study.** The NET's notes stay loaded. They may guide study: the reader, and guiding our own research notes (which are written from the original-language data and other authorities, not from the NET note's wording).
+- **Never quoted.** NET note text must not be lifted into anything that is a work of its own or promotional: compilations and their notes, publications and published versions, PDF editions, shared or printed excerpts, search-result snippets, promotional text, or anything that cites it as authority for our own claims.
+- **The check stays.** The pre-publish `notes-excluded` problem (and the `notes_excluded` rule) keep a NET note from entering a publication or edition. That is the "no quoting" line, so it stays as built.
+- **To verify before relying on it:** that no path quotes a NET note outside the reader, namely compare and edit modes' source snapshots, compilation notes reworded from a NET note, PDF builds and search snippets. Tests should cover each, as the earlier plan's tests did for removal.
+- **If Biblical Studies Press objects,** fall back to the earlier plan: the import skips the notes (and their marks) for a `notes_excluded` translation, reloading drops them, and compilation data derived from them is deleted.
 
 ## 8. Editions (book designer)
 

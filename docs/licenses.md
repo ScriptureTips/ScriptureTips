@@ -60,7 +60,7 @@ Sources: Bible Gateway LEB page (copy of license, checked 2026-10-25); license c
 - **Content control:** the free-copy permission requires compliance with "our guidelines for content control including current valid copyright and organizational acknowledgments". Nothing beyond the acknowledgments is defined, so showing them is how we comply.
 - **Copyright notice:** the publisher's current wording is "©1996, 2019 by Biblical Studies Press, L.L.C." (edition 2.1). We use it with the eBible.org file, which is the First Edition text (its own notice says 1996–2016); the license doesn't limit the edition.
 - **Who administers it:** netbible.com is now run by Thomas Nelson Bibles (HarperCollins Christian Publishing). The copyright stays with Biblical Studies Press.
-- The notes are copyrighted and not included.
+- **The notes** are copyrighted. The owner reads the "You may copy the NET Bible" sentence, which has no "(without the notes)" exclusion, as allowing the notes to be copied for study, while quoting them isn't granted (decided 2026-11-02; sources.md §8 item 20, domain-model §7.1).
 - **Software and apps:** "(NET)" must follow quotations, and in software with internet access "NET" must link to netbible.org (captured in `license-evidence/net-bible/`).
 - **Trademark:** use "NET Bible®" or "NET"; avoid "New English Translation Bible" or plain "New English Translation".
 
@@ -203,7 +203,7 @@ The license engine (domain model §7) must be able to express all of these:
 | `incompatible_with` (license families) | ESV: not in Creative Commons-licensed works |
 | `name_restriction` (trademark) | WEB (faithful copies only), "Lexham" not in titles, OET (an adapted text must be renamed) |
 | `reporting_obligation` | LEB annual reporting |
-| `notes_excluded` | NET (text only) |
+| `notes_excluded` | NET (notes can be held for study, never quoted into publications) |
 | `access_via_api_only` (with caching/storage terms) | ESV API (cache at most 500 verses; clear it periodically) |
 | `max_cache_lifetime` (how long content from a source may be kept; sets the cache entry's `storage_expires_at`, domain model §2.5) | None found yet; for API terms that allow only temporary caching |
 | `not_as_base` (can't be the base of a compilation; only single verses can be picked in) | NLT, TLB (follows from their 500-verse and no-complete-book limits) |

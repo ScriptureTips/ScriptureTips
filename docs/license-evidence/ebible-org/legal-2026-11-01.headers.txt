@@ -1,0 +1,12 @@
+200 https://ebible.org/legal.php
+2026-11-01T16:05:00.949Z
+cf-cache-status: DYNAMIC
+cf-ray: a53c23719cd8c11a-AKL
+content-encoding: br
+content-type: text/html; charset=UTF-8
+date: Sun, 01 Nov 2026 16:05:00 GMT
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=8hhetXKn3Xq8MX2OKZdlDk%2BX8yO8PrQV1bESTgX6ODfYF5vvHb1UMsIIpT%2BWfRPSZgeOz8U8gMK4mLOhYNZSS%2Bwml7sJhe9OEL5d8mCMLwpouno0WT%2FdwSJV7jE%3D"}]}
+server: cloudflare
+strict-transport-security: max-age=15552000; includeSubDomains; preload
+vary: accept-encoding
