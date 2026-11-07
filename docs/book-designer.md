@@ -90,6 +90,7 @@ A **annotation collection** is a named, reusable set of annotations that can be 
 - **Two ways to fill a collection, which can be combined:**
   - **Hand-picked:** "Add to collection" from anywhere a link or annotation appears while reading or studying.
   - **Rule-based ("smart") collections:** filters such as "tag: youth study", "my links of type *fulfills*", "tag: messianic", "note: The Lamb of God", "my group's published links", "external references in the Gospels", "created since January". Hand-picked includes and excludes override the rules.
+- **Curating from quick capture:** most links are made quickly in study mode, with the words selected and a note, before anyone knows which collection they'll be in. A **curation view** is where the user picks them for a collection or an edition. It also reconciles each link's selected words, which are pinned to one translation's wording, with the compilation the collection or edition belongs to: the words are used where the compilation's wording matches (or the quote is found), otherwise the link falls back to the verse and the user can re-select the words (vision §3.7.1). Links to verses the compilation omits are handled as in §5.4.
 - **Other people's published work** can be included, always with credit to its author (under the license its author chose: CC BY 4.0 by default).
 - **Ownership like everything else:** private until published. Groups can keep collections (e.g. a church's shared study annotations). A collection can be published so others can use it in their own editions.
 

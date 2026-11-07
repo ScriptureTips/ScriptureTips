@@ -180,7 +180,16 @@ What a note can do:
 - **Share as you learn.** A user can publish a link (or annotation) straight away, even while the compilation they were reading in is still a private draft. Because links are stored against the original passages, not a translation, the public sees the linked verses in a **publicly visible translation** (see §4.3). The private draft's text is never exposed.
 - Links can be arranged into a **note** (§3.6), for example a study tracing a theme from Genesis to Revelation, with commentary between the steps.
 - **Tags and annotation collections:** users tag their links and annotations with their own labels, and group them into **annotation collections** (hand-picked or built from tags and other rules). A collection is put together for a particular publication, edition or audience. Collections are assigned to publications (shown to readers as cross-references and footnotes) and to editions (printed through note streams; see [book-designer.md](book-designer.md) §5). Links themselves stay independent of any compilation, so one link can serve the social features, several publications and several editions at once.
+- **Two stages: quick capture, then curation.** In study mode a link is made in seconds from selected words (a reference, optionally a note), so ideas go straight into the user's database. Later, a **curation view** lets the user choose which of those links go into a collection, a published compilation or an edition, and reconciles each chosen link's selected words with the compilation they're building (§3.7.1). Capture comes first and is built; curation is planned, and must not be forgotten when collections and editions are built (stage 2 and 3).
 - Only scripture links feed the internal algorithms (connection graph, suggestions, ranking).
+
+#### 3.7.1 Reconciling links with a compilation
+A link made in study mode keeps the words that were selected, pinned to the wording they were selected in (a translation, or the compilation's own wording of that verse), with the quote saved. A compilation's verse may have come from a different translation, or been corrected, adapted or written by the user, so when links are chosen for a collection, a publication or an edition, the curation view checks each against the compilation:
+- **Words still found:** where the compilation's wording of the verse matches the pinned wording, or the quote can be found in it, the selected words are used (highlighted online, marked or quoted in print).
+- **Wording differs:** where the compilation reads differently, the link falls back to the verse (or to the words found through word alignment, once alignment exists) and the user is told, with the option to re-select the words in the compilation's own wording.
+- **Passages not in the compilation:** links to or from verses the compilation omits are listed with the same options as other broken targets (book-designer.md §5.4).
+- **Several links on shared words** are shown together, so the user can pick which to keep and see how they overlap.
+The user decides what's included; nothing in a user's private captured links is published or printed until chosen here.
 
 ### 3.8 External references (passage → outside resource)
 - A separate kind of link, from a passage to an outside resource: web page, book, article, audio or video (with a timestamp).
@@ -476,7 +485,7 @@ The first three stages complete the primary purpose: **ScriptureTips as a study 
 | Stage | Contents |
 |---|---|
 | **1. Compilations and publications** | Foundations first: monorepo, testing framework (testing.md), accounts, canon choice, versification, reference parser, public-domain translations, passages API. Then compilations (bases, layered overrides, own wording with authorship evidence, modified translation verses as corrections or adaptations), the publishing procedure with the automated check and the age declaration it requires (§5.2), versions, published history and URLs. |
-| **2. Study tools** | Interlinear, Strong's, lexicons, Paleo-Hebrew letter forms, personal research libraries, scripture links, external references, annotations, tags, annotation collections, search of the user's own content. |
+| **2. Study tools** | Interlinear, Strong's, lexicons, Paleo-Hebrew letter forms, personal research libraries, scripture links (quick capture in study mode first), external references, annotations, tags, annotation collections with the **link curation view** (choosing captured links and reconciling their selected words with a compilation, §3.7.1), search of the user's own content. |
 | **3. Book designer** | Editions, the PDF engine (Typst, in a queue worker), printer profiles, preflight checks. |
 | **4. Sharing and the browser extension** | Notes with placement tracking; the rewritten browser extension (v1.0.3 parity, tooltips, note insert flow), released as an update to the existing Web Store listing; the website widget and its JavaScript API; the WordPress plugin. Built together because they share most of their code. Until then, v1.0.3 stays live as it is. |
 | **5. Your data** | Full export, account deletion with its options, legacy contact. |
