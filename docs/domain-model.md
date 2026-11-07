@@ -287,6 +287,8 @@ Many translations come with their translators' own notes: footnotes, alternative
 There are two different kinds of link, kept as separate entities on purpose.
 
 ### 3.1 ScriptureLink (passage ↔ passage)
+**Built so far (study tooltip):** the `scripture_link` table and `/api/links` (create, list from either end by overlap, delete), private to the owner. Each end is stored as canonical OSIS and an ordinal range with a GiST index; the target is typed in the compilation's numbering and kept as entered with its scheme. `relationship_type` and `note` are null until their forms are designed. Visibility beyond private, `display_translation`, `in_response_to`, `touches_additional` and publishing come later.
+
 The core asset. Only these feed the internal algorithms (connection graph, suggestions, ranking).
 
 | Field | Notes |

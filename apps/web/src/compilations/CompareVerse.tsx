@@ -20,7 +20,11 @@ export function VerseHeadings({ verse }: { verse: Verse }) {
   ));
 }
 
-/** A verse in the compare and edit modes: its headings, its number, then its words. */
+/**
+ * A verse in the compare and edit modes: its headings, its number, then its words. It's wrapped
+ * in a span that adds no box (`.verse-unit`) naming the canonical verses it holds, so study mode
+ * can tell which verses a selection touches (`readPick`).
+ */
 export function VerseText({
   verse,
   number,
@@ -34,10 +38,13 @@ export function VerseText({
   const words = useStudy();
   const study = words && source && STUDY_SOURCES.has(source) ? words : null;
   return (
-    <>
+    <span
+      className="verse-unit"
+      data-canonical={verse.canonical.length > 0 ? verse.canonical.join(" ") : undefined}
+    >
       <VerseHeadings verse={verse} />
       <sup className="compare-number">{number}</sup>{" "}
       <ShownText nodes={noteBody(verse.content)} study={study} />
-    </>
+    </span>
   );
 }

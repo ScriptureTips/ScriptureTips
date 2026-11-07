@@ -93,7 +93,14 @@
       "search": "Search",
       "explain": "Explain",
       "copy": "Copy",
-      "copied": "Copied"
+      "copied": "Copied",
+      "link": "Link",
+      "linkTo": "Passage to link these words to",
+      "linkPlaceholder": "e.g. Isa 53:5",
+      "addLink": "Add link",
+      "cancel": "Cancel",
+      "links": "Links",
+      "unlink": "Remove the link to {passage}"
     },
     "category": {
       "person": "Person",
@@ -354,6 +361,9 @@
     "close": "Close"
   },
   "compilationErrors": {
+    "one-passage": "Give one passage to link to.",
+    "not-in-canon": "That passage isn't in the canon, so it can't be linked.",
+    "bad-passage": "That isn't a passage we can link.",
     "handle-required": "Choose a handle on your account page first.",
     "unknown-translation": "We don't have that translation.",
     "base-not-allowed": "That translation's licence doesn't allow it to be a base.",

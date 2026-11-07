@@ -927,3 +927,41 @@ export const translationAlignment = pgTable(
     index("translation_alignment_token_idx").on(t.tokenId),
   ],
 );
+
+/**
+ * A link between two passages (domain-model §3.1, `ScriptureLink`). Each side is stored as
+ * canonical OSIS plus its ordinal range, so "which links touch this passage?" is one overlap
+ * query from either end. `entered_ref` is the target as the author typed it, in `entered_scheme`
+ * (§2.2). Private to its owner for now: visibility, `display_translation`, `in_response_to` and
+ * `touches_additional` come with publishing, and the relationship type and note with their forms.
+ */
+export const scriptureLink = pgTable(
+  "scripture_link",
+  {
+    id: id(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sourceStart: text("source_start").notNull(),
+    sourceEnd: text("source_end").notNull(),
+    sourceRange: int4range("source_range").notNull(),
+    targetStart: text("target_start").notNull(),
+    targetEnd: text("target_end").notNull(),
+    targetRange: int4range("target_range").notNull(),
+    enteredScheme: text("entered_scheme").notNull(),
+    enteredRef: text("entered_ref").notNull(),
+    relationshipType: text("relationship_type", {
+      enum: ["complements", "parallels", "expands", "fulfills", "quotes", "contrasts"],
+    }),
+    note: text("note"),
+    visibility: text("visibility", { enum: ["private"] })
+      .notNull()
+      .default("private"),
+    ...timestamps,
+  },
+  (t) => [
+    index("scripture_link_owner_idx").on(t.ownerId),
+    index("scripture_link_source_idx").using("gist", t.sourceRange),
+    index("scripture_link_target_idx").using("gist", t.targetRange),
+  ],
+);

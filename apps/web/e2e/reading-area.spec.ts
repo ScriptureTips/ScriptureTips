@@ -787,6 +787,55 @@ test("vision §3.14: the tooltip's Search for this opens the study window and se
   await expect(study.getByRole("heading", { name: "Verses" })).toBeVisible();
 });
 
+test("domain-model §3.1: the tooltip's Link adds a link from the selected words to a typed passage, and lists it", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await create(page, "Link Words", "Linker");
+  await page.goto("/compilations/linker?book=Gen&chapter=4&mode=compare&study=1");
+  await settled(page);
+  const own = page.locator("td.compare-own").first();
+  const eve = own.locator('.study-word[data-strong="H2332"]').first();
+  const tip = page.getByRole("dialog", { name: "The selected words" });
+  await dragAcross(page, eve);
+  await expect(tip).toBeVisible();
+  await expect(tip.getByRole("list", { name: "Links" })).toHaveCount(0);
+
+  // Link swaps the buttons for a field and a submit button; the tooltip stays open.
+  await tip.getByRole("button", { name: "Link", exact: true }).click();
+  const field = tip.getByRole("textbox", { name: "Passage to link these words to" });
+  await expect(field).toBeFocused();
+  await expect(tip).toBeVisible();
+  await expect(tip.getByRole("button", { name: "Add link" })).toBeDisabled();
+
+  // A passage that doesn't exist is refused in words, and the form stays.
+  await field.fill("Gen 4:99");
+  await tip.getByRole("button", { name: "Add link" }).click();
+  await expect(tip.getByRole("alert")).toBeVisible();
+  await expect(field).toBeVisible();
+
+  await field.fill("Gen 4:25");
+  await page.screenshot(shot("reading-area-study-link-form"));
+  await tip.getByRole("button", { name: "Add link" }).click();
+  const links = tip.getByRole("list", { name: "Links" });
+  await expect(links).toContainText("4:25");
+  await expect(field).toBeHidden();
+  await expect(tip.getByRole("button", { name: "Link", exact: true })).toBeVisible();
+  await page.screenshot(shot("reading-area-study-link-listed"));
+
+  // Selected again, even after a reload, the words show it; so does the other end.
+  await page.keyboard.press("Escape");
+  await expect(tip).toBeHidden();
+  await page.reload();
+  await settled(page);
+  await dragAcross(page, eve);
+  await expect(tip.getByRole("list", { name: "Links" })).toContainText("4:25");
+
+  // It can be removed.
+  await tip.getByRole("button", { name: /^Remove the link to/ }).click();
+  await expect(tip.getByRole("list", { name: "Links" })).toHaveCount(0);
+});
+
 test("vision §3.14: several searches on one page keep their own scope, and their parts share state", async ({
   page,
 }) => {

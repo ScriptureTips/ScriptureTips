@@ -2,8 +2,10 @@
 
 import { getSearch } from "@scripturetips/search";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { errorCode, useErrorText } from "../compilations/errors.ts";
+import { useHydrated } from "../hydrated.ts";
 import { openStudyMenu } from "./menuBus.ts";
 import { useStudy } from "./StudyProvider.tsx";
 import { STUDY_SEARCH } from "./StudySearch.tsx";
@@ -23,6 +25,18 @@ interface Lemma {
   entries: { lexicon: string; name: string; headword: string | null; summary: string }[];
 }
 
+/** apps/api `LinkView`: a link of the user's, seen from the selected passage. */
+interface ScriptureLink {
+  id: string;
+  other: { osis: string; label: string };
+  end: "source" | "target";
+}
+
+/** Mouse down in the tooltip keeps the selection, except in its text field, which takes the focus. */
+const keepSelection = (e: { target: EventTarget; preventDefault: () => void }) => {
+  if (!(e.target instanceof HTMLInputElement)) e.preventDefault();
+};
+
 /** The most words the tooltip lists; a long selection says how many more. */
 const MOST = 6;
 /** The tooltip's width, for keeping it in the window. */
@@ -34,9 +48,11 @@ const WIDTH = 360;
  * Hebrew or Greek word, its number, how often it's used and what the dictionaries say. It closes
  * on Escape, a click elsewhere, or when the selection goes. Clicking in it keeps the selection.
  */
-export function StudySelection() {
+export function StudySelection({ slug }: { slug: string }) {
   const words = useStudy();
   const t = useTranslations("study");
+  const errorText = useErrorText();
+  const hydrated = useHydrated();
   const tip = useRef<HTMLDivElement>(null);
   const [picked, setPicked] = useState<StudyPick | null>(null);
   // Whether it's open, for the mouse handlers (which are set up once).
@@ -52,6 +68,20 @@ export function StudySelection() {
   const [, moved] = useState(0);
   // The selection whose words are explained in the bar (a new selection starts closed).
   const [explained, setExplained] = useState<StudyPick | null>(null);
+  // The selection whose link form is open (a new selection starts closed), what's typed in it,
+  // and why the last try failed.
+  const [linking, setLinking] = useState<StudyPick | null>(null);
+  const [typed, setTyped] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const field = useRef<HTMLInputElement>(null);
+  // Whether the form is open, for the selection handler: focusing its field lets the browser's
+  // selection go, which mustn't close the tooltip. (The words are held for it.)
+  const linkOpen = useRef(false);
+  linkOpen.current = picked !== null && linking === picked;
+  // The user's links with the selected verses at either end; null when there are none to show
+  // (signed out, or the verses can't be told).
+  const [links, setLinks] = useState<{ source: string; list: ScriptureLink[] } | null>(null);
 
   useEffect(() => {
     const inTip = (e: Event) => e.target instanceof Node && tip.current?.contains(e.target);
@@ -86,7 +116,7 @@ export function StudySelection() {
     };
     const change = () => {
       // The browser's selection let go by `holdSelection` isn't the user clearing it.
-      if (justReleased()) return;
+      if (justReleased() || linkOpen.current) return;
       if (window.getSelection()?.isCollapsed) {
         window.clearTimeout(settle.current);
         if (tipPressed.current) return;
@@ -157,6 +187,30 @@ export function StudySelection() {
     }
   }, [picked]);
 
+  // The links on the selected verses, asked for each time the tooltip opens on them. Signed out,
+  // the API says so and the tooltip has no links to show or make.
+  const source = picked?.source ?? null;
+  useEffect(() => {
+    setLinks(null);
+    if (!source) return;
+    let current = true;
+    fetch(`/api/links?ref=${encodeURIComponent(source)}`)
+      .then((res) => (res.ok ? (res.json() as Promise<{ links: ScriptureLink[] }>) : null))
+      .catch(() => null)
+      .then((found) => {
+        if (current && found) setLinks({ source, list: found.links });
+      });
+    return () => {
+      current = false;
+    };
+  }, [source]);
+
+  // The form's field has the focus once it opens.
+  const formOpen = linking !== null && linking === picked;
+  useEffect(() => {
+    if (formOpen) field.current?.focus();
+  }, [formOpen]);
+
   if (!picked || !words) return null;
   // On a touch screen the phone draws its own menu over the selection (and handles under it), so
   // the actions are a bar along the bottom of the screen instead, clear of both.
@@ -173,6 +227,7 @@ export function StudySelection() {
   const place = above
     ? { left, bottom: window.innerHeight - rect.top + 8, maxHeight }
     : { left, top: rect.bottom + 8, maxHeight };
+  const canLink = links !== null && picked.source !== null;
   const listed = picked.strongs.slice(0, MOST);
   const text = picked.text.length > 120 ? `${picked.text.slice(0, 120)}…` : picked.text;
 
@@ -191,10 +246,98 @@ export function StudySelection() {
       {picked.strongs.length > MOST ? (
         <p className="study-tip-empty">{t("tip.more", { count: picked.strongs.length - MOST })}</p>
       ) : null}
+      {links && links.list.length > 0 ? (
+        <ul className="study-tip-links" aria-label={t("tip.links")}>
+          {links.list.map((link) => (
+            <li key={link.id}>
+              <span aria-hidden="true">{link.end === "source" ? "→" : "←"}</span>{" "}
+              <span>{link.other.label}</span>
+              <button
+                type="button"
+                className="study-tip-remove"
+                aria-label={t("tip.unlink", { passage: link.other.label })}
+                onClick={() => {
+                  void fetch(`/api/links/${link.id}`, { method: "DELETE" }).then((res) => {
+                    if (res.ok)
+                      setLinks((now) =>
+                        now ? { ...now, list: now.list.filter((l) => l.id !== link.id) } : now,
+                      );
+                  });
+                }}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {linkError ? (
+        <p className="error" role="alert">
+          {linkError}
+        </p>
+      ) : null}
     </div>
   );
 
-  const actions = (
+  const addLink = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!picked.source || !typed.trim() || adding) return;
+    setAdding(true);
+    setLinkError(null);
+    try {
+      const res = await fetch("/api/links", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ compilation: slug, source: picked.source, target: typed.trim() }),
+      });
+      if (!res.ok) {
+        setLinkError(errorText(await errorCode(res)));
+        return;
+      }
+      const made = (await res.json()) as ScriptureLink;
+      setLinks((now) => ({ source: picked.source ?? "", list: [made, ...(now?.list ?? [])] }));
+      setTyped("");
+      setLinking(null);
+    } catch {
+      setLinkError(errorText("unavailable"));
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const actions = formOpen ? (
+    <form className="study-tip-actions study-tip-link" onSubmit={addLink}>
+      <input
+        ref={field}
+        type="text"
+        className="study-tip-field"
+        aria-label={t("tip.linkTo")}
+        placeholder={t("tip.linkPlaceholder")}
+        value={typed}
+        autoComplete="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        onChange={(e) => setTyped(e.target.value)}
+      />
+      <button
+        type="submit"
+        className="study-tip-button"
+        disabled={!hydrated || adding || !typed.trim()}
+      >
+        {t("tip.addLink")}
+      </button>
+      <button
+        type="button"
+        className="study-tip-button"
+        onClick={() => {
+          setLinking(null);
+          setLinkError(null);
+        }}
+      >
+        {t("tip.cancel")}
+      </button>
+    </form>
+  ) : (
     <div className="study-tip-actions">
       {bar ? (
         <button
@@ -228,6 +371,20 @@ export function StudySelection() {
         {t("tip.search")}
       </button>
       <CopyButton text={picked.text} />
+      {canLink ? (
+        <button
+          type="button"
+          className="study-tip-button"
+          onClick={() => {
+            // Typing in the field lets the browser's selection go: the words are held instead.
+            holdSelection(picked);
+            setLinkError(null);
+            setLinking(picked);
+          }}
+        >
+          {t("tip.link")}
+        </button>
+      ) : null}
     </div>
   );
 
@@ -240,9 +397,9 @@ export function StudySelection() {
         role="toolbar"
         aria-label={t("tip.label")}
         className="study-tip study-tip-bar"
-        onMouseDown={(e) => e.preventDefault()}
+        onMouseDown={keepSelection}
       >
-        {explained === picked ? explanation : null}
+        {explained === picked || formOpen ? explanation : null}
         {actions}
       </div>,
       document.body,
@@ -258,7 +415,7 @@ export function StudySelection() {
       aria-label={t("tip.label")}
       className="study-tip"
       style={place}
-      onMouseDown={(e) => e.preventDefault()}
+      onMouseDown={keepSelection}
     >
       {explanation}
       {actions}

@@ -2690,6 +2690,11 @@ a.reading-step:focus-visible {
   color: var(--muted);
 }
 
+/* Names a verse's canonical verses for study mode's selection; it adds no box. */
+.verse-unit {
+  display: contents;
+}
+
 .compare-heading {
   display: block;
   font-family: var(--sans);
@@ -3511,4 +3516,50 @@ html[data-study-docked] .study-dock {
 ::highlight(study-selection) {
   background-color: rgb(0 84 165 / 0.28);
   color: inherit;
+}
+
+/* The links on the selected words, and the form that adds one. */
+.study-tip-links {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.study-tip-links li {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.study-tip-remove {
+  margin-left: auto;
+  font: inherit;
+  line-height: 1;
+  padding: 0.1rem 0.4rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.study-tip-link {
+  align-items: center;
+}
+
+.study-tip-field {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.2rem 0.4rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+}
+
+.study-tip-link .study-tip-button {
+  margin-top: 0;
 }

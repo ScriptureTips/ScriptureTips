@@ -1,3 +1,5 @@
+import { compareRefs, formatOsisRef, parseOsisRef, type VerseRef } from "@scripturetips/passage";
+
 /** The text selected in the page now, trimmed ("" if none). */
 export const selectedText = (): string =>
   (typeof window === "undefined" ? "" : (window.getSelection()?.toString() ?? "")).trim();
@@ -34,7 +36,35 @@ export interface StudyPick {
   readonly text: string;
   /** The Strong's numbers of the marked words in the selection, once each, in reading order. */
   readonly strongs: string[];
+  /**
+   * The canonical verses the selection touches, first to last (OSIS: `Isa.53.4-Isa.53.6`), or
+   * null where they can't be told (outside a verse, or across books).
+   */
+  readonly source: string | null;
   readonly range: Range;
+}
+
+/** The canonical passage of the verses (`.verse-unit`) a range touches in `scope`. */
+function sourceOf(scope: Element, range: Range): string | null {
+  let first: VerseRef | undefined;
+  let last: VerseRef | undefined;
+  for (const unit of scope.querySelectorAll<HTMLElement>("[data-canonical]")) {
+    if (!range.intersectsNode(unit)) continue;
+    for (const osis of (unit.dataset["canonical"] ?? "").split(" ")) {
+      let ref: VerseRef;
+      try {
+        ref = parseOsisRef(osis);
+      } catch {
+        continue;
+      }
+      if (!first || compareRefs(ref, first) < 0) first = ref;
+      if (!last || compareRefs(ref, last) > 0) last = ref;
+    }
+  }
+  if (!first || !last || first.book !== last.book) return null;
+  return compareRefs(first, last) === 0
+    ? formatOsisRef(first)
+    : `${formatOsisRef(first)}-${formatOsisRef(last)}`;
 }
 
 const elementOf = (node: Node): Element | null =>
@@ -54,7 +84,7 @@ export function readPick(): StudyPick | null {
     const strong = word.dataset["strong"];
     if (strong && range.intersectsNode(word) && !strongs.includes(strong)) strongs.push(strong);
   }
-  return { text, strongs, range: range.cloneRange() };
+  return { text, strongs, source: sourceOf(scope, range), range: range.cloneRange() };
 }
 
 // ---- The held selection.

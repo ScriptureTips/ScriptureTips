@@ -134,6 +134,13 @@
       "when": 1793481248483,
       "tag": "0018_favorite-defaults",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794087558630,
+      "tag": "0019_scripture-link",
+      "breakpoints": true
     }
   ]
 }

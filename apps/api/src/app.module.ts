@@ -5,6 +5,8 @@ import { AuthorshipService } from "./compilations/authorship.service.ts";
 import { CompilationsController } from "./compilations/compilations.controller.ts";
 import { CompilationsService } from "./compilations/compilations.service.ts";
 import { DatabaseModule } from "./database.ts";
+import { LinksController } from "./links/links.controller.ts";
+import { LinksService } from "./links/links.service.ts";
 import { PdfBuildsController } from "./pdf-builds/pdf-builds.controller.ts";
 import { BUILD_SETTINGS, PdfBuildsService } from "./pdf-builds/pdf-builds.service.ts";
 import type { BuildSettings } from "./pdf-builds/settings.ts";
@@ -25,6 +27,7 @@ import { TranslationsService } from "./translations/translations.service.ts";
     PdfBuildsController,
     StudyController,
     SearchController,
+    LinksController,
   ],
   providers: [
     TranslationsService,
@@ -34,6 +37,7 @@ import { TranslationsService } from "./translations/translations.service.ts";
     PdfBuildsService,
     StudyService,
     SearchService,
+    LinksService,
   ],
 })
 export class AppModule implements OnApplicationShutdown {
