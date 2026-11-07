@@ -3564,11 +3564,17 @@ html[data-study-docked] .study-dock {
   margin-top: 0;
 }
 
-/* The words a link is pinned to (study/linkAnchor.ts). */
+/* The words a link is pinned to (study/linkAnchor.ts), and, stronger over them, the ones under the
+   mouse. */
 ::highlight(study-link) {
   background-color: rgb(255 193 7 / 0.35);
   text-decoration: underline;
   text-decoration-color: rgb(176 120 0);
+  color: inherit;
+}
+
+::highlight(study-link-hover) {
+  background-color: rgb(255 160 0 / 0.45);
   color: inherit;
 }
 

@@ -884,13 +884,32 @@ test("domain-model §3.1: the tooltip's Link adds a link from the selected words
   await linkSelected("knew Eve", "Gen 4:3");
   await page.keyboard.press("Escape");
   await page.mouse.click(5, 5);
-  await expect.poll(pinnedWords).toHaveLength(2);
+  // Overlapping links are drawn as one run.
+  await expect.poll(pinnedWords).toEqual(["knew Eve"]);
+  await own.screenshot(shot("reading-area-study-link-overlap"));
   const shared = await eve.boundingBox();
   if (!shared) throw new Error("No Eve.");
   await page.mouse.click(shared.x + shared.width / 2, shared.y + shared.height / 2);
   await expect(tip).toBeVisible();
   expect(await page.evaluate(() => getSelection()?.toString())).toBe("knew Eve");
   await expect(tip.getByRole("list", { name: "Links" }).getByRole("listitem")).toHaveCount(2);
+
+  // The marked words under the mouse are drawn stronger: "knew" is in one link, "Eve" in both.
+  await page.keyboard.press("Escape");
+  await page.mouse.click(5, 5);
+  const hovered = () =>
+    page.evaluate(() =>
+      [...(CSS.highlights.get("study-link-hover") ?? [])].map((range) => range.toString()),
+    );
+  const knew = await own.locator('.study-word[data-strong="H3045"]').first().boundingBox();
+  if (!knew) throw new Error("No knew.");
+  await page.mouse.move(knew.x + knew.width / 2, knew.y + knew.height / 2);
+  await expect.poll(hovered).toEqual(["knew Eve"]);
+  await page.mouse.move(shared.x + shared.width / 2, shared.y + shared.height / 2);
+  await expect.poll(hovered).toEqual(["knew Eve"]);
+  await own.screenshot(shot("reading-area-study-link-hover"));
+  await page.mouse.move(5, 5);
+  await expect.poll(hovered).toEqual([]);
 });
 
 test("vision §3.14: several searches on one page keep their own scope, and their parts share state", async ({

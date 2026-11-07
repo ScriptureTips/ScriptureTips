@@ -17,13 +17,13 @@ test.skip(({ isMobile }) => !isMobile, "The phone layout only.");
 
 const expect = baseExpect.configure({ timeout: 15_000 });
 
-async function create(page: Page, title: string, abbreviation: string) {
+async function create(page: Page, title: string, abbreviation: string, base = "eng-kjv") {
   await signUp(page);
   await page.goto("/compilations");
   await openNewCompilation(page);
   await page.getByRole("textbox", { name: "Title" }).fill(title);
   await page.getByRole("textbox", { name: "Abbreviation" }).fill(abbreviation);
-  await page.getByRole("combobox", { name: "Base translation" }).selectOption("eng-kjv");
+  await page.getByRole("combobox", { name: "Base translation" }).selectOption(base);
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page).toHaveURL(new RegExp(`/compilations/${abbreviation.toLowerCase()}$`), {
     timeout: 15_000,
@@ -639,6 +639,73 @@ test("domain-model §3.1: on a phone, the tooltip's Link adds a link, and a tap 
   await expect(tip).toBeVisible();
   await expect(links).toContainText("4:25");
   await page.screenshot({ ...shot("reading-area-phone-study-link-tapped"), fullPage: false });
+});
+
+test("domain-model §3.1: on a phone, three links on nested words are drawn in full, as one run", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await create(page, "Nested Phone", "Nest", "engkjvcpb");
+  await page.goto("/compilations/nest?book=Gen&chapter=1&mode=compare&study=1");
+  await page.waitForLoadState("networkidle");
+  const verse = page
+    .locator(".compare-list-verse")
+    .filter({ hasText: "divide the light from the darkness" });
+  await expect(page.getByRole("button", { name: "Study", exact: true })).toBeEnabled();
+  await verse.scrollIntoViewIfNeeded();
+
+  // Three links made from nested words, as the tooltip would (anchors counted in the verse's
+  // words), through the API.
+  const made = await verse.evaluate(async (el) => {
+    const unit = el.querySelector<HTMLElement>(".verse-unit");
+    const words = el.querySelector(".verse-words");
+    if (!unit || !words) throw new Error("No verse.");
+    const nodes: Text[] = [];
+    const walker = document.createTreeWalker(words, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode())
+      if (!n.parentElement?.closest(".note-mark, .designation, .idiom-mark")) nodes.push(n as Text);
+    const all = nodes.map((n) => n.data).join("");
+    const start = all.indexOf("divide the light");
+    const verseKey = unit.dataset["canonical"] ?? "";
+    const link = async (text: string, from: number, target: string) => {
+      const res = await fetch("/api/links", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          compilation: "nest",
+          source: verseKey,
+          target,
+          quote: text,
+          anchor: {
+            in: unit.dataset["wordsIn"],
+            compilation: "nest",
+            start: { verse: verseKey, offset: from },
+            end: { verse: verseKey, offset: from + text.length },
+          },
+        }),
+      });
+      return res.status;
+    };
+    return [
+      await link("and to divide the light", start - "and to ".length, "Gen 1:2"),
+      await link("divide the light from the darkness", start, "Gen 1:4"),
+      await link("the", start + "divide ".length, "Gen 1:5"),
+    ];
+  });
+  expect(made).toEqual([201, 201, 201]);
+  await page.setViewportSize({ width: Number(process.env["W"] ?? 412), height: 915 });
+
+  await page.reload();
+  await page.waitForLoadState("networkidle");
+  await verse.scrollIntoViewIfNeeded();
+  const drawn = () =>
+    page.evaluate(() =>
+      [...(CSS.highlights.get("study-link") ?? [])].map((range) => range.toString()),
+    );
+  await expect.poll(async () => (await drawn()).length).toBe(1);
+  await verse.screenshot(shot("reading-area-phone-study-link-nested"));
+  // The three overlap: drawn as one run, "and to divide the light from the darkness".
+  expect(await drawn()).toEqual(["and to divide the light from the darkness"]);
 });
 
 test("vision §3.2: on a phone, the study window stays on screen and its corner can be dragged", async ({

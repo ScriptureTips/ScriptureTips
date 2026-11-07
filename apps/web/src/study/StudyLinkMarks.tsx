@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { type Anchor, LINK_HIGHLIGHT, paintLinks } from "./linkAnchor.ts";
+import { type Anchor, hoverLinks, LINK_HIGHLIGHT, LINK_HOVER, paintLinks } from "./linkAnchor.ts";
 import { canonicalSpan } from "./selection.ts";
 
 /** Fired when a link is added or removed, so the marks are drawn again. */
@@ -46,15 +46,38 @@ export function StudyLinkMarks({ slug }: { slug: string }) {
       timer = window.setTimeout(draw, 100);
     });
     observer.observe(document.body, { childList: true, subtree: true });
+    // With a mouse, the marked words under the pointer are drawn stronger.
+    let frame = 0;
+    const hover = (e: MouseEvent) => {
+      window.cancelAnimationFrame(frame);
+      const over = e.target instanceof Element && e.target.closest(".study-tip") === null;
+      frame = window.requestAnimationFrame(() =>
+        hoverLinks(over ? { x: e.clientX, y: e.clientY } : null),
+      );
+    };
+    const clearHover = () => {
+      window.cancelAnimationFrame(frame);
+      hoverLinks(null);
+    };
+    document.addEventListener("mousemove", hover);
+    document.addEventListener("mouseleave", clearHover);
+    window.addEventListener("scroll", clearHover, true);
     window.addEventListener(LINKS_CHANGED, load);
     window.addEventListener("resize", draw);
     return () => {
       current = false;
       observer.disconnect();
       window.clearTimeout(timer);
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener("mousemove", hover);
+      document.removeEventListener("mouseleave", clearHover);
+      window.removeEventListener("scroll", clearHover, true);
       window.removeEventListener(LINKS_CHANGED, load);
       window.removeEventListener("resize", draw);
-      if (typeof CSS !== "undefined" && "highlights" in CSS) CSS.highlights.delete(LINK_HIGHLIGHT);
+      if (typeof CSS !== "undefined" && "highlights" in CSS) {
+        CSS.highlights.delete(LINK_HIGHLIGHT);
+        CSS.highlights.delete(LINK_HOVER);
+      }
     };
   }, [slug]);
   return null;

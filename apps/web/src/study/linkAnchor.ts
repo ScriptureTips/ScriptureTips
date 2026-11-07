@@ -203,8 +203,10 @@ function pinnedRange(words: Element[], anchor: Anchor, quote: string): Range | n
   return best < 0 ? null : at({ start: best, end: best + quote.length });
 }
 
-/** The name of the highlight (styled in globals.css as `::highlight(study-link)`). */
+/** The names of the highlights (styled in globals.css as `::highlight(study-link)` …). */
 export const LINK_HIGHLIGHT = "study-link";
+/** The words under the pointer, drawn stronger on top of the others. */
+export const LINK_HOVER = "study-link-hover";
 
 /** The words drawn now, each with the link it's for. */
 let painted: { range: Range; id: string }[] = [];
@@ -215,7 +217,47 @@ let painted: { range: Range; id: string }[] = [];
  * every link whose words hold it. Null where none are.
  */
 export function linksAt(x: number, y: number): { range: Range; ids: string[] } | null {
-  if (painted.length === 0) return null;
+  const here = drawnAt(x, y);
+  const [first, ...rest] = here;
+  if (!first) return null;
+  const union = first.range.cloneRange();
+  for (const { range } of rest) {
+    if (range.compareBoundaryPoints(Range.START_TO_START, union) < 0)
+      union.setStart(range.startContainer, range.startOffset);
+    if (range.compareBoundaryPoints(Range.END_TO_END, union) > 0)
+      union.setEnd(range.endContainer, range.endOffset);
+  }
+  return { range: union, ids: [...new Set(here.map((h) => h.id))] };
+}
+
+/**
+ * The ranges with any that overlap or touch joined, in reading order. A highlight is drawn as if
+ * its overlapping ranges were joined, but Firefox for Android (159) draws that wrongly across a
+ * line break (the end of a nested selection cut off at the end of a line; Chromium and desktop
+ * are right), so it's done here. Retest in Firefox for Android before removing it.
+ */
+export function joined(ranges: readonly Range[]): Range[] {
+  const sorted = [...ranges].sort((a, b) => a.compareBoundaryPoints(Range.START_TO_START, b));
+  const out: Range[] = [];
+  let current: Range | undefined;
+  for (const range of sorted) {
+    if (!current) {
+      current = range.cloneRange();
+    } else if (current.comparePoint(range.startContainer, range.startOffset) <= 0) {
+      if (current.comparePoint(range.endContainer, range.endOffset) > 0)
+        current.setEnd(range.endContainer, range.endOffset);
+    } else {
+      out.push(current);
+      current = range.cloneRange();
+    }
+  }
+  if (current) out.push(current);
+  return out;
+}
+
+/** Every range drawn that holds the point on the screen. */
+function drawnAt(x: number, y: number): { range: Range; id: string }[] {
+  if (painted.length === 0) return [];
   let node: Node | undefined;
   let offset = 0;
   if (document.caretPositionFromPoint) {
@@ -227,23 +269,25 @@ export function linksAt(x: number, y: number): { range: Range; ids: string[] } |
     node = at?.startContainer;
     offset = at?.startOffset ?? 0;
   }
-  if (!node) return null;
-  const here = painted.filter(
+  const found = node;
+  if (!found) return [];
+  return painted.filter(
     ({ range }) =>
-      range.comparePoint(node, offset) === 0 &&
+      range.comparePoint(found, offset) === 0 &&
       // The start itself is the gap before the first letter.
-      !(range.startContainer === node && range.startOffset === offset),
+      !(range.startContainer === found && range.startOffset === offset),
   );
-  const [first, ...rest] = here;
-  if (!first) return null;
-  const union = first.range.cloneRange();
-  for (const { range } of rest) {
-    if (range.compareBoundaryPoints(Range.START_TO_START, union) < 0)
-      union.setStart(range.startContainer, range.startOffset);
-    if (range.compareBoundaryPoints(Range.END_TO_END, union) > 0)
-      union.setEnd(range.endContainer, range.endOffset);
-  }
-  return { range: union, ids: [...new Set(here.map((h) => h.id))] };
+}
+
+/**
+ * Draws the marked words under the pointer stronger, all of them, as a click would select them;
+ * nowhere marked (or null) clears it.
+ */
+export function hoverLinks(at: { x: number; y: number } | null): void {
+  if (typeof CSS === "undefined" || !("highlights" in CSS)) return;
+  const ranges = at ? joined(drawnAt(at.x, at.y).map((h) => h.range)) : [];
+  if (ranges.length === 0) CSS.highlights.delete(LINK_HOVER);
+  else CSS.highlights.set(LINK_HOVER, new Highlight(...ranges));
 }
 
 /** Draws the words the user's links are pinned to; no links, or no support, clears it. */
@@ -258,7 +302,7 @@ export function paintLinks(
       (range) => ({ range, id: l.id }),
     ),
   );
-  const ranges = painted.map((p) => p.range);
+  const ranges = joined(painted.map((p) => p.range));
   if (ranges.length === 0) CSS.highlights.delete(LINK_HIGHLIGHT);
   else CSS.highlights.set(LINK_HIGHLIGHT, new Highlight(...ranges));
 }
