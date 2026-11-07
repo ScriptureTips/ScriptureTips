@@ -839,10 +839,58 @@ test("domain-model §3.1: the tooltip's Link adds a link from the selected words
   await dragAcross(page, eve);
   await expect(tip.getByRole("list", { name: "Links" })).toContainText("4:25");
 
+  // A click on the marked words opens the tooltip with the links pinned to them; a click on
+  // other words in the verse doesn't.
+  await page.keyboard.press("Escape");
+  await expect(tip).toBeHidden();
+  await own.getByText("conceived").first().click();
+  await expect(tip).toBeHidden();
+  const centre = await eve.boundingBox();
+  if (!centre) throw new Error("No Eve.");
+  await page.mouse.click(centre.x + centre.width / 2, centre.y + centre.height / 2);
+  await expect(tip).toBeVisible();
+  await expect(tip).toContainText("Eve");
+  await expect(tip.getByRole("list", { name: "Links" })).toContainText("4:25");
+  await page.screenshot(shot("reading-area-study-link-clicked"));
+  await page.keyboard.press("Escape");
+  await expect(tip).toBeHidden();
+  // Pressing on selected text would drag it: let the selection go first.
+  await page.mouse.click(5, 5);
+  await dragAcross(page, eve);
+  await expect(tip).toBeVisible();
+
   // It can be removed, and its words are no longer drawn.
   await tip.getByRole("button", { name: /^Remove the link to/ }).click();
   await expect(tip.getByRole("list", { name: "Links" })).toHaveCount(0);
   await expect.poll(pinnedWords).toEqual([]);
+
+  // Two links on overlapping words: a click on a shared word selects both links' words, and
+  // lists both links.
+  const linkSelected = async (words: string, target: string) => {
+    await page.mouse.click(5, 5);
+    await page.evaluate((text) => {
+      getSelection()?.removeAllRanges();
+      (window as unknown as { find: (s: string) => boolean }).find(text);
+      document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    }, words);
+    await tip.getByRole("button", { name: "Link", exact: true }).click();
+    await tip.getByRole("textbox", { name: "Passage to link these words to" }).fill(target);
+    await tip.getByRole("button", { name: "Add link" }).click();
+    await expect(tip.getByRole("list", { name: "Links" })).toContainText(
+      target.replace("Gen ", ""),
+    );
+  };
+  await linkSelected("Eve", "Gen 4:2");
+  await linkSelected("knew Eve", "Gen 4:3");
+  await page.keyboard.press("Escape");
+  await page.mouse.click(5, 5);
+  await expect.poll(pinnedWords).toHaveLength(2);
+  const shared = await eve.boundingBox();
+  if (!shared) throw new Error("No Eve.");
+  await page.mouse.click(shared.x + shared.width / 2, shared.y + shared.height / 2);
+  await expect(tip).toBeVisible();
+  expect(await page.evaluate(() => getSelection()?.toString())).toBe("knew Eve");
+  await expect(tip.getByRole("list", { name: "Links" }).getByRole("listitem")).toHaveCount(2);
 });
 
 test("vision §3.14: several searches on one page keep their own scope, and their parts share state", async ({

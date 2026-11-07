@@ -6,7 +6,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { errorCode, useErrorText } from "../compilations/errors.ts";
 import { useHydrated } from "../hydrated.ts";
-import { type Anchor, readAnchor } from "./linkAnchor.ts";
+import { type Anchor, linksAt, readAnchor } from "./linkAnchor.ts";
 import { openStudyMenu } from "./menuBus.ts";
 import { LINKS_CHANGED } from "./StudyLinkMarks.tsx";
 import { useStudy } from "./StudyProvider.tsx";
@@ -54,6 +54,7 @@ const WIDTH = 360;
  * a word is double-clicked), it opens by the selection with the marked words in it, each with its
  * Hebrew or Greek word, its number, how often it's used and what the dictionaries say. It closes
  * on Escape, a click elsewhere, or when the selection goes. Clicking in it keeps the selection.
+ * A click on words a link is pinned to selects them and opens it, listing the links pinned there.
  */
 export function StudySelection({ slug }: { slug: string }) {
   const words = useStudy();
@@ -82,6 +83,9 @@ export function StudySelection({ slug }: { slug: string }) {
   const [linkError, setLinkError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const field = useRef<HTMLInputElement>(null);
+  // The links pinned to the words that were clicked, when the selection is a click on words a
+  // link is pinned to: only those are listed. Null for any other selection.
+  const only = useRef<string[] | null>(null);
   // Whether the form is open, for the selection handler: focusing its field lets the browser's
   // selection go, which mustn't close the tooltip. (The words are held for it.)
   const linkOpen = useRef(false);
@@ -95,6 +99,18 @@ export function StudySelection({ slug }: { slug: string }) {
     // After the browser has finished the selection (a double click selects its word on mouse up).
     const up = (e: MouseEvent) => {
       if (inTip(e)) return;
+      only.current = null;
+      // A click on words a link is pinned to selects them, as if they had been selected by hand.
+      // It's done now, so the click this ends sees a selection (`ignoresClick`).
+      const selection = window.getSelection();
+      if (selection?.isCollapsed && inText(e)) {
+        const hit = linksAt(e.clientX, e.clientY);
+        if (hit) {
+          only.current = hit.ids;
+          selection.removeAllRanges();
+          selection.addRange(hit.range.cloneRange());
+        }
+      }
       window.setTimeout(() => {
         const pick = readPick();
         // Other words selected replace the held ones.
@@ -108,6 +124,7 @@ export function StudySelection({ slug }: { slug: string }) {
       if (inTip(e)) return;
       // Pressing on the text again ends the held selection.
       if (inText(e)) dropHeldSelection();
+      only.current = null;
       if (open.current) {
         noteDismissal();
         // Clicking a button doesn't clear the selection: without this, letting go would find
@@ -235,11 +252,14 @@ export function StudySelection({ slug }: { slug: string }) {
     ? { left, bottom: window.innerHeight - rect.top + 8, maxHeight }
     : { left, top: rect.bottom + 8, maxHeight };
   const canLink = links !== null && picked.source !== null;
+  const shownLinks = (links?.list ?? []).filter(
+    (l) => !only.current || only.current.includes(l.id),
+  );
   const listed = picked.strongs.slice(0, MOST);
   const text = picked.text.length > 120 ? `${picked.text.slice(0, 120)}…` : picked.text;
 
-  const explanation = (
-    <div className="study-tip-body">
+  const wordList = (
+    <>
       <p className="study-tip-text">{`“${text}”`}</p>
       {listed.length === 0 ? (
         <p className="study-tip-empty">{t("tip.none")}</p>
@@ -253,9 +273,16 @@ export function StudySelection({ slug }: { slug: string }) {
       {picked.strongs.length > MOST ? (
         <p className="study-tip-empty">{t("tip.more", { count: picked.strongs.length - MOST })}</p>
       ) : null}
-      {links && links.list.length > 0 ? (
+    </>
+  );
+
+  // The links on the words, and why the last try at one failed. On a phone they show without
+  // asking for the words to be explained.
+  const linkList = (
+    <>
+      {shownLinks.length > 0 ? (
         <ul className="study-tip-links" aria-label={t("tip.links")}>
-          {links.list.map((link) => (
+          {shownLinks.map((link) => (
             <li key={link.id}>
               <span aria-hidden="true">{link.end === "source" ? "→" : "←"}</span>{" "}
               {link.end === "source" ? <Quote text={link.quote} /> : null}
@@ -286,6 +313,13 @@ export function StudySelection({ slug }: { slug: string }) {
           {linkError}
         </p>
       ) : null}
+    </>
+  );
+
+  const explanation = (
+    <div className="study-tip-body">
+      {wordList}
+      {linkList}
     </div>
   );
 
@@ -312,6 +346,7 @@ export function StudySelection({ slug }: { slug: string }) {
         return;
       }
       const made = (await res.json()) as ScriptureLink;
+      if (only.current) only.current = [...only.current, made.id];
       setLinks((now) => ({ source: picked.source ?? "", list: [made, ...(now?.list ?? [])] }));
       window.dispatchEvent(new Event(LINKS_CHANGED));
       setTyped("");
@@ -417,7 +452,11 @@ export function StudySelection({ slug }: { slug: string }) {
         className="study-tip study-tip-bar"
         onMouseDown={keepSelection}
       >
-        {explained === picked || formOpen ? explanation : null}
+        {explained === picked || formOpen ? (
+          explanation
+        ) : shownLinks.length > 0 ? (
+          <div className="study-tip-body">{linkList}</div>
+        ) : null}
         {actions}
       </div>,
       document.body,

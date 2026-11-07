@@ -589,6 +589,58 @@ test("vision §3.2: on a phone, words can be selected in study mode, and the too
   await expect(study.getByRole("combobox", { name: "Search" })).toHaveValue("Eve");
 });
 
+test("domain-model §3.1: on a phone, the tooltip's Link adds a link, and a tap on its words lists it", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await create(page, "Link Phone", "Touch");
+  await page.goto("/compilations/touch?book=Gen&chapter=4&mode=compare&study=1");
+  await page.waitForLoadState("networkidle");
+  const verse = page.locator(".compare-list-verse").first();
+  const eve = verse.locator('.study-word[data-strong="H2332"]').first();
+  await expect(page.getByRole("button", { name: "Study", exact: true })).toBeEnabled();
+  await eve.scrollIntoViewIfNeeded();
+  const select = () =>
+    eve.evaluate((el) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      const selection = getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    });
+  await eve.tap();
+  await select();
+  const tip = page.getByRole("toolbar", { name: "The selected words" });
+  await expect(tip).toBeVisible();
+
+  // Link swaps the bar's buttons for the field, and the links list shows without Explain.
+  await tip.getByRole("button", { name: "Link", exact: true }).tap();
+  const field = tip.getByRole("textbox", { name: "Passage to link these words to" });
+  await expect(field).toBeVisible();
+  await field.fill("Gen 4:25");
+  await tip.getByRole("button", { name: "Add link" }).tap();
+  const links = tip.getByRole("list", { name: "Links" });
+  await expect(links).toContainText("4:25");
+  await expect(tip.getByRole("button", { name: "Link", exact: true })).toBeVisible();
+  await page.screenshot({ ...shot("reading-area-phone-study-link-listed"), fullPage: false });
+
+  // Let go of it, then a tap on the marked words brings the links back.
+  await page.evaluate(() => getSelection()?.removeAllRanges());
+  await page.mouse.click(5, 5);
+  await expect(tip).toBeHidden();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        [...(CSS.highlights.get("study-link") ?? [])].map((range) => range.toString()),
+      ),
+    )
+    .toEqual(["Eve"]);
+  await eve.tap();
+  await expect(tip).toBeVisible();
+  await expect(links).toContainText("4:25");
+  await page.screenshot({ ...shot("reading-area-phone-study-link-tapped"), fullPage: false });
+});
+
 test("vision §3.2: on a phone, the study window stays on screen and its corner can be dragged", async ({
   page,
 }) => {

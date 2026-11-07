@@ -206,16 +206,59 @@ function pinnedRange(words: Element[], anchor: Anchor, quote: string): Range | n
 /** The name of the highlight (styled in globals.css as `::highlight(study-link)`). */
 export const LINK_HIGHLIGHT = "study-link";
 
+/** The words drawn now, each with the link it's for. */
+let painted: { range: Range; id: string }[] = [];
+
+/**
+ * The words drawn at a point on the screen, with the links pinned to them: the range from the
+ * start of the earliest of the words holding the point to the end of the latest, and the IDs of
+ * every link whose words hold it. Null where none are.
+ */
+export function linksAt(x: number, y: number): { range: Range; ids: string[] } | null {
+  if (painted.length === 0) return null;
+  let node: Node | undefined;
+  let offset = 0;
+  if (document.caretPositionFromPoint) {
+    const at = document.caretPositionFromPoint(x, y);
+    node = at?.offsetNode;
+    offset = at?.offset ?? 0;
+  } else {
+    const at = document.caretRangeFromPoint?.(x, y);
+    node = at?.startContainer;
+    offset = at?.startOffset ?? 0;
+  }
+  if (!node) return null;
+  const here = painted.filter(
+    ({ range }) =>
+      range.comparePoint(node, offset) === 0 &&
+      // The start itself is the gap before the first letter.
+      !(range.startContainer === node && range.startOffset === offset),
+  );
+  const [first, ...rest] = here;
+  if (!first) return null;
+  const union = first.range.cloneRange();
+  for (const { range } of rest) {
+    if (range.compareBoundaryPoints(Range.START_TO_START, union) < 0)
+      union.setStart(range.startContainer, range.startOffset);
+    if (range.compareBoundaryPoints(Range.END_TO_END, union) > 0)
+      union.setEnd(range.endContainer, range.endOffset);
+  }
+  return { range: union, ids: [...new Set(here.map((h) => h.id))] };
+}
+
 /** Draws the words the user's links are pinned to; no links, or no support, clears it. */
 export function paintLinks(
   scope: Element,
   compilation: string,
-  links: readonly { quote: string | null; anchor: Anchor | null }[],
+  links: readonly { id: string; quote: string | null; anchor: Anchor | null }[],
 ): void {
   if (typeof CSS === "undefined" || !("highlights" in CSS)) return;
-  const ranges = links.flatMap((l) =>
-    l.anchor && l.quote ? anchorRanges(scope, l.anchor, l.quote, compilation) : [],
+  painted = links.flatMap((l) =>
+    (l.anchor && l.quote ? anchorRanges(scope, l.anchor, l.quote, compilation) : []).map(
+      (range) => ({ range, id: l.id }),
+    ),
   );
+  const ranges = painted.map((p) => p.range);
   if (ranges.length === 0) CSS.highlights.delete(LINK_HIGHLIGHT);
   else CSS.highlights.set(LINK_HIGHLIGHT, new Highlight(...ranges));
 }

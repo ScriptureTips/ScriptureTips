@@ -9,6 +9,7 @@ export const LINKS_CHANGED = "st-links-changed";
 
 /** apps/api `LinkView`, as far as drawing the marks needs. */
 interface Pinned {
+  id: string;
   quote: string | null;
   anchor: Anchor | null;
 }
