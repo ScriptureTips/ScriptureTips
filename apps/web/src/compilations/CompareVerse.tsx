@@ -22,8 +22,11 @@ export function VerseHeadings({ verse }: { verse: Verse }) {
 
 /**
  * A verse in the compare and edit modes: its headings, its number, then its words. It's wrapped
- * in a span that adds no box (`.verse-unit`) naming the canonical verses it holds, so study mode
- * can tell which verses a selection touches (`readPick`).
+ * in a span that adds no box (`.verse-unit`) naming the canonical verses it holds, and whose
+ * wording it is (`data-words-in`: the translation's catalog ID, or `@compilation` where the
+ * compilation changed it), so study mode can tell which verses and words a selection touches
+ * (`readPick`) and mark the words a link is pinned to (`study/linkAnchor.ts`). The words alone
+ * are in `.verse-words`, which offsets are counted in.
  */
 export function VerseText({
   verse,
@@ -41,10 +44,13 @@ export function VerseText({
     <span
       className="verse-unit"
       data-canonical={verse.canonical.length > 0 ? verse.canonical.join(" ") : undefined}
+      data-words-in={verse.edit || verse.rendering ? "@compilation" : source}
     >
       <VerseHeadings verse={verse} />
       <sup className="compare-number">{number}</sup>{" "}
-      <ShownText nodes={noteBody(verse.content)} study={study} />
+      <span className="verse-words">
+        <ShownText nodes={noteBody(verse.content)} study={study} />
+      </span>
     </span>
   );
 }

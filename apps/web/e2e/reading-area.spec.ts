@@ -822,18 +822,27 @@ test("domain-model §3.1: the tooltip's Link adds a link from the selected words
   await expect(field).toBeHidden();
   await expect(tip.getByRole("button", { name: "Link", exact: true })).toBeVisible();
   await page.screenshot(shot("reading-area-study-link-listed"));
+  // The words are quoted in the list, and drawn in the wording they were pinned to.
+  await expect(links).toContainText("Eve");
+  const pinnedWords = () =>
+    page.evaluate(() =>
+      [...(CSS.highlights.get("study-link") ?? [])].map((range) => range.toString()),
+    );
+  await expect.poll(pinnedWords).toEqual(["Eve"]);
 
   // Selected again, even after a reload, the words show it; so does the other end.
   await page.keyboard.press("Escape");
   await expect(tip).toBeHidden();
   await page.reload();
   await settled(page);
+  await expect.poll(pinnedWords).toEqual(["Eve"]);
   await dragAcross(page, eve);
   await expect(tip.getByRole("list", { name: "Links" })).toContainText("4:25");
 
-  // It can be removed.
+  // It can be removed, and its words are no longer drawn.
   await tip.getByRole("button", { name: /^Remove the link to/ }).click();
   await expect(tip.getByRole("list", { name: "Links" })).toHaveCount(0);
+  await expect.poll(pinnedWords).toEqual([]);
 });
 
 test("vision §3.14: several searches on one page keep their own scope, and their parts share state", async ({

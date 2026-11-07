@@ -141,6 +141,13 @@
       "when": 1794087558630,
       "tag": "0019_scripture-link",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794089044585,
+      "tag": "0020_link-words",
+      "breakpoints": true
     }
   ]
 }

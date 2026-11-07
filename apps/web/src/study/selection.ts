@@ -44,6 +44,13 @@ export interface StudyPick {
   readonly range: Range;
 }
 
+/** The canonical passage of every verse shown under `scope` (OSIS), or null if none or across books. */
+export function canonicalSpan(scope: Element): string | null {
+  const range = document.createRange();
+  range.selectNodeContents(scope);
+  return sourceOf(scope, range);
+}
+
 /** The canonical passage of the verses (`.verse-unit`) a range touches in `scope`. */
 function sourceOf(scope: Element, range: Range): string | null {
   let first: VerseRef | undefined;

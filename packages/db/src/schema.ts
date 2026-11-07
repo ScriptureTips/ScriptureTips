@@ -950,6 +950,19 @@ export const scriptureLink = pgTable(
     targetRange: int4range("target_range").notNull(),
     enteredScheme: text("entered_scheme").notNull(),
     enteredRef: text("entered_ref").notNull(),
+    /** The words selected, as they read then (whitespace squashed); null for a link made without. */
+    quote: text("quote"),
+    /**
+     * Where those words are pinned: the wording they were selected in (a translation's catalog ID,
+     * or `@compilation`), the verses, and character offsets in them (apps/api `Anchor`, web
+     * `study/linkAnchor.ts`). Null where no one wording applies. The link itself is verse to verse.
+     */
+    anchor: jsonb("anchor").$type<{
+      in: string;
+      compilation: string;
+      start: { verse: string; offset: number };
+      end: { verse: string; offset: number };
+    }>(),
     relationshipType: text("relationship_type", {
       enum: ["complements", "parallels", "expands", "fulfills", "quotes", "contrasts"],
     }),

@@ -6,7 +6,9 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { errorCode, useErrorText } from "../compilations/errors.ts";
 import { useHydrated } from "../hydrated.ts";
+import { type Anchor, readAnchor } from "./linkAnchor.ts";
 import { openStudyMenu } from "./menuBus.ts";
+import { LINKS_CHANGED } from "./StudyLinkMarks.tsx";
 import { useStudy } from "./StudyProvider.tsx";
 import { STUDY_SEARCH } from "./StudySearch.tsx";
 import {
@@ -28,6 +30,8 @@ interface Lemma {
 /** apps/api `LinkView`: a link of the user's, seen from the selected passage. */
 interface ScriptureLink {
   id: string;
+  quote: string | null;
+  anchor: Anchor | null;
   other: { osis: string; label: string };
   end: "source" | "target";
 }
@@ -36,6 +40,9 @@ interface ScriptureLink {
 const keepSelection = (e: { target: EventTarget; preventDefault: () => void }) => {
   if (!(e.target instanceof HTMLInputElement)) e.preventDefault();
 };
+
+/** The most characters of selected words a link keeps (apps/api `MAX_QUOTE`). */
+const MAX_QUOTE = 500;
 
 /** The most words the tooltip lists; a long selection says how many more. */
 const MOST = 6;
@@ -251,17 +258,20 @@ export function StudySelection({ slug }: { slug: string }) {
           {links.list.map((link) => (
             <li key={link.id}>
               <span aria-hidden="true">{link.end === "source" ? "→" : "←"}</span>{" "}
+              {link.end === "source" ? <Quote text={link.quote} /> : null}
               <span>{link.other.label}</span>
+              {link.end === "target" ? <Quote text={link.quote} /> : null}
               <button
                 type="button"
                 className="study-tip-remove"
                 aria-label={t("tip.unlink", { passage: link.other.label })}
                 onClick={() => {
                   void fetch(`/api/links/${link.id}`, { method: "DELETE" }).then((res) => {
-                    if (res.ok)
-                      setLinks((now) =>
-                        now ? { ...now, list: now.list.filter((l) => l.id !== link.id) } : now,
-                      );
+                    if (!res.ok) return;
+                    setLinks((now) =>
+                      now ? { ...now, list: now.list.filter((l) => l.id !== link.id) } : now,
+                    );
+                    window.dispatchEvent(new Event(LINKS_CHANGED));
                   });
                 }}
               >
@@ -288,7 +298,14 @@ export function StudySelection({ slug }: { slug: string }) {
       const res = await fetch("/api/links", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ compilation: slug, source: picked.source, target: typed.trim() }),
+        body: JSON.stringify({
+          compilation: slug,
+          source: picked.source,
+          target: typed.trim(),
+          quote: picked.text.slice(0, MAX_QUOTE),
+          // The words are pinned only if the whole quote is kept.
+          anchor: pinned(picked, slug),
+        }),
       });
       if (!res.ok) {
         setLinkError(errorText(await errorCode(res)));
@@ -296,6 +313,7 @@ export function StudySelection({ slug }: { slug: string }) {
       }
       const made = (await res.json()) as ScriptureLink;
       setLinks((now) => ({ source: picked.source ?? "", list: [made, ...(now?.list ?? [])] }));
+      window.dispatchEvent(new Event(LINKS_CHANGED));
       setTyped("");
       setLinking(null);
     } catch {
@@ -422,6 +440,20 @@ export function StudySelection({ slug }: { slug: string }) {
     </div>,
     document.body,
   );
+}
+
+/** The words, quoted, as a link keeps them. */
+function Quote({ text }: { text: string | null }) {
+  return text ? <q className="study-tip-quote">{text}</q> : null;
+}
+
+/** Where the selected words are pinned, if there's one wording to pin them to. */
+function pinned(pick: StudyPick, slug: string): Anchor | undefined {
+  if (pick.text.length > MAX_QUOTE) return undefined;
+  const node = pick.range.commonAncestorContainer;
+  const element = node instanceof Element ? node : node.parentElement;
+  const scope = element?.closest(SCOPE);
+  return (scope && readAnchor(scope, pick.range, slug)) || undefined;
 }
 
 function WordCard({ strong, lemma }: { strong: string; lemma: Lemma | null | undefined }) {

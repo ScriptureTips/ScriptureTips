@@ -99,6 +99,38 @@ describe("domain-model §3.1: scripture links", () => {
     expect(res.json()).toMatchObject({ end: "source", other: { osis: "Joel.3.1" } });
   });
 
+  it("keeps the words and where they're pinned, and shows them from either end", async () => {
+    const anchor = {
+      in: "kjv",
+      compilation: "mine",
+      start: { verse: "Joel.3.2", offset: 4 },
+      end: { verse: "Joel.3.2", offset: 9 },
+    };
+    const res = await call("POST", owner, "/api/links", {
+      compilation: "mine",
+      source: "Joel.3.2",
+      target: "Joel 2:28",
+      quote: "words",
+      anchor,
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json()).toMatchObject({ quote: "words", anchor });
+    for (const ref of ["Joel.3.2", "Joel.3.1"])
+      expect((await list(owner, ref)).json().links).toContainEqual(
+        expect.objectContaining({ id: res.json().id, quote: "words", anchor }),
+      );
+    // An anchor that isn't one is refused.
+    const bad = await call("POST", owner, "/api/links", {
+      compilation: "mine",
+      source: "Joel.3.2",
+      target: "Joel 2:28",
+      quote: "words",
+      anchor: { ...anchor, start: { verse: "Joel.3.2", offset: -1 } },
+    });
+    expect(bad.statusCode).toBe(400);
+    await call("DELETE", owner, `/api/links/${res.json().id}`);
+  });
+
   it("shows the link from either end, with the other end named", async () => {
     const fromSource = (await list(owner, "Joel.3.2")).json().links;
     expect(fromSource).toMatchObject([{ id, end: "source", other: { osis: "Joel.3.1" } }]);

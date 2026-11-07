@@ -25,12 +25,39 @@ const Osis = z
     /^[1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?(-[1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?)?$/,
   );
 
+const Point = z
+  .object({
+    verse: z
+      .string()
+      .regex(
+        /^([1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?)( [1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?)*$/,
+      ),
+    offset: z.number().int().min(0).max(100_000),
+  })
+  .strict();
+
+/** The wording the selected words were in (a catalog ID or `@compilation`), and where they sit. */
+const Anchor = z
+  .object({
+    in: z.string().regex(/^(@compilation|[A-Za-z0-9_-]{1,40})$/),
+    compilation: z.string().regex(/^[a-z0-9]{2,12}$/i),
+    start: Point,
+    end: Point,
+  })
+  .strict();
+
+/** The most characters of selected words a link keeps. */
+const MAX_QUOTE = 500;
+
 const NewLink = z
   .object({
     /** The compilation whose numbering the target is typed in. */
     compilation: z.string().regex(/^[a-z0-9]{2,12}$/i),
     source: Osis,
     target: z.string().trim().min(1).max(200),
+    /** The words selected, and where they're pinned (the link itself is verse to verse). */
+    quote: z.string().trim().min(1).max(MAX_QUOTE).optional(),
+    anchor: Anchor.optional(),
   })
   .strict();
 
@@ -60,6 +87,8 @@ export class LinksController {
       slug: body.compilation,
       source: body.source,
       target: body.target,
+      quote: body.quote,
+      anchor: body.anchor,
     });
   }
 

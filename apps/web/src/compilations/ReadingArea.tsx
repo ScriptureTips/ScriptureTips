@@ -9,6 +9,7 @@ import { ChapterBar } from "../reader/ChapterBar.tsx";
 import { Passage } from "../reader/Passage.tsx";
 import { studyWords } from "../study/api.ts";
 import { StudyLegend } from "../study/StudyLegend.tsx";
+import { StudyLinkMarks } from "../study/StudyLinkMarks.tsx";
 import { StudyMenu } from "../study/StudyMenu.tsx";
 import { StudyProvider } from "../study/StudyProvider.tsx";
 import { StudySelection } from "../study/StudySelection.tsx";
@@ -155,6 +156,7 @@ export async function ReadingArea({
       <StudyProvider words={words}>
         {grid}
         <StudySelection slug={c.slug} />
+        <StudyLinkMarks slug={c.slug} />
       </StudyProvider>
     ) : (
       grid

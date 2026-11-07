@@ -3563,3 +3563,16 @@ html[data-study-docked] .study-dock {
 .study-tip-link .study-tip-button {
   margin-top: 0;
 }
+
+/* The words a link is pinned to (study/linkAnchor.ts). */
+::highlight(study-link) {
+  background-color: rgb(255 193 7 / 0.35);
+  text-decoration: underline;
+  text-decoration-color: rgb(176 120 0);
+  color: inherit;
+}
+
+.study-tip-quote {
+  font-style: italic;
+  color: var(--muted);
+}

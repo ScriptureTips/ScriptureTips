@@ -12,9 +12,20 @@ import type { User } from "../auth/session.ts";
 import { DATABASE, type Database } from "../database.ts";
 import { TranslationsService } from "../translations/translations.service.ts";
 
+/** Words pinned in a wording: `in` is a translation's catalog ID or `@compilation`. */
+export interface Anchor {
+  readonly in: string;
+  readonly compilation: string;
+  readonly start: { readonly verse: string; readonly offset: number };
+  readonly end: { readonly verse: string; readonly offset: number };
+}
+
 /** A link as the study tooltip lists it, seen from the passage that was asked about. */
 export interface LinkView {
   readonly id: string;
+  /** The words the link was made from, as they read then, and where they're pinned. */
+  readonly quote: string | null;
+  readonly anchor: Anchor | null;
   /** The passage at the other end, canonical OSIS (`Isa.53.4-Isa.53.6`) and as it reads. */
   readonly other: { readonly osis: string; readonly label: string };
   /** Which end the asked passage is: a link made from it, or one made to it. */
@@ -38,7 +49,13 @@ export class LinksService {
    */
   async create(
     owner: User,
-    input: { slug: string; source: string; target: string },
+    input: {
+      slug: string;
+      source: string;
+      target: string;
+      quote?: string | undefined;
+      anchor?: Anchor | undefined;
+    },
   ): Promise<LinkView> {
     const source = passageOf(input.source);
     const [found] = await this.db
@@ -74,6 +91,8 @@ export class LinksService {
         targetRange,
         enteredScheme: scheme,
         enteredRef: input.target.trim(),
+        quote: input.quote ?? null,
+        anchor: input.anchor ?? null,
       })
       .returning();
     if (!row) throw new Error("the link was not saved");
@@ -132,6 +151,8 @@ function viewOf(row: typeof scriptureLink.$inferSelect, end: "source" | "target"
       : joinOsis(row.sourceStart, row.sourceEnd);
   return {
     id: row.id,
+    quote: row.quote,
+    anchor: row.anchor,
     other: { osis: otherOsis, label: formatPassage(parseOsisPassage(otherOsis)) },
     end,
   };

@@ -70,9 +70,9 @@ export function ShownText({
     if (n.type === "span")
       return (
         <span key={key} className="idiom">
-          {IDIOM_OPEN}
+          <span className="idiom-mark">{IDIOM_OPEN}</span>
           <ShownText nodes={n.content} study={study} />
-          {IDIOM_CLOSE}
+          <span className="idiom-mark">{IDIOM_CLOSE}</span>
         </span>
       );
     if (n.marker === "study-unit")
