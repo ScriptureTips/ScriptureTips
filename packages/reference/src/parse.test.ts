@@ -1,7 +1,8 @@
 import { formatOsisPassage } from "@scripturetips/passage";
 import { describe, expect, it } from "vitest";
-import { findReferences, type ParseOptions, parseReference } from "./parse.ts";
+import type { ParseOptions } from "./parse.ts";
 import { KJV_VERSES } from "./test-support/kjv.ts";
+import { findReferences, parseReference } from "./with-versification.ts";
 
 const KJV: ParseOptions = { scheme: "kjv", verses: KJV_VERSES };
 

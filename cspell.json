@@ -25,6 +25,7 @@
     "tools/source-conversion/src/jps1917/corrections.ts",
     "packages/reference/src/languages/**",
     "**/dist/**",
+    "apps/web/public/widget/**",
     "**/.next/**",
     "**/test-results/**",
     "**/.work/**"

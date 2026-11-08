@@ -20,6 +20,7 @@
     "@scripturetips/licenses": "workspace:*",
     "@scripturetips/passage": "workspace:*",
     "@scripturetips/reference": "workspace:*",
+    "@scripturetips/scripture-links": "workspace:*",
     "@scripturetips/search": "workspace:*",
     "altcha": "3.3.0",
     "next": "16.4.3",

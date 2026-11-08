@@ -4,8 +4,8 @@ import { formatOsisPassage, passage, toOrdinal, verseRef } from "@scripturetips/
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { formatPassage } from "./format.ts";
-import { parseReference } from "./parse.ts";
 import { KJV_BOOKS, KJV_VERSES } from "./test-support/kjv.ts";
+import { parseReference } from "./with-versification.ts";
 
 /** A passage within one book of the KJV, with parts of verses now and then. */
 const arbitraryPassage = fc

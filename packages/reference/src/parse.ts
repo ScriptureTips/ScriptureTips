@@ -5,12 +5,7 @@
  */
 
 import { type Passage, passage, toOrdinal, type VerseRef, verseRef } from "@scripturetips/passage";
-import {
-  passageToCanonical,
-  type SchemeId,
-  schemeById,
-  toCanonical,
-} from "@scripturetips/versification";
+import type { SchemeId } from "@scripturetips/versification";
 import { english } from "./english.ts";
 import type { BookMatch, Language } from "./language.ts";
 
@@ -31,6 +26,20 @@ export interface ParseOptions {
   readonly language?: Language;
   /** Needed for whole chapters and books, and to check that chapters and verses exist. */
   readonly verses?: VerseCounts;
+  /**
+   * What the scheme's numbering is checked and converted with. The package's main entry gives
+   * the real tables (`canonical.ts`); without it (the light entry, which keeps those tables out of
+   * a small bundle) a book isn't checked against the scheme and `canonical` is undefined.
+   */
+  readonly versification?: Versification;
+}
+
+/** The versification a reference is checked against and converted by (`canonical.ts`). */
+export interface Versification {
+  /** True if the scheme numbers this book. */
+  hasBook(scheme: SchemeId, book: string): boolean;
+  /** The passage in the canonical scheme; undefined if it has no counterpart there. */
+  canonical(scheme: SchemeId, entered: Passage): Passage | undefined;
 }
 
 export interface ParsedReference {
@@ -289,8 +298,8 @@ function readItems(r: Reader, first: BookMatch): Item[] | Failure {
 
 /** Turns an item into passages, checking it against the scheme and the verse counts. */
 function resolve(item: Item, text: string, options: ParseOptions): ParsedReference | Failure {
-  const scheme = schemeById(options.scheme);
-  if (!scheme?.books.has(item.book)) return new Failure("book-not-in-scheme", item.start);
+  if (options.versification && !options.versification.hasBook(options.scheme, item.book))
+    return new Failure("book-not-in-scheme", item.start);
   const counts = options.verses;
   let { from, to } = item;
 
@@ -327,21 +336,8 @@ function resolve(item: Item, text: string, options: ParseOptions): ParsedReferen
     start: item.start,
     end: item.end,
     entered,
-    canonical: canonicalOf(options.scheme, entered),
+    canonical: options.versification?.canonical(options.scheme, entered),
   };
-}
-
-/**
- * The canonical passage. "Psalm 151" names its own book, but a scheme that numbers it as
- * Psalm 151 (the Greek) maps it from there.
- */
-function canonicalOf(scheme: SchemeId, entered: Passage): Passage | undefined {
-  const canonical = passageToCanonical(scheme, entered);
-  if (canonical || entered.start.book !== "AddPs" || !schemeById(scheme)?.books.has("Ps"))
-    return canonical;
-  const asPsalm = (ref: VerseRef) => verseRef("Ps", 151, ref.verse, ref.part);
-  if (toCanonical(scheme, asPsalm(entered.start)).refs.length === 0) return undefined;
-  return passageToCanonical(scheme, passage(asPsalm(entered.start), asPsalm(entered.end)));
 }
 
 /** Reads one reference, or a list of them ("Rom 5:8, 10; 6:1"), filling the whole input. */

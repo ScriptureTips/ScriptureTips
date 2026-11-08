@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  KEY_ATTRIBUTE,
+  LINK_CLASS,
+  REF_ATTRIBUTE,
+  readMoreUrl,
+  TEXT_ATTRIBUTE,
+} from "@scripturetips/scripture-links";
 import { configureSearch, getSearch, type SearchResult } from "@scripturetips/search";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
@@ -9,6 +16,7 @@ import { linksAt } from "./linkAnchor.ts";
 import { isVerses, LINK_SEARCH, postLink, type ScriptureLink } from "./links.ts";
 import { openStudyMenu } from "./menuBus.ts";
 import { LINKS_CHANGED } from "./StudyLinkMarks.tsx";
+import { AUTO_LINK } from "./StudyPassagePopups.tsx";
 import { useStudy } from "./StudyProvider.tsx";
 import { STUDY_SEARCH } from "./StudySearch.tsx";
 import {
@@ -86,7 +94,12 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
   const [links, setLinks] = useState<{ source: string; list: ScriptureLink[] } | null>(null);
 
   useEffect(() => {
-    const inTip = (e: Event) => e.target instanceof Node && tip.current?.contains(e.target);
+    // The passage pop-up a link's label opens (the website plugin's, outside this tooltip) is
+    // part of it: using it mustn't close the tooltip.
+    const inTip = (e: Event) =>
+      e.target instanceof Node &&
+      (tip.current?.contains(e.target) ||
+        (e.target instanceof Element && e.target.closest(".st-host") !== null));
     // After the browser has finished the selection (a double click selects its word on mouse up).
     const up = (e: MouseEvent) => {
       if (inTip(e)) return;
@@ -299,7 +312,18 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
             <li key={link.id}>
               <span aria-hidden="true">{link.end === "source" ? "→" : "←"}</span>{" "}
               {link.end === "source" ? <Quote text={link.quote} /> : null}
-              <span>{link.other.label}</span>
+              <a
+                className={LINK_CLASS}
+                href={readMoreUrl(location.origin, base, link.other.label)}
+                target="_blank"
+                rel="noopener"
+                aria-haspopup="dialog"
+                {...{ [REF_ATTRIBUTE]: link.other.osis, [TEXT_ATTRIBUTE]: link.other.label }}
+                {...AUTO_LINK}
+                {...{ [KEY_ATTRIBUTE]: link.id }}
+              >
+                {link.other.label}
+              </a>
               {link.end === "target" ? <Quote text={link.quote} /> : null}
               <button
                 type="button"

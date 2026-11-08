@@ -1,0 +1,18 @@
+{
+  "name": "@scripturetips/widget",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "build": "node build.ts"
+  },
+  "dependencies": {
+    "@scripturetips/scripture-links": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

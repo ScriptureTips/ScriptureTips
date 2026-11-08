@@ -824,6 +824,32 @@ test("domain-model §3.1: the tooltip's Link adds a link from the selected words
   await expect(field).toBeHidden();
   await expect(tip.getByRole("button", { name: "Link", exact: true })).toBeVisible();
   await page.screenshot(shot("reading-area-study-link-listed"));
+  // The label of a link is a passage link: hovering it shows the verse (the website plugin's
+  // tooltip, on our own page), and using that pop-up doesn't close the study tooltip.
+  const passagePop = page.getByRole("dialog", { name: "Scripture passage" });
+  await links.getByRole("link", { name: "Genesis 4:25" }).hover();
+  await expect(passagePop).toContainText("Adam knew his wife again");
+  // The pointer goes into the pop-up to use its select, as a person's would.
+  const translation = passagePop.getByRole("combobox", { name: "Translation" });
+  await translation.hover();
+  await translation.focus();
+  await translation.selectOption({ label: "BSB" });
+  await expect(passagePop.getByRole("heading", { name: "Genesis 4:25" })).toBeVisible();
+  // The choice is kept for that passage, in the browser.
+  const kept = JSON.parse(
+    (await page.evaluate(() => localStorage.getItem("scripturetips:translations"))) ?? "{}",
+  ) as Record<string, string>;
+  // Under the link's own identity (its ID), not its place on the page.
+  expect(Object.entries(kept)).toEqual([[expect.stringMatching(/^key\|[0-9a-f-]{36}$/), "bsb"]]);
+  await expect(tip).toBeVisible();
+  await page.screenshot(shot("reading-area-study-link-passage"));
+  // The pop-up stays after the choice; a press elsewhere in the study tooltip puts it away, and
+  // the study tooltip stays.
+  await page.waitForTimeout(500);
+  await expect(passagePop).toBeVisible();
+  await tip.locator(".study-tip-text").click();
+  await expect(passagePop).toBeHidden();
+  await expect(tip).toBeVisible();
   // The words are quoted in the list, and drawn in the wording they were pinned to.
   await expect(links).toContainText("Eve");
   const pinnedWords = () =>
@@ -915,6 +941,124 @@ test("domain-model §3.1: the tooltip's Link adds a link from the selected words
   await own.screenshot(shot("reading-area-study-link-hover"));
   await page.mouse.move(5, 5);
   await expect.poll(hovered).toEqual([]);
+});
+
+test("vision §3.6: two links to one passage in the study tooltip each keep their own translation", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await create(page, "Two Labels", "Pair");
+  // Two links from the same verse to the same passage, from different words.
+  await page.evaluate(async () => {
+    for (const quote of ["Adam", "Eve"])
+      await fetch("/api/links", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          compilation: "pair",
+          source: "Gen.4.1",
+          target: { reference: "Gen.3.20", translation: "eng-kjv" },
+          quote,
+        }),
+      });
+  });
+  await page.goto("/compilations/pair?book=Gen&chapter=4&mode=compare&study=1");
+  await settled(page);
+  await dragAcross(
+    page,
+    page.locator("td.compare-own").first().locator('.study-word[data-strong="H2332"]').first(),
+  );
+  const tip = page.getByRole("dialog", { name: "The selected words" });
+  const labels = tip.getByRole("list", { name: "Links" }).getByRole("link");
+  await expect(labels).toHaveCount(2);
+  const pop = page.getByRole("dialog", { name: "Scripture passage" });
+  const select = pop.getByRole("combobox", { name: "Translation" });
+  const at = async (i: number) => {
+    const box = await labels.nth(i).boundingBox();
+    if (!box) throw new Error("No label.");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  };
+  await at(0);
+  await expect(pop).toBeVisible();
+  await expect(labels.nth(0)).toHaveAttribute("aria-expanded", "true");
+  await select.selectOption({ label: "BSB" });
+  await expect(select).toHaveValue("bsb");
+  await at(1);
+  await expect(labels.nth(1)).toHaveAttribute("aria-expanded", "true");
+  await select.selectOption({ label: "KJV" });
+  await expect(select).toHaveValue("eng-kjv");
+  await at(0);
+  await expect(labels.nth(0)).toHaveAttribute("aria-expanded", "true");
+  await expect(select).toHaveValue("bsb");
+  await at(1);
+  await expect(labels.nth(1)).toHaveAttribute("aria-expanded", "true");
+  await expect(select).toHaveValue("eng-kjv");
+  await expect(tip).toBeVisible();
+});
+
+test("vision §3.6: links in two verses to one passage each keep their own translation, though only one label shows at a time", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await create(page, "Two Verses", "Verses");
+  // A link from each of two verses to John 1:5.
+  await page.evaluate(async () => {
+    for (const [source, quote] of [
+      ["Gen.4.1", "Eve"],
+      ["Gen.4.2", "Abel"],
+    ])
+      await fetch("/api/links", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          compilation: "verses",
+          source,
+          target: { reference: "John.1.5", translation: "eng-kjv" },
+          quote,
+        }),
+      });
+  });
+  await page.goto("/compilations/verses?book=Gen&chapter=4&mode=compare&study=1");
+  await settled(page);
+  const tip = page.getByRole("dialog", { name: "The selected words" });
+  const pop = page.getByRole("dialog", { name: "Scripture passage" });
+  const select = pop.getByRole("combobox", { name: "Translation" });
+  const wordIn = (verse: number) =>
+    page.locator("td.compare-own").nth(verse).locator(".study-word").first();
+  /** Selects a verse's words, so the tooltip lists that verse's link, and shows its passage. */
+  const open = async (verse: number) => {
+    await page.mouse.click(5, 5);
+    await dragAcross(page, wordIn(verse));
+    const label = tip.getByRole("list", { name: "Links" }).getByRole("link");
+    await expect(label).toHaveCount(1);
+    const box = await label.boundingBox();
+    if (!box) throw new Error("No label.");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(pop).toBeVisible();
+  };
+
+  await open(0);
+  const first = await select.inputValue();
+  await select.selectOption({ label: "BSB" });
+  await expect(select).toHaveValue("bsb");
+  await open(1);
+  // The other verse's link hasn't been chosen for: it opens as the first one did.
+  await expect(select).toHaveValue(first);
+  await select.selectOption({ label: "YLT" });
+  await expect(select).toHaveValue("engylt");
+  await open(0);
+  await expect(select).toHaveValue("bsb");
+  await open(1);
+  await expect(select).toHaveValue("engylt");
+  await open(0);
+  await select.selectOption({ label: "JPS" });
+  await expect(select).toHaveValue("jps1917");
+  await open(1);
+  await expect(select).toHaveValue("engylt");
+  const kept = JSON.parse(
+    (await page.evaluate(() => localStorage.getItem("scripturetips:translations"))) ?? "{}",
+  ) as Record<string, string>;
+  expect(Object.values(kept).sort()).toEqual(["engylt", "jps1917"]);
 });
 
 test("vision §3.14: picking a verse in the study window's results puts it in the field and shows its text", async ({

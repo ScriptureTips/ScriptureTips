@@ -11,6 +11,7 @@ import { studyWords } from "../study/api.ts";
 import { StudyLegend } from "../study/StudyLegend.tsx";
 import { StudyLinkMarks } from "../study/StudyLinkMarks.tsx";
 import { StudyMenu } from "../study/StudyMenu.tsx";
+import { StudyPassagePopups } from "../study/StudyPassagePopups.tsx";
 import { StudyProvider } from "../study/StudyProvider.tsx";
 import { StudySelection } from "../study/StudySelection.tsx";
 import { strongsIn } from "../study/units.ts";
@@ -157,6 +158,12 @@ export async function ReadingArea({
         {grid}
         <StudySelection slug={c.slug} base={c.base.id} />
         <StudyLinkMarks slug={c.slug} />
+        <StudyPassagePopups
+          base={c.base.id}
+          {...(preferences?.favoriteTranslations[0]
+            ? { favorite: preferences.favoriteTranslations[0] }
+            : {})}
+        />
       </StudyProvider>
     ) : (
       grid

@@ -13,3 +13,6 @@ test-results/
 .next/
 .dev-certs/
 next-env.d.ts
+
+# The website plugin, built by apps/widget.
+apps/web/public/widget/

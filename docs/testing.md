@@ -38,7 +38,7 @@ ScriptureTips is a large system that will be built largely with LLM coding agent
 | **API contract** | Generated OpenAPI spec + contract tests | The public API (passages, notes, oEmbed) can't change shape by accident; generated clients stay in sync |
 | **End-to-end** | Playwright | Main user journeys in the web app, against a seeded stack |
 | **Browser extension** | Playwright with the extension loaded in Chromium | Page scanning, the note composer, **insert at cursor** in each editor type (§5) |
-| **Website widget** | Playwright against fixture pages | Scanning only the chosen area, leaving links alone, rescanning, the JavaScript API |
+| **Website widget** | Playwright against a fixture page on another origin (`e2e/widget.spec.ts`; build the script first: `./toolbox pnpm --filter @scripturetips/widget build`), plus unit tests of the pure parts and a bundle test (size budget, no versification tables) | Scanning only the chosen area, leaving links alone, rescanning and content added later, the JavaScript API, hover, tap on a phone, switching translation, other numbering, CORS |
 | **Accessibility** | axe-core in Playwright | Every main page and dialog |
 | **PDF output** | Render pages to images and compare against approved images; preflight checks | The book designer: page count, spine width, TOC and labels, fonts embedded, bleed |
 | **Language** | Spelling checker with two dictionaries | US English in code and docs; en-NZ in UI strings; no missing translation keys |
@@ -121,6 +121,15 @@ All approved. Each is added when the first test that needs it is written:
 ## 10. Open questions
 
 None at the moment.
+
+## 11. Known gap: the end-to-end tests share the development stack
+
+Recorded 2026-11-08, to be built as its own task (vision §10, "Test infrastructure").
+
+- **What is true now.** The Playwright tests in `apps/web/e2e/` run against the running development stack (`./dev up`), not a stack of their own. They share its PostgreSQL database (when recorded, 3,837 test users and 3,451 compilations had piled up beside the owner's own data), Valkey, Mailpit (sign-in codes are read from it), Garage, the API and the web dev server. The unit and API tests are fine: they use the `postgres-test` and `garage-test` containers, one cloned database per worker (§9).
+- **The effect.** Run in parallel (the default, two workers), a full run fails a different set of unrelated tests every time (sign-in, the reader, compilations, PDF builds, phone edit mode), mostly at address checks and visibility timeouts, and each passes alone. **A full run with `--workers=1` was clean (114 passed, 40 skipped, 16.8 minutes; the parallel run takes about 7).** The cause is contention on the shared stack; which part isn't identified (the dev server compiling pages, the shared rate limits and mail inbox, and the growing database are the suspects).
+- **Until it's built: run the full end-to-end suite with `--workers=1`** (`./toolbox sh -c 'cd apps/web && npx playwright test --workers=1'`), and trust a failure in a parallel run only if the test also fails alone.
+- **What to build** (to be worked out when the task is taken up): a stack of its own for the end-to-end tests, started fresh for each run, separate from `./dev up`: its own PostgreSQL database, Valkey, Mailpit, Garage, API and web server, loaded with the named seed scenarios (§2, §6; `pnpm dev:seed` isn't built yet), so tests stop writing into the development database and can run in parallel again, saving about half the time.
 
 **Decided:**
 - **No hosted CI service.** CI runs locally from scripts in the repo (`pnpm ci`, §2). Optional triggers, chosen by the developer: a git `pre-push` hook that runs `verify`, or a scheduled local run of `verify:nightly`. If a CI server is ever needed (e.g. several contributors), use a self-hosted, open-source one (e.g. Woodpecker CI) that only calls the same scripts, so it can be swapped without rewriting anything. Deployment follows the same rule: a script (`pnpm deploy`) that builds the images and deploys them to the server over SSH.

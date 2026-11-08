@@ -627,6 +627,16 @@ test("domain-model §3.1: on a phone, the tooltip's Link adds a link, and a tap 
   await expect(links).toContainText("4:25");
   await expect(tip.getByRole("button", { name: "Link", exact: true })).toBeVisible();
   await page.screenshot({ ...shot("reading-area-phone-study-link-listed"), fullPage: false });
+  // The label is a passage link: the first tap shows the verse (without following the link), and
+  // the study bar stays.
+  const label = links.getByRole("link", { name: "Genesis 4:25" });
+  await label.tap();
+  const passagePop = page.getByRole("dialog", { name: "Scripture passage" });
+  await expect(passagePop).toContainText("Adam knew his wife again");
+  await expect(tip).toBeVisible();
+  await page.screenshot({ ...shot("reading-area-phone-study-link-passage"), fullPage: false });
+  await label.tap();
+  await expect(passagePop).toBeHidden();
 
   // Let go of it, then a tap on the marked words brings the links back.
   await page.evaluate(() => getSelection()?.removeAllRanges());

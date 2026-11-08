@@ -1,6 +1,6 @@
 /**
- * Verse counts of the KJV (with the Apocrypha), for tests: the last verse of each chapter, and
- * the chapters of Psalms with a heading (verse 0). Taken once from eBible.org's public-domain
+ * Verse counts of the KJV (with the Apocrypha), for the website plugin and the tests: the last
+ * verse of each chapter, and the chapters of Psalms with a heading (verse 0). Taken once from eBible.org's public-domain
  * `eng-kjv` USFM (source-texts/king-james-version/eng-kjv_usfm.zip, \c, \v and \d markers).
  * The real verse counts come with the translation import.
  */

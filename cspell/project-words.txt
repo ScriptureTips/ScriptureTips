@@ -185,3 +185,8 @@ favourite
 favourites
 minimise
 Minimise
+rescan
+contenteditable
+noopener
+haspopup
+Segoe

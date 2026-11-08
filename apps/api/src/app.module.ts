@@ -18,6 +18,8 @@ import { StudyController } from "./study/study.controller.ts";
 import { StudyService } from "./study/study.service.ts";
 import { TranslationsController } from "./translations/translations.controller.ts";
 import { TranslationsService } from "./translations/translations.service.ts";
+import { WidgetController } from "./widget/widget.controller.ts";
+import { WidgetService } from "./widget/widget.service.ts";
 
 @Module({
   controllers: [
@@ -28,6 +30,7 @@ import { TranslationsService } from "./translations/translations.service.ts";
     StudyController,
     SearchController,
     LinksController,
+    WidgetController,
   ],
   providers: [
     TranslationsService,
@@ -38,6 +41,7 @@ import { TranslationsService } from "./translations/translations.service.ts";
     StudyService,
     SearchService,
     LinksService,
+    WidgetService,
   ],
 })
 export class AppModule implements OnApplicationShutdown {
