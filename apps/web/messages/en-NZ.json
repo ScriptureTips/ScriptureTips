@@ -97,8 +97,8 @@
       "link": "Link",
       "linkTo": "Passage to link these words to",
       "linkPlaceholder": "e.g. Isa 53:5",
-      "addLink": "Add link",
       "cancel": "Cancel",
+      "linkVerses": "Choose a verse or a run of verses to link to.",
       "links": "Links",
       "unlink": "Remove the link to {passage}"
     },

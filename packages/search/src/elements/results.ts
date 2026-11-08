@@ -1,14 +1,15 @@
 import { html, nothing } from "lit";
 import type { SearchEngine } from "../engine.ts";
 import { fill } from "../strings.ts";
-import type { SearchResult } from "../types.ts";
+import type { SearchResult, ShownPassage } from "../types.ts";
 import { SearchElement } from "./base.ts";
 import { resultsStyles, tokens } from "./styles.ts";
 
 /**
  * `<st-search-results instance="main">`: the instance's results as a list, grouped by kind, and
- * its status (searching, none, failed). Picking one calls the instance's `select`. Anything put
- * inside shows until a search is made (`slot="idle"`).
+ * its status (searching, none, failed). Picking one calls the instance's `select`: the instance's
+ * `onSelect`, or by default, for a verse or run of verses, its text is shown here in place of the
+ * results. Anything put inside shows until a search is made (`slot="idle"`).
  *
  * It passes on the instance's events as DOM events: `st-results`, `st-select`, `st-error`.
  */
@@ -61,11 +62,27 @@ export class StSearchResults extends SearchElement {
     </li>`;
   }
 
+  /** A picked passage: its reference and translation, then each verse with its number. */
+  private passage(p: ShownPassage) {
+    const t = this.engine?.strings;
+    return html`<section part="passage" aria-label=${p.label} dir=${p.direction}>
+      <h3 part="passage-title">${p.label} <small part="source">${p.translation.abbreviation}</small></h3>
+      ${p.status === "loading" ? html`<p class="status" part="status">${t?.searching}</p>` : nothing}
+      ${p.status === "error" ? html`<p class="status" part="status" role="alert">${t?.failed}</p>` : nothing}
+      ${p.verses.map(
+        (v) =>
+          html`<p part="passage-verse">${v.number ? html`<sup>${v.number}</sup> ` : nothing}${v.text}</p>`,
+      )}
+    </section>`;
+  }
+
   protected override render() {
     const engine = this.engine;
     if (!engine) return nothing;
     const state = engine.getState();
     const t = engine.strings;
+    // A passage picked from the results is shown in their place.
+    if (state.passage) return this.passage(state.passage);
     if (state.status === "idle") return html`<slot name="idle"></slot>`;
     // The kinds, in the order the results first come in.
     const kinds = [...new Set(state.results.map((r) => r.kind))];

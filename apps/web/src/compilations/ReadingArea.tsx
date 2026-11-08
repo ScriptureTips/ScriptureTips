@@ -155,7 +155,7 @@ export async function ReadingArea({
     ) : words ? (
       <StudyProvider words={words}>
         {grid}
-        <StudySelection slug={c.slug} />
+        <StudySelection slug={c.slug} base={c.base.id} />
         <StudyLinkMarks slug={c.slug} />
       </StudyProvider>
     ) : (

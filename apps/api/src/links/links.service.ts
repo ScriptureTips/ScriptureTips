@@ -7,7 +7,7 @@ import {
   toOrdinalRange,
 } from "@scripturetips/passage";
 import { formatPassage, parseReference } from "@scripturetips/reference";
-import type { SchemeId } from "@scripturetips/versification";
+import { passageToCanonical, type SchemeId } from "@scripturetips/versification";
 import type { User } from "../auth/session.ts";
 import { DATABASE, type Database } from "../database.ts";
 import { TranslationsService } from "../translations/translations.service.ts";
@@ -19,6 +19,12 @@ export interface Anchor {
   readonly start: { readonly verse: string; readonly offset: number };
   readonly end: { readonly verse: string; readonly offset: number };
 }
+
+/**
+ * What a link goes to: a reference as the user typed it, in the numbering of the compilation
+ * they're reading, or a passage picked from search results, in that translation's numbering.
+ */
+export type LinkTarget = string | { readonly reference: string; readonly translation: string };
 
 /** A link as the study tooltip lists it, seen from the passage that was asked about. */
 export interface LinkView {
@@ -52,7 +58,7 @@ export class LinksService {
     input: {
       slug: string;
       source: string;
-      target: string;
+      target: LinkTarget;
       quote?: string | undefined;
       anchor?: Anchor | undefined;
     },
@@ -67,18 +73,27 @@ export class LinksService {
       );
     if (!found) throw new NotFoundException({ code: "unknown-compilation" });
 
-    const counts = await this.translations.verseCounts(found.base.id);
-    const scheme = found.c.scheme as SchemeId;
-    const parsed = parseReference(input.target, { scheme, verses: counts });
-    if (!parsed.ok)
-      throw new BadRequestException({ code: parsed.error.code, index: parsed.error.index });
-    const [ref, ...more] = parsed.references;
-    if (!ref || more.length > 0) throw new BadRequestException({ code: "one-passage" });
-    if (!ref.canonical) throw new BadRequestException({ code: "not-in-canon" });
-    const target = ref.canonical;
+    const { target, scheme, entered } = await this.resolve(input.target, found);
 
     const sourceRange = toOrdinalRange(source);
     const targetRange = toOrdinalRange(target);
+    // The same words linked to the same passage again is the link already there.
+    const [same] = await this.db
+      .select()
+      .from(scriptureLink)
+      .where(
+        and(
+          eq(scriptureLink.ownerId, owner.id),
+          eq(scriptureLink.sourceStart, formatOsisPassage(passageStart(source))),
+          eq(scriptureLink.sourceEnd, formatOsisPassage(passageEnd(source))),
+          eq(scriptureLink.targetStart, formatOsisPassage(passageStart(target))),
+          eq(scriptureLink.targetEnd, formatOsisPassage(passageEnd(target))),
+          input.quote === undefined
+            ? sql`${scriptureLink.quote} IS NULL`
+            : eq(scriptureLink.quote, input.quote),
+        ),
+      );
+    if (same) return viewOf(same, "source");
     const [row] = await this.db
       .insert(scriptureLink)
       .values({
@@ -90,13 +105,42 @@ export class LinksService {
         targetEnd: formatOsisPassage(passageEnd(target)),
         targetRange,
         enteredScheme: scheme,
-        enteredRef: input.target.trim(),
+        enteredRef: entered,
         quote: input.quote ?? null,
         anchor: input.anchor ?? null,
       })
       .returning();
     if (!row) throw new Error("the link was not saved");
     return viewOf(row, "source");
+  }
+
+  /** The target's canonical passage, the scheme it was in, and how it was entered. */
+  private async resolve(
+    target: LinkTarget,
+    found: { c: typeof compilation.$inferSelect; base: typeof translation.$inferSelect },
+  ): Promise<{ target: Passage; scheme: SchemeId; entered: string }> {
+    if (typeof target === "string") {
+      const counts = await this.translations.verseCounts(found.base.id);
+      const scheme = found.c.scheme as SchemeId;
+      const parsed = parseReference(target, { scheme, verses: counts });
+      if (!parsed.ok)
+        throw new BadRequestException({ code: parsed.error.code, index: parsed.error.index });
+      const [ref, ...more] = parsed.references;
+      if (!ref || more.length > 0) throw new BadRequestException({ code: "one-passage" });
+      if (!ref.canonical) throw new BadRequestException({ code: "not-in-canon" });
+      return { target: ref.canonical, scheme, entered: target.trim() };
+    }
+    // From search results: a passage in its translation's own numbering.
+    const [picked] = await this.db
+      .select()
+      .from(translation)
+      .where(eq(translation.catalogId, target.translation));
+    if (!picked) throw new BadRequestException({ code: "unknown-translation" });
+    const scheme = picked.scheme as SchemeId;
+    const entered = passageOf(target.reference);
+    const canonical = passageToCanonical(scheme, entered);
+    if (!canonical) throw new BadRequestException({ code: "not-in-canon" });
+    return { target: canonical, scheme, entered: formatPassage(entered) };
   }
 
   /** The owner's links with `osis` at either end (any overlap), newest first. */

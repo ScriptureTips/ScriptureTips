@@ -99,6 +99,39 @@ describe("domain-model §3.1: scripture links", () => {
     expect(res.json()).toMatchObject({ end: "source", other: { osis: "Joel.3.1" } });
   });
 
+  it("links to a passage picked from search results, in that translation's numbering", async () => {
+    // KJV Joel 2:28 is Joel 3:1 in the canonical numbering: the link typed above, the same.
+    const res = await call("POST", owner, "/api/links", {
+      compilation: "mine",
+      source: "Joel.3.2",
+      target: { reference: "Joel.2.28", translation: "kjv" },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json()).toMatchObject({ id, end: "source", other: { osis: "Joel.3.1" } });
+    // The same again is the link already there.
+    const again = await call("POST", owner, "/api/links", {
+      compilation: "mine",
+      source: "Joel.3.2",
+      target: { reference: "Joel.2.28", translation: "kjv" },
+    });
+    expect(again.json().id).toBe(res.json().id);
+    expect((await list(owner, "Joel.3.2")).json().links).toHaveLength(1);
+    // Not a translation we have, or not a passage.
+    const unknown = await call("POST", owner, "/api/links", {
+      compilation: "mine",
+      source: "Joel.3.2",
+      target: { reference: "Joel.2.28", translation: "nothing" },
+    });
+    expect(unknown.statusCode).toBe(400);
+    expect(unknown.json().code).toBe("unknown-translation");
+    const bad = await call("POST", owner, "/api/links", {
+      compilation: "mine",
+      source: "Joel.3.2",
+      target: { reference: "not a passage", translation: "kjv" },
+    });
+    expect(bad.statusCode).toBe(400);
+  });
+
   it("keeps the words and where they're pinned, and shows them from either end", async () => {
     const anchor = {
       in: "kjv",

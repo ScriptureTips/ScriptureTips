@@ -103,6 +103,30 @@ export const inputStyles = css`
     margin-inline-start: 0.5rem;
     color: var(--_muted);
   }
+
+  /* A result in the list: its label, then its start or the matched words, on a line of their own. */
+  li .preview {
+    display: block;
+    color: var(--_muted);
+    font-size: 0.9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  li .preview mark {
+    background: var(--_hit);
+    color: inherit;
+  }
+
+  li.status {
+    cursor: default;
+    color: var(--_muted);
+  }
+
+  li.status:hover {
+    background: none;
+  }
 `;
 
 export const resultsStyles = css`
@@ -163,6 +187,28 @@ export const resultsStyles = css`
   .result[aria-current="true"] {
     border-color: var(--_accent);
     background: color-mix(in srgb, var(--_accent) 8%, var(--_background));
+  }
+
+  /* A picked passage, shown in place of the results. */
+  section[part="passage"] h3 {
+    margin-top: 0.5rem;
+  }
+
+  section[part="passage"] h3 small {
+    margin-inline-start: 0.4rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  [part="passage-verse"] {
+    margin: 0.4rem 0;
+    line-height: 1.5;
+  }
+
+  [part="passage-verse"] sup {
+    margin-inline-end: 0.15rem;
+    color: var(--_muted);
+    font-size: 0.7em;
   }
 
   .label {

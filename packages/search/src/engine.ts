@@ -4,12 +4,16 @@ import type {
   SearchEventName,
   SearchEvents,
   SearchOptions,
+  SearchResult,
   SearchScope,
   SearchState,
+  SelectHandler,
+  ShownPassage,
   Strings,
   Transport,
   Unsubscribe,
 } from "./types.ts";
+import { isVerseRange } from "./verses.ts";
 
 type Handler<K extends SearchEventName> = (event: SearchEvents[K]) => void;
 
@@ -22,6 +26,7 @@ const EMPTY: SearchState = {
   suggestions: [],
   selected: null,
   error: null,
+  passage: null,
 };
 
 /**
@@ -31,7 +36,8 @@ const EMPTY: SearchState = {
  * page script, an extension or a test can use it alone.
  *
  * - `setQuery(text)` puts the words in the field (and `{ search: true }` runs them), `doSearch()`
- *   runs the search, `suggest()` asks for suggestions, `select(result)` picks a result.
+ *   runs the search, `suggest()` asks for suggestions, `select(result)` picks a result (and calls
+ *   the `onSelect` option, if the host gave one).
  * - `onType`, `onSuggest`, `onResults`, `onResultsSelect`, `onSearch`, `onError` subscribe to the
  *   events, and `subscribe` to every change of state; each returns what ends it.
  */
@@ -42,6 +48,10 @@ export class SearchEngine {
   private debounceMs = 200;
   private custom: Transport | null = null;
   private words: Strings = DEFAULT_STRINGS;
+  private picked: SelectHandler | null = null;
+  private searchOnType = false;
+  private passagesEndpoint = "/api/translations";
+  private showing: AbortController | null = null;
   private state: SearchState = EMPTY;
   private readonly listeners = new Set<(state: SearchState) => void>();
   private readonly handlers = new Map<SearchEventName, Set<(event: never) => void>>();
@@ -63,6 +73,9 @@ export class SearchEngine {
     if (options.debounceMs !== undefined) this.debounceMs = options.debounceMs;
     if (options.transport) this.custom = options.transport;
     if (options.strings) this.words = { ...this.words, ...options.strings };
+    if (options.onSelect !== undefined) this.picked = options.onSelect;
+    if (options.searchOnType !== undefined) this.searchOnType = options.searchOnType;
+    if (options.passagesEndpoint !== undefined) this.passagesEndpoint = options.passagesEndpoint;
     this.emitChange();
   }
 
@@ -75,7 +88,7 @@ export class SearchEngine {
   }
 
   private get transport(): Transport {
-    return this.custom ?? fetchTransport(this.endpoint);
+    return this.custom ?? fetchTransport(this.endpoint, fetch, this.passagesEndpoint);
   }
 
   // ---- State.
@@ -154,13 +167,20 @@ export class SearchEngine {
     this.suggesting?.abort();
     if (query.trim() === "") {
       this.update({ suggestions: [] });
+      // An emptied field empties the results too.
+      if (this.searchOnType) void this.doSearch();
       return;
     }
-    this.pause = setTimeout(() => void this.suggest(query), this.debounceMs);
+    this.pause = setTimeout(() => {
+      void this.suggest(query);
+      if (this.searchOnType) void this.doSearch();
+    }, this.debounceMs);
   }
 
   private changeQuery(query: string, source: "user" | "api"): void {
     if (query === this.state.query) return;
+    // Typing goes back from a shown passage to the results.
+    if (source === "user" && this.state.passage) this.stopShowing();
     this.update({ query });
     this.emit("type", { query, source });
   }
@@ -170,7 +190,8 @@ export class SearchEngine {
     if (query !== undefined) this.changeQuery(query, "api");
     const text = this.state.query.trim();
     if (this.pause) clearTimeout(this.pause);
-    this.suggesting?.abort();
+    // Searching as the user types keeps the suggestions beside the results.
+    if (!this.searchOnType) this.suggesting?.abort();
     this.running?.abort();
     if (text === "") {
       this.update({ ...EMPTY, query: this.state.query });
@@ -179,10 +200,11 @@ export class SearchEngine {
     const mine = ++this.latest.search;
     const controller = new AbortController();
     this.running = controller;
+    this.stopShowing();
     this.update({
       status: "searching",
       searched: text,
-      suggestions: [],
+      suggestions: this.searchOnType ? this.state.suggestions : [],
       error: null,
       selected: null,
     });
@@ -243,11 +265,76 @@ export class SearchEngine {
     const result = this.state.results.find((r) => r.id === id);
     if (!result) return;
     this.update({ selected: id });
-    this.emit("select", { query: this.state.searched, result });
+    const event = { query: this.state.searched, result };
+    this.emit("select", event);
+    // The host's own handler, if it gave one: a failure is logged and goes no further.
+    const handler = this.picked;
+    if (!handler) {
+      this.pickPassage(result);
+      return;
+    }
+    const failed = (error: unknown) =>
+      console.error(`search "${this.name}": the onSelect handler threw`, error);
+    try {
+      void Promise.resolve(handler(event)).catch(failed);
+    } catch (error) {
+      failed(error);
+    }
+  }
+
+  /**
+   * The widget's own action for a picked result, when the host gave none: a verse or a run of
+   * verses goes into the search field and its text is shown in place of the results; anything
+   * else is only marked.
+   */
+  private pickPassage(result: SearchResult): void {
+    if (result.kind === "original" || !isVerseRange(result.reference)) return;
+    this.changeQuery(result.label, "api");
+    void this.showPassage({ label: result.label, translation: result.translation });
+  }
+
+  /**
+   * Shows a passage's text in place of the results (what picking one does by default); `label` is
+   * the reference as it reads in that translation. Searching again, or typing, goes back.
+   */
+  async showPassage(passage: Pick<ShownPassage, "label" | "translation">): Promise<void> {
+    this.showing?.abort();
+    const controller = new AbortController();
+    this.showing = controller;
+    const base = { ...passage, direction: "ltr" as const, verses: [] };
+    this.update({ passage: { ...base, status: "loading" } });
+    try {
+      const transport = this.transport;
+      if (!transport.passage) throw new Error("This search can't fetch a passage.");
+      const text = await transport.passage(
+        passage.translation.id,
+        passage.label,
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
+      this.update({
+        passage: { ...base, status: "done", direction: text.direction, verses: text.verses },
+      });
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      this.update({ passage: { ...base, status: "error" } });
+      this.emit("error", {
+        query: passage.label,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+  }
+
+  /** Goes back from a shown passage to the results. */
+  stopShowing(): void {
+    this.showing?.abort();
+    this.showing = null;
+    if (this.state.passage) this.update({ passage: null });
   }
 
   /** Empties the field and the results. */
   clear(): void {
+    this.showing?.abort();
     this.running?.abort();
     this.suggesting?.abort();
     if (this.pause) clearTimeout(this.pause);

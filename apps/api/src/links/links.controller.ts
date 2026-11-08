@@ -25,6 +25,8 @@ const Osis = z
     /^[1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?(-[1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?)?$/,
   );
 
+const TranslationId = z.string().regex(/^[A-Za-z0-9_-]{1,40}$/);
+
 const Point = z
   .object({
     verse: z
@@ -54,7 +56,11 @@ const NewLink = z
     /** The compilation whose numbering the target is typed in. */
     compilation: z.string().regex(/^[a-z0-9]{2,12}$/i),
     source: Osis,
-    target: z.string().trim().min(1).max(200),
+    /** A reference as typed, or a passage picked from search results (`reference` in OSIS). */
+    target: z.union([
+      z.string().trim().min(1).max(200),
+      z.object({ reference: Osis, translation: TranslationId }).strict(),
+    ]),
     /** The words selected, and where they're pinned (the link itself is verse to verse). */
     quote: z.string().trim().min(1).max(MAX_QUOTE).optional(),
     anchor: Anchor.optional(),

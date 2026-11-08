@@ -26,6 +26,7 @@ const config: NextConfig = {
     { source: "/api/search", destination: `${API}/search` },
     { source: "/api/search/:path*", destination: `${API}/search/:path*` },
     { source: "/api/study/:path*", destination: `${API}/study/:path*` },
+    { source: "/api/translations/:path*", destination: `${API}/translations/:path*` },
     { source: "/api/links", destination: `${API}/links` },
     { source: "/api/links/:path*", destination: `${API}/links/:path*` },
     { source: "/api/compilations", destination: `${API}/compilations` },

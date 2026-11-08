@@ -1,4 +1,5 @@
 import type { SearchResponse, SearchScope, Suggestion, Transport } from "./types.ts";
+import { passageVerse } from "./verses.ts";
 
 /** The query string for a search: the words, then the scope. */
 export function queryString(query: string, scope: SearchScope): string {
@@ -11,8 +12,15 @@ export function queryString(query: string, scope: SearchScope): string {
   return params.toString();
 }
 
-/** Asks the ScriptureTips API (apps/api `GET /api/search` and `/api/search/suggest`). */
-export function fetchTransport(endpoint: string, fetchImpl: typeof fetch = fetch): Transport {
+/**
+ * Asks the ScriptureTips API (apps/api `GET /api/search` and `/api/search/suggest`, and a
+ * passage's text from `GET /api/translations/{id}/passages`).
+ */
+export function fetchTransport(
+  endpoint: string,
+  fetchImpl: typeof fetch = fetch,
+  passagesEndpoint = "/api/translations",
+): Transport {
   const get = async <T>(url: string, signal: AbortSignal): Promise<T> => {
     const res = await fetchImpl(url, { signal, headers: { accept: "application/json" } });
     if (!res.ok) throw new Error(`The search failed (${res.status}).`);
@@ -28,5 +36,18 @@ export function fetchTransport(endpoint: string, fetchImpl: typeof fetch = fetch
           signal,
         )
       ).suggestions,
+    passage: async (translation, reference, signal) => {
+      const body = await get<{
+        translation: { direction: "ltr" | "rtl" };
+        passages: { verses: Parameters<typeof passageVerse>[0][] }[];
+      }>(
+        `${passagesEndpoint}/${encodeURIComponent(translation)}/passages?ref=${encodeURIComponent(reference)}`,
+        signal,
+      );
+      return {
+        direction: body.translation.direction,
+        verses: body.passages.flatMap((p) => p.verses.map(passageVerse)),
+      };
+    },
   };
 }

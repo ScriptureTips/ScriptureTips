@@ -80,10 +80,34 @@ export interface Suggestion {
   readonly text: string;
 }
 
+/** A verse of a passage the widget shows: its number as printed (none for a heading) and words. */
+export interface PassageVerse {
+  readonly number: string;
+  readonly text: string;
+}
+
+/** A passage's text, as the transport brings it. */
+export interface PassageText {
+  readonly direction: "ltr" | "rtl";
+  readonly verses: readonly PassageVerse[];
+}
+
+/** A passage shown in place of the results: the default result of picking one (`SearchState`). */
+export interface ShownPassage {
+  /** As the search field holds it: "John 3:16". */
+  readonly label: string;
+  readonly translation: { readonly id: string; readonly abbreviation: string };
+  readonly status: "loading" | "done" | "error";
+  readonly direction: "ltr" | "rtl";
+  readonly verses: readonly PassageVerse[];
+}
+
 /** Where searching happens. The default asks the ScriptureTips API; tests and other backends can swap it. */
 export interface Transport {
   search(query: string, scope: SearchScope, signal: AbortSignal): Promise<SearchResponse>;
   suggest(query: string, scope: SearchScope, signal: AbortSignal): Promise<readonly Suggestion[]>;
+  /** A passage's text in a translation (by the reference as it reads there); optional. */
+  passage?(translation: string, reference: string, signal: AbortSignal): Promise<PassageText>;
 }
 
 /** The words the widget shows (en-NZ). Any can be replaced per instance, to translate it. */
@@ -103,9 +127,31 @@ export interface Strings {
   readonly occurrences: string;
 }
 
+/**
+ * What a host does when a result is picked (`onSelect` in `SearchOptions`). It may be async; a
+ * failure is logged and doesn't stop the search.
+ */
+export type SelectHandler = (event: SearchEvents["select"]) => void | Promise<void>;
+
 export interface SearchOptions {
   /** The API's search address. `/api/search` by default. */
   readonly endpoint?: string;
+  /**
+   * Called when a result is picked, in addition to the `select` event, instead of the widget's
+   * own default: with none, picking a passage (a verse or a run of verses) puts it in the search
+   * field and shows its text in place of the results (`state.passage`); any other result is only
+   * marked. A host that wants picking to do something else (link to it, insert it) passes one
+   * (a function that does nothing turns the default off); `null` goes back to the default.
+   */
+  readonly onSelect?: SelectHandler | null;
+  /** The API's translations address, where a picked passage's text comes from. `/api/translations`. */
+  readonly passagesEndpoint?: string;
+  /**
+   * Search as the user types, once typing pauses (after `debounceMs`), besides asking for
+   * suggestions, so the results are ready to show as the field's list. Off by default: a search
+   * runs when it's asked for.
+   */
+  readonly searchOnType?: boolean;
   readonly scope?: SearchScope;
   /** How long typing pauses before suggestions are asked for (ms). 200 by default. */
   readonly debounceMs?: number;
@@ -127,6 +173,8 @@ export interface SearchState {
   readonly suggestions: readonly Suggestion[];
   readonly selected: string | null;
   readonly error: string | null;
+  /** The passage shown in place of the results, once one was picked; null otherwise. */
+  readonly passage: ShownPassage | null;
 }
 
 /** The events a subscriber can listen for, with what each carries. */

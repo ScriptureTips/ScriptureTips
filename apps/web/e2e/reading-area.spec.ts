@@ -801,22 +801,24 @@ test("domain-model §3.1: the tooltip's Link adds a link from the selected words
   await expect(tip).toBeVisible();
   await expect(tip.getByRole("list", { name: "Links" })).toHaveCount(0);
 
-  // Link swaps the buttons for a field and a submit button; the tooltip stays open.
+  // Link swaps the buttons for a search field (an instance of the search widget); the tooltip
+  // stays open.
   await tip.getByRole("button", { name: "Link", exact: true }).click();
-  const field = tip.getByRole("textbox", { name: "Passage to link these words to" });
+  const field = tip.getByRole("combobox", { name: "Passage to link these words to" });
   await expect(field).toBeFocused();
   await expect(tip).toBeVisible();
-  await expect(tip.getByRole("button", { name: "Add link" })).toBeDisabled();
 
-  // A passage that doesn't exist is refused in words, and the form stays.
+  // A passage that doesn't exist finds nothing, and the field stays.
   await field.fill("Gen 4:99");
-  await tip.getByRole("button", { name: "Add link" }).click();
-  await expect(tip.getByRole("alert")).toBeVisible();
+  await expect(tip.getByText("No results.")).toBeVisible();
   await expect(field).toBeVisible();
 
+  // The results are the field's list: a verse picked from it is linked.
   await field.fill("Gen 4:25");
+  const option = tip.getByRole("option", { name: /^Genesis 4:25 / });
+  await expect(option.first()).toBeVisible();
   await page.screenshot(shot("reading-area-study-link-form"));
-  await tip.getByRole("button", { name: "Add link" }).click();
+  await option.first().click();
   const links = tip.getByRole("list", { name: "Links" });
   await expect(links).toContainText("4:25");
   await expect(field).toBeHidden();
@@ -874,8 +876,11 @@ test("domain-model §3.1: the tooltip's Link adds a link from the selected words
       document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
     }, words);
     await tip.getByRole("button", { name: "Link", exact: true }).click();
-    await tip.getByRole("textbox", { name: "Passage to link these words to" }).fill(target);
-    await tip.getByRole("button", { name: "Add link" }).click();
+    await tip.getByRole("combobox", { name: "Passage to link these words to" }).fill(target);
+    await tip
+      .getByRole("option", { name: new RegExp(`^${target.replace("Gen", "Genesis")} `) })
+      .first()
+      .click();
     await expect(tip.getByRole("list", { name: "Links" })).toContainText(
       target.replace("Gen ", ""),
     );
@@ -910,6 +915,64 @@ test("domain-model §3.1: the tooltip's Link adds a link from the selected words
   await own.screenshot(shot("reading-area-study-link-hover"));
   await page.mouse.move(5, 5);
   await expect.poll(hovered).toEqual([]);
+});
+
+test("vision §3.14: picking a verse in the study window's results puts it in the field and shows its text", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await create(page, "Pick Show", "Shower");
+  await page.goto("/compilations/shower?book=Gen&chapter=4&mode=compare&study=1");
+  await settled(page);
+  const own = page.locator("td.compare-own").first();
+  const eve = own.locator('.study-word[data-strong="H2332"]').first();
+  const linksOn = (ref: string) =>
+    page.evaluate(
+      async (r) =>
+        (
+          (await (await fetch(`/api/links?ref=${r}`)).json()) as {
+            links: { other: { osis: string } }[];
+          }
+        ).links.map((l) => l.other.osis),
+      ref,
+    );
+
+  // Search for the held words, and pick Genesis 3:20 from what's found.
+  await dragAcross(page, eve);
+  const tip = page.getByRole("dialog", { name: "The selected words" });
+  await tip.getByRole("button", { name: "Search", exact: true }).click();
+  const study = page.getByRole("dialog", { name: "Study" });
+  const field = study.getByRole("combobox", { name: "Search" });
+  const verse = study.getByRole("button", { name: /Genesis 3:20/ }).first();
+  await expect(verse).toBeVisible();
+  await verse.click();
+
+  // The search field holds the verse, and its text is shown where the results were.
+  await expect(field).toHaveValue("Genesis 3:20");
+  const passage = study.locator("st-search-results").getByRole("region", { name: "Genesis 3:20" });
+  await expect(passage).toBeVisible();
+  await expect(passage).toContainText("Eve");
+  await expect(passage.getByText("20", { exact: true })).toBeVisible();
+  await expect(verse).toBeHidden();
+  await page.screenshot(shot("reading-area-study-pick-show"));
+  // The window stays open, and the held words weren't linked to anything.
+  await expect(study.getByRole("button", { name: "Expand the study window" })).toBeHidden();
+  expect(await linksOn("Gen.4.1")).toEqual([]);
+
+  // Typing goes back to the results.
+  await field.pressSequentially(" ");
+  await expect(passage).toBeHidden();
+  await expect(verse).toBeVisible();
+
+  // A run of verses is shown whole; a Hebrew or Greek word is only marked.
+  await field.fill("Gen 4:1-2");
+  await field.press("Enter");
+  const run = study.getByRole("button", { name: /Genesis 4:1[–-]2/ }).first();
+  await expect(run).toBeVisible();
+  await run.click();
+  await expect(field).toHaveValue(/Genesis 4:1[–-]2/);
+  await expect(study.locator("st-search-results").getByRole("region")).toContainText("Cain");
+  await expect(study.locator("st-search-results").getByRole("region")).toContainText("Abel");
 });
 
 test("vision §3.14: several searches on one page keep their own scope, and their parts share state", async ({

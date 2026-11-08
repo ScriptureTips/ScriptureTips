@@ -1,12 +1,12 @@
 "use client";
 
-import { getSearch } from "@scripturetips/search";
+import { configureSearch, getSearch, type SearchResult } from "@scripturetips/search";
 import { useTranslations } from "next-intl";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { errorCode, useErrorText } from "../compilations/errors.ts";
-import { useHydrated } from "../hydrated.ts";
-import { type Anchor, linksAt, readAnchor } from "./linkAnchor.ts";
+import { linksAt } from "./linkAnchor.ts";
+import { isVerses, LINK_SEARCH, postLink, type ScriptureLink } from "./links.ts";
 import { openStudyMenu } from "./menuBus.ts";
 import { LINKS_CHANGED } from "./StudyLinkMarks.tsx";
 import { useStudy } from "./StudyProvider.tsx";
@@ -27,22 +27,13 @@ interface Lemma {
   entries: { lexicon: string; name: string; headword: string | null; summary: string }[];
 }
 
-/** apps/api `LinkView`: a link of the user's, seen from the selected passage. */
-interface ScriptureLink {
-  id: string;
-  quote: string | null;
-  anchor: Anchor | null;
-  other: { osis: string; label: string };
-  end: "source" | "target";
-}
-
-/** Mouse down in the tooltip keeps the selection, except in its text field, which takes the focus. */
-const keepSelection = (e: { target: EventTarget; preventDefault: () => void }) => {
-  if (!(e.target instanceof HTMLInputElement)) e.preventDefault();
+/**
+ * Mouse down in the tooltip keeps the selection, except in its text field, which takes the focus.
+ * The field is inside the search element's shadow root, so the press is looked for in its path.
+ */
+const keepSelection = (e: { nativeEvent: Event; preventDefault: () => void }) => {
+  if (!e.nativeEvent.composedPath().some((n) => n instanceof HTMLInputElement)) e.preventDefault();
 };
-
-/** The most characters of selected words a link keeps (apps/api `MAX_QUOTE`). */
-const MAX_QUOTE = 500;
 
 /** The most words the tooltip lists; a long selection says how many more. */
 const MOST = 6;
@@ -56,11 +47,10 @@ const WIDTH = 360;
  * on Escape, a click elsewhere, or when the selection goes. Clicking in it keeps the selection.
  * A click on words a link is pinned to selects them and opens it, listing the links pinned there.
  */
-export function StudySelection({ slug }: { slug: string }) {
+export function StudySelection({ slug, base }: { slug: string; base: string }) {
   const words = useStudy();
   const t = useTranslations("study");
   const errorText = useErrorText();
-  const hydrated = useHydrated();
   const tip = useRef<HTMLDivElement>(null);
   const [picked, setPicked] = useState<StudyPick | null>(null);
   // Whether it's open, for the mouse handlers (which are set up once).
@@ -79,10 +69,11 @@ export function StudySelection({ slug }: { slug: string }) {
   // The selection whose link form is open (a new selection starts closed), what's typed in it,
   // and why the last try failed.
   const [linking, setLinking] = useState<StudyPick | null>(null);
-  const [typed, setTyped] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
-  const field = useRef<HTMLInputElement>(null);
+  const field = useRef<HTMLElement>(null);
+  // What picking a passage in the link field does (set below, with the selection it's for).
+  const linkTo = useRef<(result: SearchResult) => void>(() => {});
   // The links pinned to the words that were clicked, when the selection is a click on words a
   // link is pinned to: only those are listed. Null for any other selection.
   const only = useRef<string[] | null>(null);
@@ -152,8 +143,12 @@ export function StudySelection({ slug }: { slug: string }) {
         // selection has stopped changing.
         window.clearTimeout(settle.current);
         settle.current = window.setTimeout(() => {
+          // The selection going is the collapsed branch's to handle (it closes the tooltip). Here
+          // it only opens, and not over the link form: pressing Link lets the browser's selection
+          // go (the words are held), which this would read as nothing and close the tooltip.
           const pick = readPick();
-          if (pick) dropHeldSelection();
+          if (!pick || linkOpen.current) return;
+          dropHeldSelection();
           setPicked(pick);
         }, 400);
       }
@@ -229,10 +224,28 @@ export function StudySelection({ slug }: { slug: string }) {
     };
   }, [source]);
 
-  // The form's field has the focus once it opens.
+  // The link field is an instance of the search widget of its own, searching the compilation's
+  // base translation (so a reference is read in the numbering being read) as typing pauses, its
+  // results listed under the field. Picking one links the selected words to it. It's set up when
+  // the form is asked for, before the field exists (not in an effect after it renders: a search
+  // typed before that would be cleared), and put away when the form closes.
   const formOpen = linking !== null && linking === picked;
+  const setUpLinkField = () => {
+    void import("@scripturetips/search/elements");
+    configureSearch(LINK_SEARCH, {
+      scope: { kinds: ["reference", "text"], translations: [base], limit: 8, previewLength: 80 },
+      searchOnType: true,
+      strings: { label: t("tip.linkTo"), placeholder: t("tip.linkPlaceholder") },
+      onSelect: ({ result }) => linkTo.current(result),
+    }).clear();
+  };
   useEffect(() => {
-    if (formOpen) field.current?.focus();
+    if (!formOpen) return;
+    // The element is loaded just now: the cursor goes in once it's there.
+    void customElements.whenDefined("st-search-input").then(() => field.current?.focus());
+    return () => {
+      configureSearch(LINK_SEARCH, { onSelect: null }).clear();
+    };
   }, [formOpen]);
 
   if (!picked || !words) return null;
@@ -323,23 +336,18 @@ export function StudySelection({ slug }: { slug: string }) {
     </div>
   );
 
-  const addLink = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!picked.source || !typed.trim() || adding) return;
+  linkTo.current = async (result) => {
+    if (result.kind === "original" || adding) return;
+    if (!isVerses(result.reference)) {
+      setLinkError(t("tip.linkVerses"));
+      return;
+    }
     setAdding(true);
     setLinkError(null);
     try {
-      const res = await fetch("/api/links", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          compilation: slug,
-          source: picked.source,
-          target: typed.trim(),
-          quote: picked.text.slice(0, MAX_QUOTE),
-          // The words are pinned only if the whole quote is kept.
-          anchor: pinned(picked, slug),
-        }),
+      const res = await postLink(slug, picked, {
+        reference: result.reference,
+        translation: result.translation.id,
       });
       if (!res.ok) {
         setLinkError(errorText(await errorCode(res)));
@@ -349,7 +357,6 @@ export function StudySelection({ slug }: { slug: string }) {
       if (only.current) only.current = [...only.current, made.id];
       setLinks((now) => ({ source: picked.source ?? "", list: [made, ...(now?.list ?? [])] }));
       window.dispatchEvent(new Event(LINKS_CHANGED));
-      setTyped("");
       setLinking(null);
     } catch {
       setLinkError(errorText("unavailable"));
@@ -359,26 +366,15 @@ export function StudySelection({ slug }: { slug: string }) {
   };
 
   const actions = formOpen ? (
-    <form className="study-tip-actions study-tip-link" onSubmit={addLink}>
-      <input
+    <form className="study-tip-actions study-tip-link" onSubmit={(e) => e.preventDefault()}>
+      <st-search-input
         ref={field}
-        type="text"
         className="study-tip-field"
-        aria-label={t("tip.linkTo")}
+        instance={LINK_SEARCH}
         placeholder={t("tip.linkPlaceholder")}
-        value={typed}
-        autoComplete="off"
-        autoCapitalize="off"
-        spellCheck={false}
-        onChange={(e) => setTyped(e.target.value)}
+        hide-button
+        results-as-suggestions
       />
-      <button
-        type="submit"
-        className="study-tip-button"
-        disabled={!hydrated || adding || !typed.trim()}
-      >
-        {t("tip.addLink")}
-      </button>
       <button
         type="button"
         className="study-tip-button"
@@ -431,6 +427,7 @@ export function StudySelection({ slug }: { slug: string }) {
           onClick={() => {
             // Typing in the field lets the browser's selection go: the words are held instead.
             holdSelection(picked);
+            setUpLinkField();
             setLinkError(null);
             setLinking(picked);
           }}
@@ -484,15 +481,6 @@ export function StudySelection({ slug }: { slug: string }) {
 /** The words, quoted, as a link keeps them. */
 function Quote({ text }: { text: string | null }) {
   return text ? <q className="study-tip-quote">{text}</q> : null;
-}
-
-/** Where the selected words are pinned, if there's one wording to pin them to. */
-function pinned(pick: StudyPick, slug: string): Anchor | undefined {
-  if (pick.text.length > MAX_QUOTE) return undefined;
-  const node = pick.range.commonAncestorContainer;
-  const element = node instanceof Element ? node : node.parentElement;
-  const scope = element?.closest(SCOPE);
-  return (scope && readAnchor(scope, pick.range, slug)) || undefined;
 }
 
 function WordCard({ strong, lemma }: { strong: string; lemma: Lemma | null | undefined }) {

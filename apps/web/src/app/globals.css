@@ -3582,3 +3582,18 @@ html[data-study-docked] .study-dock {
   font-style: italic;
   color: var(--muted);
 }
+
+/* The tooltip's link field is the search widget: it fills the row, and on a phone, where the
+   tooltip is a bar along the bottom, its list opens upward. */
+st-search-input.study-tip-field {
+  flex: 1;
+  min-width: 0;
+}
+
+.study-tip-bar st-search-input::part(suggestions) {
+  top: auto;
+  bottom: 100%;
+  margin: 0 0 0.2rem;
+  max-height: 40dvh;
+  overflow: auto;
+}

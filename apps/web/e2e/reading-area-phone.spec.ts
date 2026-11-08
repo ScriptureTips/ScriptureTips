@@ -615,10 +615,14 @@ test("domain-model §3.1: on a phone, the tooltip's Link adds a link, and a tap 
 
   // Link swaps the bar's buttons for the field, and the links list shows without Explain.
   await tip.getByRole("button", { name: "Link", exact: true }).tap();
-  const field = tip.getByRole("textbox", { name: "Passage to link these words to" });
+  const field = tip.getByRole("combobox", { name: "Passage to link these words to" });
   await expect(field).toBeVisible();
   await field.fill("Gen 4:25");
-  await tip.getByRole("button", { name: "Add link" }).tap();
+  // The list opens upward from the bar, and is on screen.
+  const option = tip.getByRole("option", { name: /^Genesis 4:25 / }).first();
+  await expect(option).toBeVisible();
+  await page.screenshot({ ...shot("reading-area-phone-study-link-form"), fullPage: false });
+  await option.tap();
   const links = tip.getByRole("list", { name: "Links" });
   await expect(links).toContainText("4:25");
   await expect(tip.getByRole("button", { name: "Link", exact: true })).toBeVisible();

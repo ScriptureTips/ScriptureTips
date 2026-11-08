@@ -17,6 +17,8 @@ export { DEFAULT_STRINGS, fill } from "./strings.ts";
 export { fetchTransport, queryString } from "./transport.ts";
 export type {
   OriginalResult,
+  PassageText,
+  PassageVerse,
   ReferenceResult,
   SearchEventName,
   SearchEvents,
@@ -26,6 +28,8 @@ export type {
   SearchScope,
   SearchState,
   SearchStatus,
+  SelectHandler,
+  ShownPassage,
   SnippetPart,
   Strings,
   Suggestion,
