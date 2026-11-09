@@ -20,6 +20,12 @@ describe("vision §3.6: the update to v1.0.3 (same Web Store listing)", () => {
       expect(m).not.toHaveProperty("host_permissions");
       expect(m.content_scripts[0]?.matches).toEqual(["<all_urls>"]);
     });
+    it(`marks ${browser}'s links, opening only the mark's image to pages`, () => {
+      expect(m.content_scripts[0]?.css).toEqual(["content.css"]);
+      expect(m.web_accessible_resources).toEqual([
+        { resources: ["mark.png"], matches: ["*://*/*"] },
+      ]);
+    });
   }
 
   it("is a later version than v1.0.3", () => {

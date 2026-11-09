@@ -16,6 +16,8 @@ import { shot } from "./support.ts";
  */
 const EXTENSION = new URL("../../extension/dist/chrome", import.meta.url).pathname;
 const FIXTURE = "https://fixture.test/";
+/** The small logo the extension puts after its links (its own file, by extension URL). */
+const MARK = /^url\("chrome-extension:\/\/[a-p]{32}\/mark\.png"\)$/;
 const WIDGET = "https://localhost:3000/widget/scripturetips.js";
 
 const test = base.extend<{ context: BrowserContext; worker: Worker; extensionId: string }>({
@@ -162,6 +164,16 @@ test("vision §3.6: on a page with a strict content security policy, the tooltip
   await expect(pop).toContainText("For God so loved the world");
   // Its own styles apply: it floats by the link, not at the foot of the page.
   await expect(pop).toHaveCSS("position", "fixed");
+  await expect(link).toHaveCSS("background-image", MARK);
+  // Drawn, not blocked: the extension's own file is out of the page's rules' reach.
+  expect(
+    await link.evaluate(async (a) => {
+      const img = new Image();
+      img.src = getComputedStyle(a).backgroundImage.slice(5, -2);
+      await img.decode().catch(() => undefined);
+      return img.naturalWidth;
+    }),
+  ).toBe(12);
   const [l, p] = await Promise.all([link.boundingBox(), pop.boundingBox()]);
   expect(Math.abs((p?.y ?? 9999) - ((l?.y ?? 0) + (l?.height ?? 0)))).toBeLessThan(60);
 });
@@ -179,6 +191,12 @@ test("vision §3.6: on a page running the website plugin, each link shows one to
   // The site's plugin got there first: the extension doesn't link it again.
   await expect(siteLink).not.toHaveAttribute("data-st-owner", "extension");
   await expect(page.locator("#site a.st-ref a")).toHaveCount(0);
+  // Only the extension's own links carry its mark.
+  await expect(siteLink).toHaveCSS("background-image", "none");
+  await expect(page.locator("a.st-ref", { hasText: "John 3:16" })).toHaveCSS(
+    "background-image",
+    MARK,
+  );
   for (const link of [siteLink, page.locator("a.st-ref", { hasText: "John 3:16" })]) {
     await link.hover();
     await expect(tooltip(page)).toHaveCount(1);
@@ -271,6 +289,13 @@ test("vision §3.6: the settings choose where links go, and pages follow", async
     .getByRole("combobox", { name: "Where links go" })
     .selectOption({ label: "BibleGateway.com" });
   await expect(options.getByRole("status")).toHaveText("Saved.");
+  // Over the clouds-and-birds artwork, with the logo, and the credits its license asks for.
+  expect(
+    await options.evaluate(() => getComputedStyle(document.body, "::before").backgroundImage),
+  ).toContain("brand/clouds-and-birds.svg");
+  await expect(options.locator("h1 img")).toHaveJSProperty("naturalWidth", 48);
+  await expect(options.getByRole("link", { name: "“Clouds And Birds”" })).toBeVisible();
+  await expect(options.getByRole("link", { name: "CC BY-NC 4.0" })).toBeVisible();
   await options.screenshot(shot("extension-settings"));
   await expect(page.locator("a.st-ref").first()).toHaveAttribute(
     "href",

@@ -114,3 +114,46 @@ body.popup nav {
   gap: 1rem;
   margin-top: 0.75rem;
 }
+
+/*
+ * The settings page sits over the clouds-and-birds artwork (docs/branding.md §3): a fixed layer
+ * that stays put while the page scrolls, with the content on a plain panel, never on the artwork.
+ */
+body.artwork {
+  padding: 1.5rem 1rem;
+  background: #62d1f7;
+}
+body.artwork::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: #62d1f7 url("brand/clouds-and-birds.svg") no-repeat 15% 100% / cover;
+}
+body.artwork main {
+  margin: 0 auto;
+  padding: 1rem 1.5rem 1.25rem;
+  background: var(--paper);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 12px rgb(0 40 90 / 0.18);
+}
+h1.brand {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--deep);
+}
+.credits {
+  margin-top: 1.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+/* On a tall, narrow screen, scaled from the bottom edge so the clouds reach up behind the panel. */
+@media (max-aspect-ratio: 1 / 1) {
+  body.artwork::before {
+    background-size: auto 145%;
+    background-position: 0% 100%;
+  }
+}

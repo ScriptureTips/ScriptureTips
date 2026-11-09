@@ -32,10 +32,15 @@ export function manifest(browser: Browser, version: string) {
         matches: ["<all_urls>"],
         exclude_globs: ["*://*google.com/*"],
         js: ["content.js"],
+        // The small logo that marks the extension's links.
+        css: ["content.css"],
         all_frames: true,
         run_at: "document_idle",
       },
     ],
+    // The mark after the extension's links (content.css). Pages can tell the extension is there
+    // from its links anyway (`data-st-owner`), so this gives nothing more away.
+    web_accessible_resources: [{ resources: ["mark.png"], matches: ["*://*/*"] }],
     ...(browser === "firefox"
       ? {
           browser_specific_settings: {

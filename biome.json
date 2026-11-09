@@ -12,6 +12,7 @@
       "!docs/license-evidence",
       "!pnpm-lock.yaml",
       "!apps/web/public/brand",
+      "!apps/extension/static/brand",
       "!**/*.generated.ts"
     ]
   },

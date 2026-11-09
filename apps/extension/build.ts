@@ -1,4 +1,4 @@
-import { cp, mkdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { build } from "esbuild";
 import pkg from "./package.json" with { type: "json" };
@@ -7,6 +7,7 @@ import { type Browser, manifest } from "./src/manifest.ts";
 const here = import.meta.dirname;
 const ENTRIES = ["background", "content", "popup", "options", "tool"];
 export const BROWSERS: readonly Browser[] = ["chrome", "firefox"];
+const SCHEMES: Record<Browser, string> = { chrome: "chrome-extension", firefox: "moz-extension" };
 
 /**
  * The ScriptureTips site the extension talks to: `ST_SITE` at build time (the development stack
@@ -38,6 +39,9 @@ async function main() {
     await rm(out, { recursive: true, force: true });
     await mkdir(out, { recursive: true });
     await cp(join(here, "static"), out, { recursive: true });
+    // The link mark's address: each browser has its own scheme for the extension's files.
+    const css = join(out, "content.css");
+    await writeFile(css, (await readFile(css, "utf8")).replaceAll("__SCHEME__", SCHEMES[browser]));
     const result = await bundle(out);
     await writeFile(
       join(out, "manifest.json"),
