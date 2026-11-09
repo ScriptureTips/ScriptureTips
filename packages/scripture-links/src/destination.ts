@@ -33,6 +33,18 @@ export function destinationUrl(
   );
 }
 
+/**
+ * The translation a link's address names: what the tooltip shows (a catalog ID) for the
+ * ScriptureTips reader; for an outside site, that site's own code when one is given ("KJV"), since
+ * it doesn't know the catalog's IDs.
+ */
+export const addressTranslation = (
+  destination: string,
+  destinationTranslation: string | undefined,
+  shown: string,
+): string =>
+  destination !== SCRIPTURETIPS && destinationTranslation ? destinationTranslation : shown;
+
 /** Where *Read more* goes: the passage as the translation numbers it, on the site's reader. */
 export const readMoreUrl = (site: string, translation: string, label: string): string =>
   `${site.replace(/\/$/, "")}/read?${new URLSearchParams({ t: translation, ref: label })}`;

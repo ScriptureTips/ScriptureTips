@@ -1,6 +1,6 @@
 export { CHOICES_KEY, type Choices, createChoices, pageStorage } from "./choices.ts";
 export { type Client, ClientError, createClient } from "./client.ts";
-export { destinationUrl, readMoreUrl, SCRIPTURETIPS } from "./destination.ts";
+export { addressTranslation, destinationUrl, readMoreUrl, SCRIPTURETIPS } from "./destination.ts";
 export { findInText, type ReferenceMatch } from "./find.ts";
 export { createScriptureLinks, type ScriptureLinks } from "./instance.ts";
 export {
@@ -8,6 +8,7 @@ export {
   KEY_ATTRIBUTE,
   LINK_CLASS,
   linkReferences,
+  OWNER_ATTRIBUTE,
   REF_ATTRIBUTE,
   TEXT_ATTRIBUTE,
   unlink,

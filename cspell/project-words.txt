@@ -190,3 +190,8 @@ contenteditable
 noopener
 haspopup
 Segoe
+bbcode
+WIKIML
+NKJV
+Recognises
+serviceworker

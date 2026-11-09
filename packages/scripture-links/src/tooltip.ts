@@ -1,6 +1,6 @@
 import { type Client, ClientError } from "./client.ts";
 import { readMoreUrl } from "./destination.ts";
-import { LINK_CLASS, REF_ATTRIBUTE } from "./scan.ts";
+import { LINK_CLASS, OWNER_ATTRIBUTE, REF_ATTRIBUTE } from "./scan.ts";
 import type {
   LinksEventName,
   LinksEvents,
@@ -54,6 +54,8 @@ export interface TooltipOptions {
   /** The reader chose another for this passage in the tooltip. */
   readonly choose: (link: HTMLAnchorElement, translation: string) => void;
   readonly emit: <K extends LinksEventName>(name: K, detail: LinksEvents[K]) => void;
+  /** Whose links this tooltip shows (`LinksOptions.owner`): only those carrying the same owner. */
+  readonly owner?: string | undefined;
 }
 
 export interface Tooltip {
@@ -64,8 +66,18 @@ export interface Tooltip {
   destroy(): void;
 }
 
-const linkOf = (target: EventTarget | null): HTMLAnchorElement | null =>
-  target instanceof Element ? target.closest<HTMLAnchorElement>(`a.${LINK_CLASS}`) : null;
+/**
+ * The link an event is on, if it's one this tooltip shows: a link carrying the same owner (none
+ * for the website plugin, `extension` for the browser extension), so a page with both shows one
+ * tooltip per link.
+ */
+const linkFinder =
+  (owner: string) =>
+  (target: EventTarget | null): HTMLAnchorElement | null => {
+    const a =
+      target instanceof Element ? target.closest<HTMLAnchorElement>(`a.${LINK_CLASS}`) : null;
+    return a && (a.getAttribute(OWNER_ATTRIBUTE) ?? "") === owner ? a : null;
+  };
 
 /**
  * The passage pop-up. On a mouse it opens when the pointer rests on a link (or the link takes
@@ -75,6 +87,7 @@ const linkOf = (target: EventTarget | null): HTMLAnchorElement | null =>
  * leak out, and all its text is set as text, never as markup, whatever the API says.
  */
 export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
+  const linkOf = linkFinder(options.owner ?? "");
   const host = doc.createElement("div");
   host.className = "st-host";
   const root = host.attachShadow({ mode: "open" });
