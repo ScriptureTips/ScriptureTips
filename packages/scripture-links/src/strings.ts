@@ -9,4 +9,5 @@ export const DEFAULT_STRINGS: Strings = {
   translation: "Translation",
   more: "…",
   tooltip: "Scripture passage",
+  pin: "Keep open",
 };

@@ -160,6 +160,81 @@ test("vision §3.6: the tooltip stays while a translation is chosen, though the 
   await expect(pop).toBeHidden();
 });
 
+test("vision §3.6: a pinned tooltip stays open, on its passage, while the reader writes elsewhere", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "A phone has no hover.");
+  await open(
+    page,
+    page$(
+      "",
+      `<div style="height:1600px"></div><textarea id="reply" aria-label="Reply"></textarea>`,
+    ),
+  );
+  await page.locator("#content a.st-ref", { hasText: "John 3:16" }).hover();
+  const pop = tooltip(page);
+  await expect(pop.getByText("For God so loved the world")).toBeVisible();
+  // The pin is beside the translation picker, on its right.
+  const pin = pop.getByRole("button", { name: "Keep open" });
+  await expect(pin).toHaveAttribute("aria-pressed", "false");
+  const [select, pinBox] = await Promise.all([
+    pop.getByRole("combobox", { name: "Translation" }).boundingBox(),
+    pin.boundingBox(),
+  ]);
+  expect(select && pinBox && pinBox.x >= select.x + select.width).toBe(true);
+  await pin.click();
+  await expect(pin).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot(shot("widget-pinned"));
+  // The pointer leaves, crosses another passage, and the reader goes to write a reply below.
+  await page.mouse.move(5, 5);
+  await page.locator("#content a.st-ref", { hasText: "Romans 5:8" }).hover();
+  await page.waitForTimeout(600);
+  const reply = page.getByRole("textbox", { name: "Reply" });
+  await reply.click();
+  await reply.pressSequentially("As it says, ");
+  await page.keyboard.press("Escape");
+  await expect(pop).toBeVisible();
+  await expect(pop.getByRole("heading", { name: "John 3:16" })).toBeVisible();
+  // Its link is scrolled away, but it stays in the window.
+  const tip = await pop.boundingBox();
+  const view = page.viewportSize();
+  expect(tip && view && tip.y >= 0 && tip.y + tip.height <= view.height).toBe(true);
+  await expect(reply).toHaveValue("As it says, ");
+  // Unpinned, it goes as usual when the pointer leaves, and the next opens unpinned.
+  await pin.click();
+  await expect(pin).toHaveAttribute("aria-pressed", "false");
+  await page.mouse.move(5, 5);
+  await expect(pop).toBeHidden();
+  await page.locator("#content a.st-ref", { hasText: "John 3:16" }).hover();
+  await expect(pop.getByRole("button", { name: "Keep open" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});
+
+test("vision §3.6: the pin works from the keyboard, and Escape in the tooltip closes it pinned", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "A phone has no keyboard here.");
+  await open(page);
+  await page.locator("#content a.st-ref", { hasText: "John 3:16" }).focus();
+  const pop = tooltip(page);
+  const pin = pop.getByRole("button", { name: "Keep open" });
+  await pin.focus();
+  await page.keyboard.press("Enter");
+  await expect(pin).toHaveAttribute("aria-pressed", "true");
+  await expect(pin).toBeFocused();
+  // Another translation rebuilds the tooltip: the pin keeps its state.
+  await pop.getByRole("combobox", { name: "Translation" }).selectOption({ label: "BSB" });
+  await expect(pop.getByRole("button", { name: "Keep open" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await pop.getByRole("button", { name: "Keep open" }).focus();
+  await page.keyboard.press("Escape");
+  await expect(pop).toBeHidden();
+});
+
 const chosenIn = (page: Page) => tooltip(page).getByRole("combobox", { name: "Translation" });
 
 test("vision §3.6: a translation written after the passage, or in the link's own address, is where it opens", async ({
@@ -392,6 +467,31 @@ test("vision §3.6: on a phone the first tap opens the passage, and Read more is
   const reader = await popup;
   await expect(reader).toHaveURL(/\/read\/eng-kjv\/john\/3\/16/);
   // A tap elsewhere puts it away.
+  await page
+    .locator("#content p")
+    .first()
+    .tap({ position: { x: 5, y: 5 } });
+  await expect(pop).toBeHidden();
+});
+
+test("vision §3.6: on a phone, a pinned tooltip stays through taps elsewhere and on other passages", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "phone", "A tap is a phone's way in.");
+  await open(page, page$("", `<textarea id="reply" aria-label="Reply"></textarea>`));
+  await page.locator("#content a.st-ref", { hasText: "John 3:16" }).tap();
+  const pop = tooltip(page);
+  await expect(pop).toContainText("For God so loved the world");
+  const pin = pop.getByRole("button", { name: "Keep open" });
+  await pin.tap();
+  await expect(pin).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({ ...shot("widget-pinned-phone"), fullPage: false });
+  await page.getByRole("textbox", { name: "Reply" }).tap();
+  // Another passage isn't opened over it, nor followed: the pin is the way out.
+  await page.locator("#content a.st-ref", { hasText: "Romans 5:8" }).tap();
+  expect(page.url()).toBe(FIXTURE);
+  await expect(pop.getByRole("heading", { name: "John 3:16" })).toBeVisible();
+  await pin.tap();
   await page
     .locator("#content p")
     .first()

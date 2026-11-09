@@ -127,6 +127,8 @@ test("vision §3.6: hovering shows the passage, fetched by the extension, with n
   const pop = tooltip(page);
   await expect(pop).toBeVisible();
   await expect(pop).toContainText("For God so loved the world");
+  // The shared tooltip's pin is here too (widget.spec.ts tests how it behaves).
+  await expect(pop.getByRole("button", { name: "Keep open" })).toBeVisible();
   await page.screenshot(shot("extension-tooltip"));
   // The choice of translation is kept by the extension, not in the site's storage.
   await pop.getByRole("combobox", { name: "Translation" }).selectOption({ label: "LEB" });

@@ -9,6 +9,8 @@ export interface Strings {
   /** The passage goes on past the verses shown. */
   readonly more: string;
   readonly tooltip: string;
+  /** The pin that keeps the tooltip open (its on or off is `aria-pressed`, not the wording). */
+  readonly pin: string;
 }
 
 /** A translation the plugin may show (`GET /api/widget/translations`). */

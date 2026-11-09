@@ -13,6 +13,8 @@ import type {
 const WIDTH = 360;
 /** How long the pointer may be away before the tooltip goes (ms), so it can reach it. */
 const LEAVE_MS = 250;
+/** The pin's picture (a push pin), drawn in the button's color. */
+const PIN_PATH = "M16 3l5 5-2 1-3 3 1 5-1.5 1.5L11 14l-5 6-1-1 6-5-4.5-4.5L8 8l5 1 3-3z";
 
 /**
  * Theme the tooltip with these CSS custom properties on the page (they pass into the shadow
@@ -32,6 +34,7 @@ const STYLES = `
   .box[hidden] { display: none; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem; }
   h2 { margin: 0; font-size: 0.95rem; font-weight: 600; }
+  .tools { display: inline-flex; align-items: center; gap: 0.4rem; margin-inline-start: auto; }
   label { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: var(--st-muted, #5b6672); }
   select { font: inherit; max-width: 11rem; color: inherit; background: var(--st-paper, #fff); border: 1px solid var(--st-rule, #dfe3e6); border-radius: 0.3rem; }
   p { margin: 0.35rem 0; }
@@ -40,7 +43,14 @@ const STYLES = `
   .attribution { margin-top: 0.5rem; font-size: 0.75rem; color: var(--st-muted, #5b6672); }
   footer { margin-top: 0.5rem; }
   a { color: var(--st-accent, #0054a5); }
-  a:focus-visible, select:focus-visible { outline: 2px solid var(--st-accent, #0054a5); outline-offset: 1px; }
+  .pin {
+    display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; padding: 0;
+    color: var(--st-muted, #5b6672); background: transparent; border: 1px solid transparent; border-radius: 0.3rem; cursor: pointer;
+  }
+  .pin:hover { border-color: var(--st-rule, #dfe3e6); }
+  .pin[aria-pressed="true"] { color: #fff; background: var(--st-accent, #0054a5); border-color: var(--st-accent, #0054a5); }
+  .pin svg { width: 1rem; height: 1rem; fill: currentColor; }
+  a:focus-visible, select:focus-visible, .pin:focus-visible { outline: 2px solid var(--st-accent, #0054a5); outline-offset: 1px; }
   @media print { .box { display: none; } }
 `;
 
@@ -81,7 +91,8 @@ const linkFinder =
 
 /**
  * The passage pop-up. On a mouse it opens when the pointer rests on a link (or the link takes
- * focus), stays while the pointer is over it, and goes with Escape or a press elsewhere; on a
+ * focus), stays while the pointer is over it, and goes with Escape or a press elsewhere, unless
+ * the reader pinned it (then it stays, on its passage, until unpinned or closed from inside it); on a
  * touch screen the first tap on a link opens it instead of following the link, and *Read more* is
  * the way on. It lives in a shadow root, so the page's styles don't reach it and its own don't
  * leak out, and all its text is set as text, never as markup, whatever the API says.
@@ -109,6 +120,9 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   doc.head.append(mark);
 
   let anchor: HTMLAnchorElement | null = null;
+  // Pinned by the reader: it stays open, on its passage, until they unpin or close it (so they can
+  // read it while they write a reply). Only closing it unpins it.
+  let pinned = false;
   // Each opening and each reload is numbered, so a late answer to an earlier one is dropped.
   let latest = 0;
   let openTimer: number | undefined;
@@ -162,8 +176,10 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     );
     // The first that covers fewest (below, if they tie); when neither fits, where there's more room.
     const best = fits.sort((x, y) => covered(x) - covered(y))[0];
-    const top =
+    let top =
       best ?? (room.below >= room.above ? rect.bottom + 6 : Math.max(8, rect.top - height - 6));
+    // Pinned, it stays in the window when its link is scrolled away, as the reader goes to write.
+    if (pinned) top = Math.min(Math.max(8, top), Math.max(8, view.height - height - 8));
     box.style.left = `${left}px`;
     box.style.top = `${top}px`;
     // Seen only once it's in its place.
@@ -212,7 +228,9 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     const head = doc.createElement("header");
     const h2 = doc.createElement("h2");
     h2.textContent = passage?.label ?? anchor?.getAttribute("data-st-text") ?? "";
-    head.append(h2);
+    const tools = doc.createElement("div");
+    tools.className = "tools";
+    head.append(h2, tools);
     if (translations.length > 1) {
       const label = doc.createElement("label");
       label.append(`${options.strings.translation} `);
@@ -245,8 +263,9 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         void show(link);
       });
       label.append(select);
-      head.append(label);
+      tools.append(label);
     }
+    tools.append(pinButton());
     const children: Node[] = [head, ...body];
     if (link) {
       const footer = doc.createElement("footer");
@@ -261,9 +280,40 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     // The tooltip is rebuilt as the passage arrives or the translation changes: a select that had
     // the focus hands it to the new one, so the reader goes on using it.
     const keepFocus = refocus || root.activeElement instanceof HTMLSelectElement;
+    const keepPinFocus = root.activeElement?.classList.contains("pin") ?? false;
     box.replaceChildren(...children);
     if (keepFocus) box.querySelector("select")?.focus();
+    else if (keepPinFocus) box.querySelector<HTMLButtonElement>(".pin")?.focus();
     refocus = false;
+  };
+
+  const pinButton = () => {
+    const button = doc.createElement("button");
+    button.type = "button";
+    button.className = "pin";
+    button.setAttribute("aria-label", options.strings.pin);
+    button.title = options.strings.pin;
+    button.setAttribute("aria-pressed", String(pinned));
+    const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    const path = doc.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", PIN_PATH);
+    svg.append(path);
+    button.append(svg);
+    button.addEventListener("click", () => {
+      pinned = !pinned;
+      button.setAttribute("aria-pressed", String(pinned));
+      // Pressed with the pointer, the focus is let go, so the tooltip goes when the pointer leaves
+      // once it's unpinned; pressed with the keyboard, the button keeps it.
+      if (lastDownAt > lastKeyAt) {
+        releasing = true;
+        button.blur();
+        releasing = false;
+      }
+      place();
+    });
+    return button;
   };
 
   const verses = (passage: WidgetPassage): Node[] => {
@@ -337,6 +387,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     window.clearTimeout(openTimer);
     window.clearTimeout(leaveTimer);
     latest++;
+    pinned = false;
     box.hidden = true;
     anchor?.removeAttribute("aria-expanded");
     anchor = null;
@@ -353,8 +404,9 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   const leave = () => {
     window.clearTimeout(openTimer);
     window.clearTimeout(leaveTimer);
+    if (pinned) return;
     leaveTimer = window.setTimeout(() => {
-      if (!inUse()) close();
+      if (!inUse() && !pinned) close();
     }, LEAVE_MS);
   };
 
@@ -364,6 +416,8 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       (e) => {
         lastPointer = (e as PointerEvent).pointerType || "mouse";
         lastDownAt = Date.now();
+        // Pinned, it stays while the reader works elsewhere on the page (writing a reply, say).
+        if (pinned) return;
         if (!linkOf(e.target) && !inside(e.composedPath()[0] ?? e.target)) close();
       },
       true,
@@ -377,10 +431,12 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
           return;
         }
         const link = linkOf(e.target);
-        if (!link || (e as PointerEvent).pointerType !== "mouse") return;
+        if (!link || pinned || (e as PointerEvent).pointerType !== "mouse") return;
         window.clearTimeout(leaveTimer);
         window.clearTimeout(openTimer);
-        openTimer = window.setTimeout(() => open(link), options.hoverDelayMs);
+        openTimer = window.setTimeout(() => {
+          if (!pinned) open(link);
+        }, options.hoverDelayMs);
       },
     ],
     [
@@ -400,7 +456,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         // A tap focuses the link first and then clicks it: the click is what opens it then.
         if (lastPointer === "touch" && Date.now() - lastDownAt < 600) return;
         const link = linkOf(e.target);
-        if (link) open(link);
+        if (link && !pinned) open(link);
       },
     ],
     [
@@ -419,6 +475,8 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         // On a touch screen the first tap shows the passage; Read more is the way on.
         if (link && lastPointer === "touch") {
           e.preventDefault();
+          // Pinned, it keeps its passage: the pin is the way out.
+          if (pinned) return;
           if (anchor === link && !box.hidden) close();
           else open(link);
         }
@@ -429,7 +487,11 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       "keydown",
       (e) => {
         lastKeyAt = Date.now();
-        if ((e as KeyboardEvent).key === "Escape" && !box.hidden) close();
+        if ((e as KeyboardEvent).key !== "Escape" || box.hidden) return;
+        // Pinned, Escape closes it only from the tooltip or its link, not while the reader is
+        // writing elsewhere on the page.
+        if (pinned && !inside(e.composedPath()[0] ?? e.target) && e.target !== anchor) return;
+        close();
       },
     ],
   ];
