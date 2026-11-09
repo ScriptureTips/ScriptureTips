@@ -23,6 +23,6 @@ links.destroy(); // every link is replaced by its words again
 - **Links drawn by someone else work too.** The tooltip listens for any `a.st-ref` on the page (with `data-st-ref` the OSIS and `data-st-text` the words), whoever made it, so a page that draws its own links (React, say) needn't be scanned: it creates an instance and never calls `run`. The web app does this for the study tooltip's list of links (`apps/web/src/study/StudyPassagePopups.tsx`, canonical numbering, its own `/api/widget`).
 - **Events** (`on`): `tooltip-open` (`{ reference, translation }`), `translation-change` (`{ reference, translation }`), `scan`.
 - **Strings** are NZ English (`strings.ts`), replaceable through the options.
-- **Not built yet:** lite mode, moving and resizing the tooltip, expanding to the paragraph, stepping to the next and previous passage, search in the tooltip, serving publications (public translations only for now), the user's own compilation (the extension).
+- **Not built yet:** lite mode, moving and resizing the tooltip, expanding to the paragraph, stepping to the next and previous passage, search in the tooltip, serving publications (public translations only for now), the user's own compilation and a local cache of passages (the extension; vision §3.6, sources.md §8 item 29). The client's `fetch` option is where it plugs in.
 
 Run the tests: `./toolbox pnpm --filter @scripturetips/scripture-links test` (the pure parts: finding, destinations, the client). The DOM behavior is tested end to end in `apps/web/e2e/widget.spec.ts`.

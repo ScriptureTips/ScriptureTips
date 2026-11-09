@@ -576,9 +576,25 @@ External references in an edition are rendered as footnotes or endnotes using th
 
 ## 9. Federation readiness (not built at launch)
 
-- Canonical URIs on public content (§1.1).
-- ScriptureLink, Annotation, Comment and Note map to ActivityStreams objects (`Note`, `Article`, `Collection`) with a ScriptureTips extension for passages and relationship types.
-- Users map to `Person` and Groups to `Group` actors.
+Communities may run satellite instances (vision §7; the licensing position is in vision §1.1). Federation isn't built at launch, but nothing built now may stand in its way. These are requirements on every new feature:
+
+- **Identity:** canonical URIs on public content (§1.1); the instance domain is part of an account's global identity (`@handle@instance`), with the actor identity being the public ID, never the handle or a sequential number. Users map to `Person` and Groups to `Group` actors.
+- **Objects:** ScriptureLink, Annotation, Comment and Note map to ActivityStreams objects (`Note`, `Article`, `Collection`) with a ScriptureTips extension for passages and relationship types. Private content (study links, drafts) never federates.
+- **Versioning:** the API and federation messages carry a protocol version, separate from the release. Changes only add; removing something follows a documented window. Database migrations expand first and contract later (a column or table is dropped only after every supported release stopped using it), so instances on different releases keep working together.
+- **Portability:** a user can move to another instance with their content and have the old identity redirect. The export (vision §5.1, stage 5) is the base, and it must be complete enough to import elsewhere.
+- **Instance policy** is configuration data: account and storage limits, the translations enabled and the operator's acknowledgement of each license, jurisdiction and age rules, moderation settings. Nothing about a host's circumstances is hard-coded.
+- **Licensed text stays local:** a federated object carries references (canonical ranges, translation id) and the user's own wording, never another instance's cached text of a licensed translation. The receiving instance resolves text from its own scripture cache (§2.5) and, for a text it lacks or isn't licensed for, shows "not available here". Public-domain text may be copied freely. A publication's verse snapshot (§2.3) is affected: see sources.md §8 item 30.
+- **Deletion and withdrawal** travel as tombstones that other instances honor.
+- **Remote entities:** other instances' users and objects are stored as remote records with their origin, never mixed into local accounts.
+- **When a satellite goes away** (its data and the links to it must outlive it):
+  - **Host-independent public IDs:** a public ID doesn't depend on the instance's domain, so the same ID can be served from anywhere.
+  - **A signing key per account:** public content is signed by it, so any instance can serve a verifiable copy and nobody can forge content or take over a lapsed domain's URLs. By default the server holds the key; the user can export it. Custody and recovery are open (sources.md §8 item 31).
+  - **Signed move records:** when a user migrates, they sign a statement of their new home. It can be checked without asking the old instance, which may be down.
+  - **A resolver:** every instance answers `/resolve/{publicId}` by asking its peers and the project's resolver where the ID lives now. The resolver is small, cheap and replaceable, and it holds locations only, never content.
+  - **Mirrors:** public content (publications, whose pinned versions are immutable and hash-chained) can be mirrored by other instances and verified. A mirror holds only the text it is licensed for (§2.3, sources.md §8 item 30).
+  - **Private data** (study links, drafts, private notes) lives only on the home instance and doesn't federate. It survives through the user's own export: an automatic scheduled backup with a reminder when the last one is old, and later an encrypted backup held by a second instance (encrypted on the user's device, so that instance can't read it).
+  - **Operator shutdown duty** (in the operator terms): notice, a migration window, and a working export, before the instance goes offline.
+- **Plugins and the extension:** a configurable API origin and a home instance setting (the website plugin already takes `api`).
 
 ## 10. Open questions
 
