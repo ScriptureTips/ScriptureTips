@@ -446,7 +446,7 @@ All TypeScript, in one monorepo. Full rationale: see [architecture.md](architect
 | i18n | next-intl, default locale `en-NZ`, right-to-left support |
 | Testing | Vitest, Playwright |
 | AI | Moderation: a panel of models from several providers. Vercel AI SDK as the single interface to providers. User features: bring your own key, any provider or local model. |
-| Hosting (initial) | Docker Compose + Caddy on a single VPS |
+| Hosting (initial) | Docker Compose + Caddy on a single VPS, provisioned with Ansible; the data server and the app instance as separate sites (§7.2) |
 | WordPress | Thin PHP plugin that loads the shared JS widget |
 | Future | ActivityPub federation: the data model should allow it, but it isn't built at launch |
 
@@ -465,6 +465,17 @@ ScriptureTips is never monetized (§1.1), so running costs are kept low.
   - **Plugins and the extension** take a configurable API origin and a home instance.
   - Everything configurable through environment settings, no hard-coded domains, the whole stack in Docker Compose.
   - **The resolver and the short domain for printed QR codes use `scripture.tips`** (decided; the registry, its price rules and the alternatives are in sources.md §8 item 32). The owner holds the registration for the long term with a second person able to renew it, and the resolver is replaceable: peers learn a new resolver from signed records, so losing the name doesn't strand anyone.
+
+### 7.2 Deployment: the data server and app instances
+Decided 2026-11-10. ScriptureTips runs as two workloads, deployed separately.
+
+- **The data server, `scripture.tips`:** public, read-only and cacheable. It serves passage text, the website plugin's script and API (`/api/widget`), published compilation versions, the resolver and the QR short links, and later the extension's translation packs. It has no accounts or cookies, and holds no personal data beyond server logs. Its load is many small reads, so it needs memory for caching and bandwidth, not much disk (all the scripture text is a few GB). It can be copied to other regions or put behind a CDN without changes.
+- **App instances:** authoring, compilations, PDF builds, accounts and later the social features. They use the CPU heavily, and hold all personal data and long-term storage.
+- **`scripturetips.com` is the project's own app instance, and is treated as a satellite (§7.1).** It gets nothing from the data server that a community's satellite couldn't, so the satellite path is used from day one.
+- **Boundary in code:** the public read routes are kept apart from the authenticated ones, so the data server runs as its own deployment from the same code. It holds its own copy of the scripture text (loaded by the import loader; the text never changes) and receives each compilation version as it's published.
+- **The extension and the website plugin read from `scripture.tips`** from their first production release, through the configurable API origin (§7.1). Changing it later would need an extension update with new host permissions, and edits on every site that embeds the plugin.
+- **Hosting now:** both run on one VPS (a Netcup root server), as separate Caddy sites in front of separate containers. The data server moves to its own server when measurements show the need.
+- Open: which licensed texts other satellites may read from the data server (sources.md §8 item 34).
 
 ## 8. Conventions
 
