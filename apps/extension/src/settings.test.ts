@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  apiOf,
   DEFAULT_SETTINGS,
   leftAlone,
   migrate,
   normalize,
   outsideSite,
   PRESET_SITES,
+  siteOf,
 } from "./settings.ts";
 
 /** What v1.0.3 left in sync storage (its service worker's install defaults, then the reader's). */
@@ -85,5 +87,16 @@ describe("vision §3.6: where the extension stays out", () => {
       outsideSites: [{ name: "New", url: "", translation: "" }],
     };
     expect(outsideSite(filling)).toBeNull();
+  });
+});
+
+describe("vision §7.2: reader and data addresses", () => {
+  it("opens links in a satellite's reader, but reads passages from the data server", () => {
+    const satellite = { ...DEFAULT_SETTINGS, site: "https://church.test/" };
+    expect(siteOf(satellite, "https://scripturetips.test")).toBe("https://church.test");
+    expect(siteOf(DEFAULT_SETTINGS, "https://scripturetips.test/")).toBe(
+      "https://scripturetips.test",
+    );
+    expect(apiOf("https://data.test/")).toBe("https://data.test/api");
   });
 });

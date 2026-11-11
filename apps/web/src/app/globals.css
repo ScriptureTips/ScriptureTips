@@ -240,7 +240,11 @@ main {
 
 .site-footer {
   padding: 1rem;
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: flex-end;
+  gap: 0.5rem;
   font-size: 0.9rem;
 }
 
@@ -2121,6 +2125,17 @@ button.secondary {
 
 .credits li {
   margin-bottom: 0.5rem;
+}
+
+/* The about, contact, privacy and terms pages: plain text on the page's panel. */
+.info-page h2 {
+  margin: 1.75rem 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.info-updated {
+  color: #5a6570;
+  font-size: 0.9rem;
 }
 
 /* An own rendering's authorship evidence (domain-model §2.3.1), on the verse editor. */

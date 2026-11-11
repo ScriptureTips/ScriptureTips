@@ -1,0 +1,49 @@
+# The data server, scripture.tips (vision §7.2): PostgreSQL with the scripture text, and the
+# API in its data role (only /api/widget/*). No accounts, cookies, Valkey or SMTP.
+# Run from this folder with its environment file (data.env.example):
+#   docker compose -f compose.data.yaml --env-file data.env up -d
+# The reverse proxy (Caddy, set up by the server's Ansible roles) sends scripture.tips/api/* to
+# the API's port, bound to the loopback address only.
+name: scripturetips-data
+
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scripturetips
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: scripturetips
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: [CMD, pg_isready, -U, scripturetips]
+      interval: 5s
+      retries: 30
+    mem_limit: ${POSTGRES_MEMORY:-768m}
+
+  api:
+    image: ${API_IMAGE:-scripturetips-api:latest}
+    restart: unless-stopped
+    environment:
+      API_ROLE: data
+      DATABASE_URL: postgres://scripturetips:${POSTGRES_PASSWORD}@postgres:5432/scripturetips
+    ports:
+      - 127.0.0.1:${API_PORT:-8101}:3001
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3001/api/widget/translations').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      retries: 30
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: ${API_MEMORY:-384m}
+
+volumes:
+  pgdata:

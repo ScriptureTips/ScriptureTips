@@ -3,7 +3,11 @@
     "name": "ScriptureTips",
     "tagline": "Study the scriptures in the translation you trust.",
     "credits": "Credits",
-    "compilations": "Compilations"
+    "compilations": "Compilations",
+    "about": "About",
+    "contact": "Contact",
+    "privacy": "Privacy",
+    "terms": "Terms"
   },
   "search": {
     "translation": "Translation",
@@ -174,8 +178,17 @@
     "ageHelp": "Which fits you, in your own judgement. It helps others know how to speak to you; it isn't checked.",
     "country": "Location",
     "choose": "Choose…",
-    "genderOptions": { "female": "Female", "male": "Male", "both": "Both" },
-    "ageOptions": { "child": "Child", "teen": "Teen", "adult": "Adult", "senior": "Senior" },
+    "genderOptions": {
+      "female": "Female",
+      "male": "Male",
+      "both": "Both"
+    },
+    "ageOptions": {
+      "child": "Child",
+      "teen": "Teen",
+      "adult": "Adult",
+      "senior": "Senior"
+    },
     "privacy": {
       "for": "Who can see your {field}",
       "private": "Private",
@@ -503,5 +516,57 @@
     "loading": "Loading…",
     "own": "Your own wording is changed on <link>the verse's page</link>, where its authorship is recorded.",
     "locked": "The {source}'s licence doesn't allow its wording to be changed."
+  },
+  "about": {
+    "title": "About ScriptureTips",
+    "intro": "ScriptureTips is a place to study the scriptures in the translation you trust.",
+    "now": "Read the Bible in several translations, look up the Hebrew and Greek words behind them, and search by passage, word or Strong's number. The browser extension and the website plugin show a passage when you point at a reference on any page.",
+    "next": "Coming next: accounts, so you can make your own compilation (the translation you prefer, drawn from several translations and your own wording), link passages, and print or share your work.",
+    "freeHeading": "Free, for good",
+    "free": "ScriptureTips will never be sold, and will never carry advertising or sponsorship, charge a subscription or ask for donations. Several translations are offered by their publishers only on the condition that they are given away freely, and we keep that promise.",
+    "softwareHeading": "Free software",
+    "software": "ScriptureTips is free software under the GNU Affero General Public License, version 3. Its <source>source code</source> is public, and anyone may run their own installation of it, for a church or another community.",
+    "credits": "The people and projects whose work makes it possible are listed on the <credits>credits</credits> page."
+  },
+  "contact": {
+    "title": "Contact",
+    "text": "To ask a question, report a problem, or make a request about your personal information, email <email>{address}</email>.",
+    "copyright": "If you believe something on ScriptureTips infringes your copyright, email the same address with the details, and we'll look into it promptly."
+  },
+  "privacy": {
+    "title": "Privacy policy",
+    "updated": "Last updated 10 November 2026.",
+    "intro": "This policy covers the ScriptureTips website (scripturetips.com), the ScriptureTips data service (scripture.tips), the browser extension and the website plugin. ScriptureTips follows the New Zealand Privacy Act 2020, and the EU General Data Protection Regulation for people in Europe.",
+    "collectHeading": "What we collect",
+    "noAccounts": "There are no accounts yet, so we don't ask for your name, email address or anything else about you. We don't use cookies, advertising, analytics or tracking of any kind.",
+    "logs": "Like every web server, ours record each request: your IP address, the time, the address asked for and your browser's name. We use these records only to keep the service running and secure, and delete them once they are no longer needed for that.",
+    "passages": "When you point at a reference, the browser extension or the website plugin asks scripture.tips for that passage. The request carries only the reference and the translation: not the page you're on, and no other text from it.",
+    "browserHeading": "What stays in your browser",
+    "browser": "Some choices are kept in your own browser and never sent to us: the translation you last chose for each link, and where you left the study window.",
+    "extension": "The extension keeps its settings in your browser's storage. If you've turned on your browser's sync, your browser's maker (such as Mozilla or Google) carries them between your devices under its own privacy policy.",
+    "whereHeading": "Where it's kept",
+    "where": "Our servers are run by netcup GmbH, a German company, in the European Union. We don't sell, share or give your information to anyone, except where the law requires it.",
+    "rightsHeading": "Your rights",
+    "rights": "You may ask what we hold about you, and ask us to correct or delete it: see <contact>Contact</contact>.",
+    "complaints": "If you're not satisfied with our answer, you can complain to the Office of the Privacy Commissioner in New Zealand, or to the data protection authority where you live.",
+    "changes": "Before accounts open, this policy will be updated to say what they hold and why."
+  },
+  "terms": {
+    "title": "Terms of use",
+    "updated": "Last updated 10 November 2026.",
+    "intro": "By using ScriptureTips (the website, the data service, the browser extension or the website plugin) you agree to these terms.",
+    "freeHeading": "Free of charge",
+    "free": "ScriptureTips is free. It never charges anyone, sells anything, carries advertising or sponsorship, or asks for donations, and no one may charge for it on its behalf.",
+    "textsHeading": "The scripture texts",
+    "texts": "Each translation belongs to its owner and is shown under its own licence, credited with its text. Some are in the public domain; others may be copied only on their own terms, for example only when given away freely. When you copy text from ScriptureTips, those terms apply to you.",
+    "softwareHeading": "The software",
+    "software": "The ScriptureTips software is free software under the <agpl>GNU Affero General Public License, version 3</agpl>. These terms don't limit the rights that licence gives you.",
+    "useHeading": "Fair use",
+    "use": "Please don't overload the service. The scripture.tips data service is for the ScriptureTips extension, website plugin and installations; other programs may not use it. We may limit or block traffic that harms the service.",
+    "warrantyHeading": "No warranty",
+    "warranty": "ScriptureTips is provided as it is, without any warranty. We work to keep the texts accurate and the service available, but we can't promise either, and as far as the law allows, we aren't liable for any loss from using it. Nothing in these terms takes away rights that consumer law gives you and that can't be excluded.",
+    "lawHeading": "New Zealand law",
+    "law": "These terms are governed by the laws of New Zealand.",
+    "changes": "We may update these terms; the date above shows when they last changed. Questions: see <contact>Contact</contact>."
   }
 }

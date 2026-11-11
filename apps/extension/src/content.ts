@@ -61,7 +61,7 @@ async function start(settings: Settings): Promise<void> {
   if (mine !== latest) return;
   const outside = outsideSite(settings);
   instance = createScriptureLinks({
-    api: apiOf(settings),
+    api: apiOf(),
     site: siteOf(settings),
     owner: OWNER,
     destination: outside ? outside.url : SCRIPTURETIPS,

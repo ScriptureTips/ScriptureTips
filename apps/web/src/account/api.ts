@@ -1,5 +1,6 @@
 import type { CanonId } from "@scripturetips/canon";
 import { cookies } from "next/headers";
+import { instance } from "../instance.ts";
 
 /** The signed-in user's account, from the API (apps/api/src/auth). */
 export interface Account {
@@ -29,6 +30,7 @@ const API = process.env["API_URL"] ?? "http://127.0.0.1:3001/api";
 
 /** The account of whoever is viewing, or null when signed out. Server components only. */
 export async function currentAccount(): Promise<Account | null> {
+  if (!(await instance()).accountsOpen) return null;
   const cookie = (await cookies()).toString();
   if (!cookie) return null;
   try {

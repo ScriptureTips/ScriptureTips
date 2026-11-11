@@ -15,6 +15,12 @@ const SCHEMES: Record<Browser, string> = { chrome: "chrome-extension", firefox: 
  */
 const SITE = process.env["ST_SITE"] ?? "https://localhost:3000";
 
+/**
+ * The data server passages are read from (vision §7.2): `ST_DATA` at build time, `ST_SITE` if
+ * not given (the development stack serves both, proxying `/api/widget`).
+ */
+const DATA = process.env["ST_DATA"] ?? SITE;
+
 /** Bundles the extension's scripts (each one file, no imports at run time). */
 export async function bundle(outdir: string | null) {
   return build({
@@ -27,7 +33,7 @@ export async function bundle(outdir: string | null) {
     metafile: true,
     write: outdir !== null,
     outdir: outdir ?? join(here, "dist/check"),
-    define: { __ST_SITE__: JSON.stringify(SITE) },
+    define: { __ST_SITE__: JSON.stringify(SITE), __ST_DATA__: JSON.stringify(DATA) },
     logLevel: "warning",
   });
 }
@@ -48,7 +54,9 @@ async function main() {
       `${JSON.stringify(manifest(browser, pkg.version), null, 2)}\n`,
     );
     const bytes = Object.values(result.metafile.outputs).reduce((n, o) => n + o.bytes, 0);
-    console.log(`${browser}: ${(bytes / 1024).toFixed(1)} KB of script, for ${SITE}`);
+    console.log(
+      `${browser}: ${(bytes / 1024).toFixed(1)} KB of script, reader ${SITE}, data ${DATA}`,
+    );
   }
 }
 

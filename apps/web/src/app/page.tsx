@@ -2,6 +2,7 @@ import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { currentAccount } from "../account/api.ts";
 import { myCompilations } from "../compilations/api.ts";
+import { instance } from "../instance.ts";
 import { translations } from "../reader/api.ts";
 import { HomeSearch } from "../reader/HomeSearch.tsx";
 import { defaultTranslation, translationOptions } from "../translations/menu.ts";
@@ -17,6 +18,7 @@ export default async function Home({ searchParams }: Props) {
   const s = await getTranslations("search");
   const ta = await getTranslations("account");
   const account = await currentAccount();
+  const { accountsOpen } = await instance();
   const [catalog, mine] = await Promise.all([translations().catch(() => []), myCompilations()]);
   return (
     <section className="landing">
@@ -54,7 +56,7 @@ export default async function Home({ searchParams }: Props) {
           {errors.has(error) ? errors(error) : errors("unavailable")}
         </p>
       ) : null}
-      {account ? null : (
+      {account || !accountsOpen ? null : (
         <p className="landing-signin">
           <a href="/sign-in">{ta("signIn")}</a>
         </p>

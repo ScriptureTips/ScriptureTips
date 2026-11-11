@@ -75,6 +75,8 @@ services:
       AUTH_URL: https://127.0.0.1:3000
       TRUSTED_ORIGINS: https://localhost:3000,https://web:3000,${LAN_ORIGINS:-}
       VALKEY_URL: redis://valkey:6379
+      # `ACCOUNTS=closed ./dev up --lan` runs the reader only, as the first release does.
+      ACCOUNTS: ${ACCOUNTS:-open}
       SMTP_URL: smtp://mailpit:1025
       MAIL_FROM: ScriptureTips <no-reply@scripturetips.localhost>
       <<: &storage
@@ -202,6 +204,8 @@ services:
     environment:
       API_URL: http://api:3001/api
       NEXT_TELEMETRY_DISABLED: "1"
+      ACCOUNTS: ${ACCOUNTS:-open}
+      CONTACT_EMAIL: contact@scripturetips.localhost
       # Hosts besides localhost the dev server answers: `web` for the end-to-end tests, and
       # the network addresses `./dev up --lan` adds.
       DEV_ORIGINS: web,${DEV_ORIGINS:-}

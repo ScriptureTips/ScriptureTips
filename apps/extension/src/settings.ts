@@ -27,7 +27,11 @@ export interface Settings {
   readonly disabledSites: readonly string[];
   /** The translation the tooltip opens in (a catalog ID); the KJV if not set. */
   readonly translation: string | null;
-  /** Another ScriptureTips installation (a satellite) to use instead of the built-in one. */
+  /**
+   * Another ScriptureTips installation (a satellite) whose reader links open, instead of the
+   * built-in one. Passages still come from the data server (vision §7.2; whether a satellite
+   * may serve them itself is open, sources.md §8 item 34).
+   */
   readonly site: string | null;
 }
 
@@ -148,24 +152,35 @@ export function migrate(stored: Record<string, unknown>): Settings {
   };
 }
 
-/** The ScriptureTips site the extension was built for (`ST_SITE` at build time). */
+/** The ScriptureTips site the extension was built for (`ST_SITE` at build time): its reader. */
 declare const __ST_SITE__: string;
 export const BUILT_IN_SITE: string = typeof __ST_SITE__ === "string" ? __ST_SITE__ : "";
 
-/** The ScriptureTips site in use, and its API. */
-export const siteOf = (settings: Settings): string =>
-  (settings.site ?? BUILT_IN_SITE).replace(/\/$/, "");
-export const apiOf = (settings: Settings): string => `${siteOf(settings)}/api`;
+/** The data server it reads passages from (`ST_DATA` at build time; vision §7.2). */
+declare const __ST_DATA__: string;
+export const BUILT_IN_DATA: string = typeof __ST_DATA__ === "string" ? __ST_DATA__ : "";
+
+const trimmed = (address: string): string => address.replace(/\/$/, "");
+
+/** The ScriptureTips site whose reader links open: a satellite, or the built-in one. */
+export const siteOf = (settings: Settings, builtIn = BUILT_IN_SITE): string =>
+  trimmed(settings.site ?? builtIn);
+
+/** The API passages are read from: always the data server, whichever reader links open. */
+export const apiOf = (data = BUILT_IN_DATA): string => `${trimmed(data)}/api`;
 
 /** Whether the extension leaves this page alone: turned off here, or the ScriptureTips site itself. */
 export function leftAlone(settings: Settings, url: URL): boolean {
   if (!/^https?:$/.test(url.protocol)) return true;
   if (settings.disabledSites.includes(url.host)) return true;
-  try {
-    return url.origin === new URL(siteOf(settings)).origin;
-  } catch {
-    return false;
-  }
+  // The reader's own pages, and the data server's: ScriptureTips links its own references.
+  return [siteOf(settings), BUILT_IN_DATA].some((address) => {
+    try {
+      return url.origin === new URL(address).origin;
+    } catch {
+      return false;
+    }
+  });
 }
 
 /** The outside site links go to, if not the reader. */

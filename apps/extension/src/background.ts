@@ -20,7 +20,7 @@ const isFetch = (m: unknown): m is FetchRequest =>
   typeof (m as FetchRequest).url === "string";
 
 async function load(url: string): Promise<FetchReply> {
-  const allowed = `${apiOf(await loadSettings())}/widget/`;
+  const allowed = `${apiOf()}/widget/`;
   if (!url.startsWith(allowed)) return { error: "Only the ScriptureTips API is fetched." };
   try {
     const res = await fetch(url, { credentials: "omit" });

@@ -35,7 +35,7 @@ async function save(next: Settings, redraw = false): Promise<void> {
 /** The translations ScriptureTips can show, from its API; the default alone if it can't be reached. */
 async function translations(): Promise<{ value: string; label: string }[]> {
   try {
-    const res = await fetch(`${apiOf(settings)}/widget/translations`, { credentials: "omit" });
+    const res = await fetch(`${apiOf()}/widget/translations`, { credentials: "omit" });
     if (!res.ok) throw new Error(String(res.status));
     const body = (await res.json()) as { translations: WidgetTranslation[] };
     return body.translations.map((t) => ({ value: t.id, label: `${t.name} (${t.abbreviation})` }));
