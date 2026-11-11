@@ -12,13 +12,13 @@ import { shot } from "./support.ts";
  * The browser extension (vision §3.6, testing.md "Browser extension"), loaded unpacked into
  * Chromium from `apps/extension/dist/chrome` (built by `pnpm --filter @scripturetips/extension
  * build`). Pages on another origin are answered here; passages come from the dev stack through the
- * extension's background, as the site's own address (`localhost:3000`).
+ * extension's background, from the dev data server (`dev.scripture.tips`).
  */
 const EXTENSION = new URL("../../extension/dist/chrome", import.meta.url).pathname;
 const FIXTURE = "https://fixture.test/";
 /** The small logo the extension puts after its links (its own file, by extension URL). */
 const MARK = /^url\("chrome-extension:\/\/[a-p]{32}\/mark\.png"\)$/;
-const WIDGET = "https://localhost:3000/widget/scripturetips.js";
+const WIDGET = "https://dev.scripturetips.com/widget/scripturetips.js";
 
 const test = base.extend<{ context: BrowserContext; worker: Worker; extensionId: string }>({
   // biome-ignore lint/correctness/noEmptyPattern: Playwright reads the fixtures it needs from here.
@@ -31,7 +31,6 @@ const test = base.extend<{ context: BrowserContext; worker: Worker; extensionId:
       args: [
         `--disable-extensions-except=${EXTENSION}`,
         `--load-extension=${EXTENSION}`,
-        `--host-resolver-rules=MAP localhost ${process.env["WEB_HOST"] ?? "web"}`,
         // The background's requests go to the dev stack's self-signed certificate.
         "--ignore-certificate-errors",
         "--disable-features=LocalNetworkAccessChecks",
@@ -112,7 +111,7 @@ test("vision §3.6: the extension links references on any page, and leaves links
   await expect(links.first()).toHaveAttribute("data-st-owner", "extension");
   await expect(links.first()).toHaveAttribute(
     "href",
-    "https://localhost:3000/read?t=eng-kjv&ref=Romans%205%3A8",
+    "https://dev.scripturetips.com/read?t=eng-kjv&ref=Romans%205%3A8",
   );
   await expect(page.locator('a[href="/elsewhere"] a, code a')).toHaveCount(0);
   expect(await page.locator("textarea").inputValue()).toBe("John 1:1");
@@ -266,7 +265,7 @@ test("vision §3.6: the link generator links what the reader writes, with undo a
   await page.getByRole("combobox", { name: "Format" }).selectOption({ label: "BBCode (forums)" });
   await page.getByRole("button", { name: "Add links" }).click();
   await expect(text).toHaveValue(
-    "As Paul says in [url=https://localhost:3000/read?t=eng-kjv&ref=Romans%205%3A8]Romans 5:8[/url].\n[url=x]John 3:16[/url]",
+    "As Paul says in [url=https://dev.scripturetips.com/read?t=eng-kjv&ref=Romans%205%3A8]Romans 5:8[/url].\n[url=x]John 3:16[/url]",
   );
   await page.screenshot(shot("extension-tool"));
   await page.getByRole("button", { name: "Undo" }).click();

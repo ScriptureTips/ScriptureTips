@@ -6,21 +6,18 @@ import { shot } from "./support.ts";
  * loads the script from the site and links the references in the area it's told to, so CORS is
  * exercised for real. The script is built by `pnpm --filter @scripturetips/widget build`.
  */
-const SCRIPT = "https://localhost:3000/widget/scripturetips.js";
+const SCRIPT = "https://dev.scripturetips.com/widget/scripturetips.js";
 /**
  * The page the script is put on: another origin from the site's, so the API's CORS answers are
  * needed. Every request to it is answered here. Chromium counts a page answered this way as
- * public and won't let it reach `localhost` (the test browser's name for the web container), a rule
- * about local networks that a real public site loading the script doesn't meet, so that one check
+ * public and won't let it reach the dev site (a private address inside the stack), a rule about
+ * local networks that a real public site loading the script doesn't meet, so that one check
  * is off for these tests.
  */
 const FIXTURE = "https://fixture.test/";
 test.use({
   launchOptions: {
-    args: [
-      `--host-resolver-rules=MAP localhost ${process.env["WEB_HOST"] ?? "web"}`,
-      "--disable-features=LocalNetworkAccessChecks",
-    ],
+    args: ["--disable-features=LocalNetworkAccessChecks"],
   },
 });
 
@@ -76,7 +73,7 @@ test("vision §3.6: the plugin links the references in the area it's given, and 
   // A link goes to the ScriptureTips reader, which reads the reference as written.
   await expect(links.first()).toHaveAttribute(
     "href",
-    "https://localhost:3000/read?t=eng-kjv&ref=John%203%3A16",
+    "https://dev.scripturetips.com/read?t=eng-kjv&ref=John%203%3A16",
   );
 });
 
@@ -93,11 +90,11 @@ test("vision §3.6: hovering a reference shows the passage, in the visitor's bro
   await expect(pop.getByRole("combobox", { name: "Translation" })).toHaveValue("eng-kjv");
   await expect(pop.getByRole("link", { name: "Read more" })).toHaveAttribute(
     "href",
-    "https://localhost:3000/read?t=eng-kjv&ref=John+3%3A16",
+    "https://dev.scripturetips.com/read?t=eng-kjv&ref=John+3%3A16",
   );
   await page.screenshot(shot("widget-tooltip"));
   // No cookie goes to the site, nothing is stored on the page's origin.
-  expect(await page.context().cookies("https://localhost:3000")).toEqual([]);
+  expect(await page.context().cookies("https://dev.scripturetips.com")).toEqual([]);
   expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0);
   // It stays while the pointer is over it, and goes when it leaves.
   await pop.hover();
@@ -245,7 +242,7 @@ test("vision §3.6: a translation written after the passage, or in the link's ow
     page$(
       "",
       `<p>Isaiah 53:5 (BSB) and Mark 1:1 (NLT) are quoted.</p>
-       <p><a class="st-ref" href="https://localhost:3000/read?t=leb&amp;ref=Romans%205%3A8" data-st-ref="Rom.5.8" data-st-text="Romans 5:8">Romans 5:8</a> is the page's own link.</p>`,
+       <p><a class="st-ref" href="https://dev.scripturetips.com/read?t=leb&amp;ref=Romans%205%3A8" data-st-ref="Rom.5.8" data-st-text="Romans 5:8">Romans 5:8</a> is the page's own link.</p>`,
     ),
   );
   // "(BSB)" after the passage names a translation the plugin has.

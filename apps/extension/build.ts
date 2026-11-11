@@ -13,13 +13,13 @@ const SCHEMES: Record<Browser, string> = { chrome: "chrome-extension", firefox: 
  * The ScriptureTips site the extension talks to: `ST_SITE` at build time (the development stack
  * if not given). A reader can point it at another installation in the settings.
  */
-const SITE = process.env["ST_SITE"] ?? "https://localhost:3000";
+const SITE = process.env["ST_SITE"] ?? "https://dev.scripturetips.com";
 
 /**
- * The data server passages are read from (vision §7.2): `ST_DATA` at build time, `ST_SITE` if
- * not given (the development stack serves both, proxying `/api/widget`).
+ * The data server passages are read from (vision §7.2): `ST_DATA` at build time (the development
+ * stack's data server if not given).
  */
-const DATA = process.env["ST_DATA"] ?? SITE;
+const DATA = process.env["ST_DATA"] ?? "https://dev.scripture.tips";
 
 /** Bundles the extension's scripts (each one file, no imports at run time). */
 export async function bundle(outdir: string | null) {

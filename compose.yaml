@@ -48,7 +48,8 @@ services:
       retries: 30
     profiles: [dev]
 
-  # The API (apps/api), rebuilt and restarted on every change. http://127.0.0.1:3001/api
+  # The API (apps/api) in the app role, rebuilt and restarted on every change, behind the web
+  # app. Also at http://127.0.0.1:3001/api on this machine.
   api:
     image: scripturetips-toolbox:dev
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
@@ -72,8 +73,8 @@ services:
       PORT: "3001"
       # Accounts (apps/api/src/auth). A development-only secret: production sets its own.
       AUTH_SECRET: development-only-secret-not-for-production-use
-      AUTH_URL: https://127.0.0.1:3000
-      TRUSTED_ORIGINS: https://localhost:3000,https://web:3000,${LAN_ORIGINS:-}
+      AUTH_URL: https://dev.scripturetips.com
+      TRUSTED_ORIGINS: https://dev.scripturetips.com
       VALKEY_URL: redis://valkey:6379
       # `ACCOUNTS=closed ./dev up --lan` runs the reader only, as the first release does.
       ACCOUNTS: ${ACCOUNTS:-open}
@@ -95,6 +96,34 @@ services:
         condition: service_started
       garage-init:
         condition: service_completed_successfully
+    profiles: [dev]
+
+  # The API in the data role (vision §7.2), the data server at https://dev.scripture.tips. It
+  # runs the build the `api` service keeps up to date, restarting when it changes.
+  api-data:
+    image: scripturetips-toolbox:dev
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    working_dir: /workspace/apps/api
+    command: [node, --watch, dist/main.js]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3001/api/widget/translations').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 2s
+      retries: 60
+    volumes:
+      - .:/workspace
+    environment:
+      DATABASE_URL: postgres://scripturetips:scripturetips@postgres:5432/scripturetips
+      PORT: "3001"
+      API_ROLE: data
+    depends_on:
+      api:
+        condition: service_healthy
     profiles: [dev]
 
   # Builds PDFs (apps/pdf-worker, book-designer.md §9): Typst and the fonts in an image of its
@@ -168,25 +197,12 @@ services:
       - ${LAN_BIND:-127.0.0.1}:8025:8025
     profiles: [dev]
 
-  # The web app (apps/web), with hot reload. https://127.0.0.1:3000, or on the local network
-  # with `./dev up --lan`. HTTPS, with the self-signed certificate `./dev` makes, so devices on
-  # the network get a secure context too (the sign-in bot check needs one).
+  # The web app (apps/web), with hot reload, at https://dev.scripturetips.com through Caddy.
   web:
     image: scripturetips-toolbox:dev
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     working_dir: /workspace
-    command:
-      [
-        pnpm,
-        --filter,
-        "@scripturetips/web",
-        dev,
-        --experimental-https,
-        --experimental-https-key,
-        /workspace/.dev-certs/key.pem,
-        --experimental-https-cert,
-        /workspace/.dev-certs/cert.pem,
-      ]
+    command: [pnpm, --filter, "@scripturetips/web", dev]
     # `./dev up` waits until the web app serves its first page.
     healthcheck:
       test:
@@ -194,7 +210,7 @@ services:
           CMD,
           node,
           -e,
-          "process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; fetch('https://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+          "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
         ]
       interval: 2s
       timeout: 30s
@@ -206,13 +222,39 @@ services:
       NEXT_TELEMETRY_DISABLED: "1"
       ACCOUNTS: ${ACCOUNTS:-open}
       CONTACT_EMAIL: contact@scripturetips.localhost
-      # Hosts besides localhost the dev server answers: `web` for the end-to-end tests, and
-      # the network addresses `./dev up --lan` adds.
-      DEV_ORIGINS: web,${DEV_ORIGINS:-}
-    ports:
-      - ${LAN_BIND:-127.0.0.1}:3000:3000
+      # The site name the browser uses, for the dev server's own requests (hot reload).
+      DEV_ORIGINS: dev.scripturetips.com
     depends_on:
       - api
+    profiles: [dev]
+
+  # The reverse proxy (infra/caddy/Caddyfile), as in production: https://dev.scripturetips.com
+  # (the web app) and https://dev.scripture.tips (the data server). Their public DNS records point
+  # at this machine's network address, which `./dev up --lan` listens on. Plain `./dev up` listens
+  # on 127.0.0.1 only, reached through a hosts-file entry for both names. Inside the stack the
+  # names are aliases of this container, so the end-to-end tests reach it by name too.
+  caddy:
+    # Caddy with the acme-dns plugin, for trusted certificates (infra/caddy/README.md).
+    build: infra/docker/caddy
+    image: scripturetips-caddy:dev
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # `./dev` sets DEV_TLS to acme-dns once .dev-certs/acme-dns.json exists.
+      - ./infra/caddy/tls-${DEV_TLS:-self-signed}.caddy:/etc/caddy/tls.caddy:ro
+      - ./.dev-certs:/certs:ro
+      # Its certificates and ACME account, kept so restarts don't ask Let's Encrypt again.
+      - caddy-data:/data
+    ports:
+      - ${LAN_BIND:-127.0.0.1}:80:80
+      - ${LAN_BIND:-127.0.0.1}:443:443
+    networks:
+      default:
+        aliases: [dev.scripturetips.com, dev.scripture.tips]
+    depends_on:
+      web:
+        condition: service_healthy
+      api-data:
+        condition: service_healthy
     profiles: [dev]
 
   # Integration-test server (testing.md §10): separate from development data, held in memory,
@@ -248,6 +290,7 @@ services:
     profiles: [tools, test]
 
 volumes:
+  caddy-data:
   pnpm-store:
   pgdata:
   garage:

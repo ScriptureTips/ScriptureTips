@@ -33,7 +33,7 @@ test("the contact page gives the instance's own address", async ({ page }) => {
 });
 
 test.describe("accounts closed", () => {
-  // Asked through the browser: it alone maps localhost to the web container.
+  // Asked through the browser, through Caddy as a real visitor would.
   test.beforeEach(async ({ page }) => {
     const signIn = await page.goto("/sign-in");
     test.skip(signIn?.status() !== 404, "the stack has accounts open");
