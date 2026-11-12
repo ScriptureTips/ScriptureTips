@@ -23,6 +23,11 @@ export const KEY_ATTRIBUTE = "data-st-key";
  * same.
  */
 export const AUTO_ATTRIBUTE = "data-st-auto";
+/**
+ * Which plugin made a link, when it isn't the website plugin: the browser extension marks its
+ * links `extension`, so its tooltip and a site's own plugin each show only their own.
+ */
+export const OWNER_ATTRIBUTE = "data-st-owner";
 
 /**
  * What is never scanned, with everything inside it: links (so none is nested), code and
@@ -40,6 +45,8 @@ export interface ScanOptions {
   readonly translation: () => string;
   /** More to leave alone (a CSS selector). */
   readonly ignore?: string | undefined;
+  /** Who the links are marked as made by (`OWNER_ATTRIBUTE`); none for the website plugin. */
+  readonly owner?: string | undefined;
 }
 
 /**
@@ -79,6 +86,7 @@ export function linkReferences(root: Element, options: ScanOptions): HTMLAnchorE
       a.setAttribute(REF_ATTRIBUTE, f.osis);
       a.setAttribute(TEXT_ATTRIBUTE, f.text);
       a.setAttribute(AUTO_ATTRIBUTE, "");
+      if (options.owner) a.setAttribute(OWNER_ATTRIBUTE, options.owner);
       if (f.written) a.setAttribute(WRITTEN_ATTRIBUTE, f.written);
       a.setAttribute("aria-haspopup", "dialog");
       a.textContent = f.text;

@@ -1,0 +1,16 @@
+/*
+ * In every page: the small logo after each reference the extension turned into a link, so the
+ * reader can tell it was the extension, not the site (as v1.0.3 did). Only the extension's own
+ * links (a site's own plugin makes `a.st-ref` too). The image is the extension's own file
+ * (web-accessible), which a page's content security policy can't block, as it does a `data:`
+ * image. `__SCHEME__` is set for each browser by the build; the browser fills in the ID. The
+ * separate properties, not the `background` shorthand, so the site's own background on links is
+ * kept.
+ */
+a.st-ref[data-st-owner="extension"] {
+  background-image: url("__SCHEME__://__MSG_@@extension_id__/mark.png") !important;
+  background-repeat: no-repeat !important;
+  background-position: right center !important;
+  background-size: 12px 12px !important;
+  padding-right: 14px !important;
+}

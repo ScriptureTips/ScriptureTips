@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
@@ -5,6 +6,10 @@ import createNextIntlPlugin from "next-intl/plugin";
 const API = process.env["API_URL"] ?? "http://127.0.0.1:3001/api";
 
 const config: NextConfig = {
+  // Production images (infra/docker/web) run the standalone server, traced from the repository
+  // root so workspace packages are included.
+  output: "standalone",
+  outputFileTracingRoot: fileURLToPath(new URL("../..", import.meta.url)),
   // Workspace packages are TypeScript source.
   // The floating dev-tools badge covers controls at the bottom of small screens (and shows in
   // every screenshot). Errors still reach the browser console.

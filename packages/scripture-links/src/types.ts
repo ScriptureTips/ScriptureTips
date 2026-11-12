@@ -9,6 +9,8 @@ export interface Strings {
   /** The passage goes on past the verses shown. */
   readonly more: string;
   readonly tooltip: string;
+  /** The pin that keeps the tooltip open (its on or off is `aria-pressed`, not the wording). */
+  readonly pin: string;
 }
 
 /** A translation the plugin may show (`GET /api/widget/translations`). */
@@ -55,6 +57,17 @@ export interface LinksOptions {
    * template with `ST_REFERENCE`, `ST_TRANSLATION`, `ST_BOOKNAME`, `ST_CHAPTER` and `ST_VERSE`.
    */
   readonly destination?: string;
+  /**
+   * What an outside destination's `ST_TRANSLATION` names: that site's own code for the
+   * translation ("KJV", "TLV"), which isn't a ScriptureTips catalog ID. Without it, the link names
+   * the tooltip's translation. Not used for the ScriptureTips reader.
+   */
+  readonly destinationTranslation?: string;
+  /**
+   * Who makes the links (`data-st-owner`), when it isn't the website plugin: the browser extension
+   * gives `extension`. Each tooltip shows only its own links, so a page running both shows one.
+   */
+  readonly owner?: string;
   /** Words to replace (to translate the plugin). */
   readonly strings?: Partial<Strings>;
   /** What to skip besides links, code and form fields: a CSS selector. `.st-ignore` always is. */

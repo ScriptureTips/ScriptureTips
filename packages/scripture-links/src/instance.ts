@@ -1,6 +1,6 @@
 import { createChoices, pageStorage } from "./choices.ts";
 import { createClient } from "./client.ts";
-import { destinationUrl, SCRIPTURETIPS } from "./destination.ts";
+import { addressTranslation, destinationUrl, SCRIPTURETIPS } from "./destination.ts";
 import { findInText } from "./find.ts";
 import {
   AUTO_ATTRIBUTE,
@@ -118,6 +118,7 @@ export function createScriptureLinks(options: LinksOptions): ScriptureLinks {
       refreshAddress(a);
     },
     emit,
+    owner: options.owner,
   });
 
   const scanOptions = {
@@ -125,8 +126,14 @@ export function createScriptureLinks(options: LinksOptions): ScriptureLinks {
     site,
     // What a new link's address names: the visitor's preference or the configured default.
     // (A link's own choice is applied once it's in the page: `refreshAddress`.)
-    translation: () => preferred ?? options.translation ?? DEFAULT_TRANSLATION,
+    translation: () =>
+      addressTranslation(
+        destination,
+        options.destinationTranslation,
+        preferred ?? options.translation ?? DEFAULT_TRANSLATION,
+      ),
     ignore: options.ignore,
+    owner: options.owner,
   };
 
   /** A link of the plugin's names in its address the translation it will open in. */
@@ -134,7 +141,10 @@ export function createScriptureLinks(options: LinksOptions): ScriptureLinks {
     if (!links.has(a) || !a.hasAttribute(AUTO_ATTRIBUTE)) return;
     const ref = findInText(a.getAttribute(TEXT_ATTRIBUTE) ?? "")[0];
     if (!ref) return;
-    const translation = chosenFor(a) ?? scanOptions.translation();
+    const chosen = chosenFor(a);
+    const translation = chosen
+      ? addressTranslation(destination, options.destinationTranslation, chosen)
+      : scanOptions.translation();
     a.href = destinationUrl(destination, site, translation, ref);
   }
 

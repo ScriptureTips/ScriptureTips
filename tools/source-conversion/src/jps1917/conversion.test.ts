@@ -4,7 +4,7 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { BOOKS } from "./books.ts";
 import { CHAPTER_STARTS, CORRECTIONS, HYPHENATED_COMPOUNDS } from "./corrections.ts";
 import { restoreHebrew } from "./hebrew.ts";
@@ -18,12 +18,17 @@ const SOURCE = `${ROOT}/opensiddur-wayback/Tanakh1917.txt`;
 const WITNESS = `${ROOT}/engjps_usfm.zip`;
 
 describe.skipIf(!existsSync(SOURCE) || !existsSync(WITNESS))("JPS 1917 conversion", () => {
-  const corrected = applyCorrections(decodeSource(readFileSync(SOURCE)), CORRECTIONS);
-  const { text } = resolveLineEndHyphens(
-    restoreCompounds(corrected, HYPHENATED_COMPOUNDS),
-    HYPHENATED_COMPOUNDS,
-  );
-  const books = parseTranscription(text, CHAPTER_STARTS).map(restoreHebrew);
+  // Read when the suite runs, not when it's collected: vitest collects a skipped suite's body too,
+  // which would fail where the source files are absent.
+  let books: ReturnType<typeof parseTranscription>;
+  beforeAll(() => {
+    const corrected = applyCorrections(decodeSource(readFileSync(SOURCE)), CORRECTIONS);
+    const { text } = resolveLineEndHyphens(
+      restoreCompounds(corrected, HYPHENATED_COMPOUNDS),
+      HYPHENATED_COMPOUNDS,
+    );
+    books = parseTranscription(text, CHAPTER_STARTS).map(restoreHebrew);
+  });
 
   it("finds every book with the printing's verse counts and every footnote attached", () => {
     expect(books).toHaveLength(BOOKS.length);

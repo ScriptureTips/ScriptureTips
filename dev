@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 # Start or stop the local development stack (testing.md §2): ./dev up, ./dev down, ./dev logs,
-# ./dev migrate (applies pending database migrations to the development database).
-# `./dev up --lan` also serves the web app to the local network (to try it on a phone or
-# tablet); the API and database stay on localhost. Runs on the host, since Docker isn't
-# available inside the toolbox.
+# ./dev migrate (applies pending database migrations to the development database), ./dev site
+# (builds the scripture.tips site's pages again, apps/site).
+# The stack is served through Caddy as https://dev.scripturetips.com (the web app) and
+# https://dev.scripture.tips (the data server), whose public DNS records point at this machine's
+# network address. `./dev up --lan` listens on the network (to try it on a phone or tablet);
+# plain `./dev up` listens on 127.0.0.1 only, which needs a hosts-file entry for both names.
+# The API and database stay on localhost. Runs on the host, since Docker isn't available inside
+# the toolbox.
 #
-# The web app is served over HTTPS with a self-signed certificate (in .dev-certs/, not in git),
-# so every device gets a secure context, which the sign-in bot check needs (Web Crypto). The
-# certificate covers localhost and this machine's network addresses; it's made again when they
-# change, and a browser warns about it once.
+# Both sites need HTTPS: every device then gets a secure context, which the sign-in bot check
+# needs (Web Crypto). Once .dev-certs/acme-dns.json holds the acme-dns account
+# (infra/caddy/README.md), Caddy gets trusted Let's Encrypt certificates and renews them itself.
+# Until then `./dev` makes a self-signed certificate, which a browser warns about once per site.
+# .dev-certs/ isn't in git.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -16,13 +21,18 @@ export HOST_UID="$(id -u)" HOST_GID="$(id -g)"
 
 # cspell:ignore newkey addext keyout
 
-# This machine's private network addresses.
-addresses="$(hostname -I | tr ' ' '\n' | grep -E '^(192\.168|10)\.' || true)"
+SITES=(dev.scripturetips.com dev.scripture.tips)
 
-# Makes the certificate if it's missing or doesn't cover the current addresses.
+# Chooses the certificates: trusted ones through acme-dns when its account is there, otherwise
+# a self-signed one, made if it's missing or doesn't cover the sites.
 certificate() {
-  local names="DNS:localhost,DNS:web,IP:127.0.0.1"
-  for a in $addresses; do names+=",IP:$a"; done
+  if [[ -f .dev-certs/acme-dns.json ]]; then
+    export DEV_TLS=acme-dns
+    return
+  fi
+  export DEV_TLS=self-signed
+  local names
+  names="$(printf 'DNS:%s,' "${SITES[@]}")DNS:localhost"
   if [[ -f .dev-certs/cert.pem && "$(cat .dev-certs/names 2>/dev/null)" == "$names" ]]; then
     return
   fi
@@ -34,27 +44,36 @@ certificate() {
   echo "$names" >.dev-certs/names
 }
 
+SERVICES=(caddy web api api-data pdf-worker mailpit)
+
+# The scripture.tips site's pages (apps/site), with the website plugin's script they serve: plain
+# files in apps/site/dist, which Caddy serves. `./dev site` builds them again after a change.
+site() {
+  ./toolbox env CONTACT_EMAIL=contact@scripture.tips sh -c \
+    'pnpm --filter @scripturetips/widget build && pnpm --filter @scripturetips/site build'
+}
+
 case "${1:-}" in
   up)
     certificate
-    if [[ "${2:-}" == "--lan" ]]; then
-      export LAN_BIND=0.0.0.0 DEV_ORIGINS="$(paste -sd, <<<"$addresses")"
-      LAN_ORIGINS="$(for a in $addresses; do printf 'https://%s:3000\n' "$a"; done | paste -sd,)"
-      export LAN_ORIGINS
-      docker compose --profile dev up -d --wait --force-recreate web api pdf-worker mailpit
-      for a in $addresses; do
-        echo "Web app on the network: https://$a:3000"
-        echo "Mailpit on the network: http://$a:8025"
+    site
+    if [[ "${2:-}" == "--lan" ]]; then export LAN_BIND=0.0.0.0; fi
+    docker compose --profile dev up -d --wait --force-recreate "${SERVICES[@]}"
+    for site in "${SITES[@]}"; do echo "https://$site"; done
+    if [[ -n "${LAN_BIND:-}" ]]; then
+      for a in $(hostname -I | tr ' ' '\n' | grep -E '^(192\.168|10)\.' || true); do
+        echo "Mailpit: http://$a:8025"
       done
-      exit
+    else
+      echo "Mailpit: http://127.0.0.1:8025"
     fi
-    exec docker compose --profile dev up -d --wait --force-recreate web api pdf-worker mailpit
     ;;
   down) exec docker compose --profile dev stop ;;
   logs) exec docker compose --profile dev logs -f "${@:2}" ;;
   migrate) exec ./toolbox pnpm --filter @scripturetips/db migrate ;;
+  site) site ;;
   *)
-    echo "Usage: ./dev up [--lan] | down | logs [service] | migrate" >&2
+    echo "Usage: ./dev up [--lan] | down | logs [service] | migrate | site" >&2
     exit 1
     ;;
 esac

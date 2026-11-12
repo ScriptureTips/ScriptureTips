@@ -1,15 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * End-to-end tests against the running dev stack (`./dev up`): run them in the toolbox, which
- * reaches the web app as `web:3000`. Screenshots go to test-results/ (not committed).
+ * End-to-end tests against the running dev stack (`./dev up`), run in the toolbox. The browser
+ * opens the app as https://dev.scripturetips.com, which inside the stack is an alias of the
+ * Caddy container, with the dev stack's self-signed certificate (accepted here). Screenshots go
+ * to test-results/ (not committed).
  */
-/**
- * The browser opens the app as `localhost:3000`, which Chromium maps to the `web` container,
- * over HTTPS with the dev stack's self-signed certificate (accepted here).
- */
-const baseURL = "https://localhost:3000";
-const webHost = process.env["WEB_HOST"] ?? "web";
+const baseURL = "https://dev.scripturetips.com";
 
 export default defineConfig({
   testDir: "e2e",
@@ -18,7 +15,6 @@ export default defineConfig({
     baseURL,
     ignoreHTTPSErrors: true,
     ...devices["Desktop Chrome"],
-    launchOptions: { args: [`--host-resolver-rules=MAP localhost ${webHost}`] },
   },
   projects: [
     { name: "desktop", use: { viewport: { width: 1280, height: 900 } } },

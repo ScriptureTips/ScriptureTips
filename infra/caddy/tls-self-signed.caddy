@@ -1,0 +1,2 @@
+# The self-signed certificate `./dev` makes (.dev-certs/), until acme-dns is set up.
+tls /certs/cert.pem /certs/key.pem

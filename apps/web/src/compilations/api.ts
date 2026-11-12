@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { instance } from "../instance.ts";
 import type { Verse } from "../reader/api.ts";
 
 /** The signed-in user's compilations (apps/api `CompilationsController`). Server components only. */
@@ -144,6 +145,7 @@ async function get<T>(path: string): Promise<T | null> {
 }
 
 export async function myCompilations(): Promise<CompilationSummary[]> {
+  if (!(await instance()).accountsOpen) return [];
   return (await get<{ compilations: CompilationSummary[] }>(""))?.compilations ?? [];
 }
 

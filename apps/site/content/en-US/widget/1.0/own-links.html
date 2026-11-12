@@ -1,0 +1,19 @@
+<p>The tooltip works for any link on the page that is marked as a scripture reference, whoever made it. A page that draws its own links (from React or a template, say) can skip the scanning and still get the tooltip.</p>
+
+<h2>The markup</h2>
+<pre><code>&lt;a class="st-ref" href="…" data-st-ref="John.3.16" data-st-text="John 3:16"&gt;John 3:16&lt;/a&gt;</code></pre>
+<table>
+<thead><tr><th>Attribute</th><th>Holds</th></tr></thead>
+<tbody>
+<tr><td><code>class="st-ref"</code></td><td>Marks the link as a scripture reference.</td></tr>
+<tr><td><code>data-st-ref</code></td><td>The passage in OSIS form: <code>John.3.16</code>, or <code>Rom.5.8-Rom.5.10</code> for a range.</td></tr>
+<tr><td><code>data-st-text</code></td><td>The reference as written.</td></tr>
+<tr><td><code>data-st-key</code></td><td>Optional: your own ID for the link, so a visitor's translation choice follows it.</td></tr>
+</tbody>
+</table>
+
+<h2>Starting the plugin</h2>
+<p>Call <code>run</code> as usual. Links you draw yourself get their tooltips wherever they are on the page, inside the areas you named or not, and the scan never changes them.</p>
+
+<h2>When to give a key</h2>
+<p>A visitor's translation choice is remembered per link. The plugin names a link by the page's path, its passage, and which copy of that passage it is on the page. If your page shows only some of its links at a time, or reorders them, give each a stable <code>data-st-key</code> so the choice stays with the right one.</p>

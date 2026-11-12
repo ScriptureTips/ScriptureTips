@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "Scripture Tips",
+    "description": "The extension's name, shown in the browser and the web store (as v1.0.3 named it)."
+  },
+  "appDesc": {
+    "message": "Recognises scripture references on the pages you read, links them, and shows the passage when you hover or tap.",
+    "description": "The extension's description, shown in the web store."
+  }
+}

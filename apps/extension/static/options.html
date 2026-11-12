@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-NZ">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scripture Tips settings</title>
+  <link rel="stylesheet" href="pages.css">
+</head>
+<body class="artwork">
+<main>
+  <h1 class="brand"><img src="icons/icon-48.png" alt="" width="32" height="32"> Scripture Tips settings</h1>
+  <p class="status" id="status" role="status"></p>
+
+  <h2>Links</h2>
+  <label for="destination">Where links go</label>
+  <select id="destination"></select>
+
+  <label for="translation">The translation the passage opens in</label>
+  <select id="translation"></select>
+  <p class="hint">On a passage, you can choose another in its tooltip; that choice is kept for that link.</p>
+
+  <h2>Outside reading sites</h2>
+  <p class="hint">A link's address can use <code>ST_REFERENCE</code>, <code>ST_TRANSLATION</code>, <code>ST_BOOKNAME</code>, <code>ST_CHAPTER</code> and <code>ST_VERSE</code>. The translation is that site's own code for it (such as KJV).</p>
+  <div id="sites"></div>
+  <div class="row">
+    <button type="button" class="quiet" id="add-site">Add a site</button>
+    <button type="button" class="quiet" id="restore-sites">Restore the usual sites</button>
+  </div>
+
+  <h2>Link generator</h2>
+  <label for="format">Format</label>
+  <select id="format"></select>
+
+  <h2>Sites turned off</h2>
+  <label for="disabled">One site per line (as in the address bar: example.org)</label>
+  <textarea id="disabled" rows="5" spellcheck="false"></textarea>
+
+  <h2>ScriptureTips address</h2>
+  <label for="site">To open links in another ScriptureTips installation, give its address</label>
+  <input type="url" id="site" spellcheck="false">
+
+  <footer class="credits">
+    <p>Logo by <a href="https://www.fiverr.com/buzzzy" target="_blank" rel="noopener">buzzzy at Fiverr.com</a>.</p>
+    <p>Background: <a href="https://www.freevector.com/clouds-and-birds/" target="_blank" rel="noopener">“Clouds And Birds”</a> by Akira / Garcya.us, from FreeVector.com, licensed under <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>.</p>
+  </footer>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

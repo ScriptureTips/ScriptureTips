@@ -1,0 +1,159 @@
+/* The extension's own pages: plain, in the ScriptureTips palette (docs/branding.md). */
+:root {
+  --deep: #0054a5;
+  --ink: #1d232a;
+  --muted: #5b6672;
+  --rule: #dfe3e6;
+  --paper: #fff;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --deep: #7cc4ff;
+    --ink: #e8edf2;
+    --muted: #a8b3be;
+    --rule: #3a434c;
+    --paper: #161b21;
+  }
+}
+body {
+  margin: 0;
+  padding: 1rem;
+  font:
+    15px / 1.5 system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+main {
+  max-width: 46rem;
+}
+h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+}
+h2 {
+  margin: 1.25rem 0 0.4rem;
+  font-size: 1rem;
+}
+p {
+  margin: 0.4rem 0;
+}
+a {
+  color: var(--deep);
+}
+label {
+  display: block;
+  margin: 0.4rem 0 0.15rem;
+}
+label.check {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+input[type="text"],
+input[type="url"],
+select,
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.35rem 0.45rem;
+  font: inherit;
+  color: inherit;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+}
+textarea {
+  min-height: 12rem;
+  resize: vertical;
+}
+button {
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  color: #fff;
+  background: var(--deep);
+  border: 0;
+  border-radius: 0.3rem;
+  cursor: pointer;
+}
+button.quiet {
+  color: var(--deep);
+  background: transparent;
+  border: 1px solid var(--rule);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.hint,
+.status {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+fieldset {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+}
+body.popup {
+  width: 18rem;
+}
+body.popup nav {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+/*
+ * The settings page sits over the clouds-and-birds artwork (docs/branding.md §3): a fixed layer
+ * that stays put while the page scrolls, with the content on a plain panel, never on the artwork.
+ */
+body.artwork {
+  padding: 1.5rem 1rem;
+  background: #62d1f7;
+}
+body.artwork::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: #62d1f7 url("brand/clouds-and-birds.svg") no-repeat 15% 100% / cover;
+}
+body.artwork main {
+  margin: 0 auto;
+  padding: 1rem 1.5rem 1.25rem;
+  background: var(--paper);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 12px rgb(0 40 90 / 0.18);
+}
+h1.brand {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--deep);
+}
+.credits {
+  margin-top: 1.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+/* On a tall, narrow screen, scaled from the bottom edge so the clouds reach up behind the panel. */
+@media (max-aspect-ratio: 1 / 1) {
+  body.artwork::before {
+    background-size: auto 145%;
+    background-position: 0% 100%;
+  }
+}

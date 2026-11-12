@@ -76,7 +76,7 @@ Only Docker is needed on your machine. Every other tool runs in the toolbox cont
 ./toolbox pnpm verify # lint, formatting, dependency rules, spelling, type checks and tests
 ```
 
-The web app is at https://127.0.0.1:3000 (with a self-signed certificate, so your browser warns about it once), and sign-in emails arrive in Mailpit at http://127.0.0.1:8025. Translation texts are imported separately (see [tools/scripture-import](tools/scripture-import/AGENTS.md)).
+The web app is at https://dev.scripturetips.com and the data server at https://dev.scripture.tips, both through Caddy (infra/caddy/Caddyfile), with a self-signed certificate, so your browser warns about each once. Their DNS records point at the development machine's network address, which `./dev up --lan` listens on; plain `./dev up` listens on 127.0.0.1 only and needs a hosts-file entry for both names, and sign-in emails arrive in Mailpit at http://127.0.0.1:8025. Translation texts are imported separately (see [tools/scripture-import](tools/scripture-import/AGENTS.md)).
 
 ## Documentation
 

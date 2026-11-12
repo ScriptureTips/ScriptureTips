@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { destinationUrl, readMoreUrl, SCRIPTURETIPS } from "./destination.ts";
+import { addressTranslation, destinationUrl, readMoreUrl, SCRIPTURETIPS } from "./destination.ts";
 
 const ref = { text: "1 John 3:16", book: "1John", chapter: 3, verse: 16 };
 
@@ -25,5 +25,17 @@ describe("vision §3.6: where a link goes", () => {
     expect(readMoreUrl("https://scripturetips.org/", "heb", "Joel 3:1–5")).toBe(
       "https://scripturetips.org/read?t=heb&ref=Joel+3%3A1%E2%80%935",
     );
+  });
+
+  it("names an outside site's own translation code, not the catalog ID the tooltip shows", () => {
+    const gateway =
+      "https://www.biblegateway.com/passage/?search=ST_REFERENCE&version=ST_TRANSLATION";
+    const translation = addressTranslation(gateway, "TLV", "eng-kjv");
+    expect(destinationUrl(gateway, "https://scripturetips.org", translation, ref)).toBe(
+      "https://www.biblegateway.com/passage/?search=1%20John%203%3A16&version=TLV",
+    );
+    // With no code of its own, the tooltip's translation; the reader always takes the catalog ID.
+    expect(addressTranslation(gateway, undefined, "eng-kjv")).toBe("eng-kjv");
+    expect(addressTranslation(SCRIPTURETIPS, "TLV", "eng-kjv")).toBe("eng-kjv");
   });
 });

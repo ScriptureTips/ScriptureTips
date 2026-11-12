@@ -1,0 +1,69 @@
+# How the scripture.tips site (apps/site) is served: the same rules in the development stack
+# (infra/caddy/Caddyfile) and in the production image (infra/docker/site). `import site {folder}`
+# serves the built files; `import site_errors {folder}` goes in the site's `handle_errors`.
+#
+# Caching: a file under /assets/ is named with a hash of its bytes, so it never changes and is
+# kept for a year. Pages keep their addresses while their words change (a correction reaches the
+# help of an old version too), so a page is kept for five minutes, may be shown stale for a day
+# while the browser fetches it again, and is revalidated by its ETag (a 304 when unchanged).
+(site) {
+	root * {args[0]}
+
+	# A product's full version reads the help of its first two numbers:
+	# /about/extension/2.0.3/pin/ is /about/extension/2.0/pin/.
+	@patch path_regexp patch ^/about/([a-z-]+)/(\d+\.\d+)\.\d+(/.*)?$
+	redir @patch /about/{re.patch.1}/{re.patch.2}{re.patch.3} 308
+
+	# A version with no help of its own (newer than what's published, or never written) reads
+	# the current help. Not permanent: its help may be published later.
+	@unknown {
+		path_regexp unknown ^/about/([a-z-]+)/\d+\.\d+(/.*)?$
+		not file {path}/index.html {path}
+	}
+	redir @unknown /about/{re.unknown.1}{re.unknown.2} 302
+
+	import site_headers
+	# Each matcher on its own paths: a later `header` would otherwise replace an earlier one's.
+	@pages not path /assets/* /widget/*
+	header @pages Cache-Control "public, max-age=300, stale-while-revalidate=86400"
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	# The website plugin's script, loaded by other sites' pages: one address for every version,
+	# so it's kept for an hour.
+	@widget path /widget/*
+	header @widget {
+		Cache-Control "public, max-age=3600, stale-while-revalidate=86400"
+		Access-Control-Allow-Origin *
+		Cross-Origin-Resource-Policy cross-origin
+	}
+
+	# The build writes a Brotli and a gzip copy beside each text file.
+	file_server {
+		precompressed br gzip
+	}
+}
+
+# Nothing but the site's own files runs or loads in its pages. No cookie is ever set.
+(site_headers) {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Content-Security-Policy "default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+	}
+}
+
+(site_errors) {
+	root * {args[0]}
+	@missing expression {err.status_code} == 404
+	handle @missing {
+		import site_headers
+		header Cache-Control "public, max-age=60"
+		rewrite * /404.html
+		file_server {
+			precompressed br gzip
+		}
+	}
+	handle {
+		respond "{err.status_code} {err.status_text}"
+	}
+}

@@ -1,0 +1,73 @@
+# An app instance: scripturetips.com, or a satellite (vision §7.2). For now with accounts
+# closed (vision §10, extension release): the reader, landing, about, contact, privacy, terms
+# and credits pages, on the API's public routes. No Valkey, SMTP or file store until accounts
+# open. Run from this folder with its environment file (app.env.example):
+#   docker compose -f compose.app.yaml --env-file app.env up -d
+# The reverse proxy sends the site's traffic to the web app's port, bound to the loopback
+# address only; the web app proxies /api/* to the API inside this network.
+name: scripturetips-app
+
+services:
+  postgres:
+    image: postgres:18.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: scripturetips
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: scripturetips
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: [CMD, pg_isready, -U, scripturetips]
+      interval: 5s
+      retries: 30
+    mem_limit: ${POSTGRES_MEMORY:-768m}
+
+  # The service's name must stay `api`: the web image is built with API_URL=http://api:3001/api.
+  api:
+    image: ${API_IMAGE:?set API_IMAGE to a tagged image, never latest}
+    restart: unless-stopped
+    environment:
+      API_ROLE: app
+      ACCOUNTS: closed
+      DATABASE_URL: postgres://scripturetips:${POSTGRES_PASSWORD}@postgres:5432/scripturetips
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3001/api/translations').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      retries: 30
+    depends_on:
+      postgres:
+        condition: service_healthy
+    mem_limit: ${API_MEMORY:-384m}
+
+  web:
+    image: ${WEB_IMAGE:?set WEB_IMAGE to a tagged image, never latest}
+    restart: unless-stopped
+    environment:
+      ACCOUNTS: closed
+      CONTACT_EMAIL: ${CONTACT_EMAIL:?set CONTACT_EMAIL}
+    ports:
+      - 127.0.0.1:${WEB_PORT:-8102}:3000
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/about').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      retries: 30
+    depends_on:
+      api:
+        condition: service_healthy
+    mem_limit: ${WEB_MEMORY:-512m}
+
+volumes:
+  pgdata:

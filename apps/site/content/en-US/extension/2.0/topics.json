@@ -1,0 +1,113 @@
+{
+  "groups": [
+    {
+      "title": "Getting started",
+      "topics": [
+        {
+          "id": "overview",
+          "title": "What the extension does",
+          "summary": "References become links on every page, with the passage one hover away.",
+          "keywords": ["introduction", "start", "about", "features"]
+        },
+        {
+          "id": "install",
+          "title": "Installing and updating",
+          "summary": "Where to get the extension, which browsers it runs in, and what an update from 1.0.3 keeps.",
+          "keywords": ["download", "chrome", "firefox", "upgrade", "permissions", "version"]
+        }
+      ]
+    },
+    {
+      "title": "Reading",
+      "topics": [
+        {
+          "id": "links",
+          "title": "Linked references",
+          "summary": "Which references are linked, how to tell the extension's links, and what is left alone.",
+          "keywords": ["logo", "mark", "icon", "scan", "recognize", "detect", "google"]
+        },
+        {
+          "id": "passage-tooltip",
+          "title": "The passage tooltip",
+          "summary": "Point at a reference, tap it or reach it with the keyboard to read the passage.",
+          "keywords": ["hover", "popup", "tap", "touch", "keyboard", "escape", "read more", "close"]
+        },
+        {
+          "id": "translation",
+          "title": "Choosing a translation",
+          "summary": "Change the translation for one passage, or set the one every passage opens in.",
+          "keywords": ["version", "bible", "kjv", "default", "abbreviation", "switch"]
+        },
+        {
+          "id": "pin",
+          "title": "Keeping a passage open",
+          "summary": "Pin the tooltip so it stays while you write or read elsewhere on the page.",
+          "keywords": ["keep open", "pin", "stay", "reply", "unpin"]
+        }
+      ]
+    },
+    {
+      "title": "Writing",
+      "topics": [
+        {
+          "id": "link-generator",
+          "title": "The link generator",
+          "summary": "Paste what you're writing and get it back with every reference linked, as HTML, BBCode, wiki markup or Markdown.",
+          "keywords": [
+            "forum",
+            "post",
+            "bbcode",
+            "markdown",
+            "wiki",
+            "html",
+            "undo",
+            "copy",
+            "format"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Settings",
+      "topics": [
+        {
+          "id": "turn-off-site",
+          "title": "Turning it off on a site",
+          "summary": "Stop the extension linking references on one website, from the toolbar button.",
+          "keywords": ["disable", "block", "exclude", "popup", "toolbar", "sites turned off"]
+        },
+        {
+          "id": "link-destination",
+          "title": "Where links go",
+          "summary": "Open links in the ScriptureTips reader, or in another Bible site of your choice.",
+          "keywords": [
+            "destination",
+            "biblegateway",
+            "biblehub",
+            "blue letter bible",
+            "outside",
+            "template",
+            "address"
+          ]
+        },
+        {
+          "id": "own-installation",
+          "title": "Using another ScriptureTips installation",
+          "summary": "Open links in a church's or community's own ScriptureTips reader.",
+          "keywords": ["satellite", "self-hosted", "address", "installation", "instance"]
+        }
+      ]
+    },
+    {
+      "title": "Privacy",
+      "topics": [
+        {
+          "id": "privacy",
+          "title": "What the extension sends and keeps",
+          "summary": "Only the passage you ask for leaves your browser, and your choices stay in it.",
+          "keywords": ["data", "storage", "sync", "cookies", "tracking", "permissions"]
+        }
+      ]
+    }
+  ]
+}

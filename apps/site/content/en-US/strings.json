@@ -1,0 +1,71 @@
+{
+  "siteName": "ScriptureTips",
+  "tagline": "scripture on every page you read",
+  "nav": {
+    "help": "Help",
+    "downloads": "Downloads",
+    "credits": "Credits",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "contact": "Contact"
+  },
+  "help": {
+    "title": "Help",
+    "description": "How to use the Scripture Tips browser extension and the ScriptureTips website plugin, feature by feature, with a searchable index.",
+    "intro": "Everything the browser extension and the website plugin can do, one topic at a time. Search for a word, or pick a topic below.",
+    "search": "Search the help",
+    "searchHint": "For example: translation",
+    "noResults": "Nothing in the help matches that.",
+    "results": "Topics found: {count}",
+    "searchFailed": "The search couldn't be loaded. Check your connection and try again.",
+    "contents": "Help topics",
+    "version": "version {version}",
+    "versions": "Help for version",
+    "latest": "latest",
+    "outdated": "This is the help for {product} {version}, an older version.",
+    "seeLatest": "See the help for version {version}, the latest.",
+    "previous": "Previous",
+    "next": "Next",
+    "allTopics": "Other topics"
+  },
+  "products": {
+    "extension": {
+      "name": "Browser extension",
+      "summary": "Scripture Tips for Chrome and Firefox turns the scripture references on any page you read into links, and shows the passage when you point at one."
+    },
+    "widget": {
+      "name": "Website plugin",
+      "summary": "One script for your own website: it links the scripture references in your pages and shows each passage to your visitors in a tooltip."
+    }
+  },
+  "pages": {
+    "home": {
+      "title": "ScriptureTips",
+      "description": "scripture.tips serves the passages behind the Scripture Tips browser extension and the ScriptureTips website plugin. Find the downloads and the help here."
+    },
+    "downloads": {
+      "title": "Downloads",
+      "description": "Get the Scripture Tips browser extension, or add the ScriptureTips website plugin to your own site."
+    },
+    "credits": {
+      "title": "Credits",
+      "description": "The people and projects whose work ScriptureTips is built on."
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "description": "What scripture.tips, the browser extension and the website plugin send and keep."
+    },
+    "terms": {
+      "title": "Terms of use",
+      "description": "The terms for using scripture.tips, the browser extension and the website plugin."
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "How to reach the people who run scripture.tips."
+    },
+    "not-found": {
+      "title": "Page not found",
+      "description": "There is no page at this address."
+    }
+  }
+}

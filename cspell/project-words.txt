@@ -1,4 +1,5 @@
 AACC
+acmedns
 addpn
 Akira
 alphalph
@@ -60,6 +61,7 @@ healthcheck
 ilword
 ipairs
 isready
+joohoi
 Kiritimati
 KJVCPB
 latelua
@@ -72,10 +74,12 @@ luma
 mailpit
 marteinn
 msgpackr
+namecheap
 NASB
 nindent
 nonstopmode
 NRSV
+nsname
 nums
 OEBCW
 onnotice
@@ -126,6 +130,7 @@ zaln
 zidiom
 ZWNBSP
 Ελληνικά
+netcup
 networkidle
 trackpad
 journaling
@@ -190,3 +195,21 @@ contenteditable
 noopener
 haspopup
 Segoe
+bbcode
+WIKIML
+NKJV
+Recognises
+serviceworker
+xcaddy
+biblegateway
+biblehub
+contentinfo
+nosniff
+redir
+ranslation
+chromewebstore
+labelledby
+Forgejo
+antzcode
+woodpeckerci
+buildx

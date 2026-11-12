@@ -1,0 +1,5 @@
+# Let's Encrypt by the DNS check: Caddy sets the TXT record through the acme-dns server on the
+# VPS, which the sites' _acme-challenge CNAMEs point at (README.md). Renewed automatically.
+tls {
+	dns acmedns /certs/acme-dns.json
+}

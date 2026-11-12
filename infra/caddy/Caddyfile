@@ -1,0 +1,38 @@
+# The development stack's reverse proxy (`./dev up`), set up like the production one
+# (vision §7.2): each site's name chooses its container. Both names have public DNS records
+# pointing at the development machine's network address, and inside the stack they're aliases
+# of this container. The certificates come from Let's Encrypt by the DNS check, through the
+# acme-dns server on the VPS, or are the self-signed one `./dev` makes until that's set up
+# (README.md). `./dev` mounts the matching tls-*.caddy as /etc/caddy/tls.caddy.
+{
+	admin off
+	servers {
+		# The end-to-end tests give each test its own client address (e2e/support.ts). In
+		# production the proxy replaces the header instead.
+		trusted_proxies static private_ranges
+	}
+}
+
+import /etc/caddy/site.caddy
+
+# The app instance: everything goes to the web app, which passes /api/* on to the API.
+dev.scripturetips.com {
+	import /etc/caddy/tls.caddy
+	reverse_proxy web:3000
+}
+
+# The data server: the API's widget routes (the data role serves nothing else), and the
+# scripture.tips site (apps/site, built into apps/site/dist by `./dev up`), served under the rules
+# the production image uses.
+dev.scripture.tips {
+	import /etc/caddy/tls.caddy
+	handle /api/* {
+		reverse_proxy api-data:3001
+	}
+	handle {
+		import site /srv/site
+	}
+	handle_errors {
+		import site_errors /srv/site
+	}
+}

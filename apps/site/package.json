@@ -1,0 +1,17 @@
+{
+  "name": "@scripturetips/site",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "build": "node build.ts",
+    "shots": "playwright test --config playwright.shots.config.ts",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

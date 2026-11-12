@@ -12,7 +12,8 @@ import {
  *
  * - `run(selector, options?)`: links the references in what the selector matches, and in what
  *   appears there later. The options (`translation`, `destination`, `scheme`, `strings` …) are read
- *   the first time; the API and site default to where this script came from.
+ *   the first time. The API defaults to where this script came from (the data server, vision
+ *   §7.2), and the site, where links open, to the reader the script was built for (`ST_SITE`).
  * - `setPreferences({ translation })`: the visitor's own preference, for a site with accounts.
  * - `rescan(element?)`: look again now.
  * - `on(event, handler)`: `tooltip-open`, `translation-change`, `scan`. Returns a function that
@@ -20,6 +21,8 @@ import {
  *
  * No cookies, no storage, nothing sent but the passage requests (`credentials: "omit"`).
  */
+declare const __ST_SITE__: string;
+
 const here = document.currentScript instanceof HTMLScriptElement ? document.currentScript.src : "";
 const origin = here ? new URL(here).origin : location.origin;
 
@@ -34,7 +37,7 @@ function start(options: Partial<LinksOptions>): ScriptureLinks {
     instance = createScriptureLinks({
       ...options,
       api,
-      site: options.site ?? origin,
+      site: options.site ?? __ST_SITE__,
     });
     // What the site said of the visitor before `run`.
     if (preferences.translation) instance.setPreferences(preferences);

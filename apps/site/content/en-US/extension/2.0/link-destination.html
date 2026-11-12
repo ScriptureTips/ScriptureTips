@@ -1,0 +1,31 @@
+<p>A linked reference, and <em>Read more</em> in its tooltip, open in the ScriptureTips reader unless you choose another site.</p>
+
+<h2>Choosing</h2>
+<p>On the settings page, under <strong>Links</strong>, choose from <strong>Where links go</strong>: the ScriptureTips reader, or one of your outside reading sites. Open pages change at once.</p>
+<figure>
+<img src="images/settings-links.png" alt="The Links part of the settings page, with the menu Where links go set to the ScriptureTips reader.">
+<figcaption>Where links go, on the settings page.</figcaption>
+</figure>
+<p>The tooltip still shows the passage from ScriptureTips whichever you choose; only the link's address changes.</p>
+
+<h2>Outside reading sites</h2>
+<p>The extension comes with BibleGateway.com, BibleHub.com and BlueLetterBible.org. Under <strong>Outside reading sites</strong> you can change them, remove them, or add your own with <strong>Add a site</strong>.</p>
+<figure>
+<img src="images/settings-outside-sites.png" alt="The Outside reading sites part of the settings page. Each site has a Name, an Address and a Translation field and a Remove button, above the buttons Add a site and Restore the usual sites.">
+<figcaption>Each outside site has a name, an address and a translation.</figcaption>
+</figure>
+<p>A site's <strong>Address</strong> is a pattern. These words in it are replaced for each link:</p>
+<table>
+<thead><tr><th>Word</th><th>Becomes</th><th>For John 3:16</th></tr></thead>
+<tbody>
+<tr><td><code>ST_REFERENCE</code></td><td>The whole reference</td><td>John 3:16</td></tr>
+<tr><td><code>ST_BOOKNAME</code></td><td>The book</td><td>John</td></tr>
+<tr><td><code>ST_CHAPTER</code></td><td>The chapter</td><td>3</td></tr>
+<tr><td><code>ST_VERSE</code></td><td>The verse</td><td>16</td></tr>
+<tr><td><code>ST_TRANSLATION</code></td><td>The site's <strong>Translation</strong> field</td><td>KJV</td></tr>
+</tbody>
+</table>
+<p>The <strong>Translation</strong> is that site's own code for the translation to open (such as <code>KJV</code>), which may differ from the name ScriptureTips uses.</p>
+<p>For example, the address for BibleGateway.com is:</p>
+<pre><code>https://www.biblegateway.com/passage/?search=ST_REFERENCE&amp;version=ST_TRANSLATION</code></pre>
+<p><strong>Restore the usual sites</strong> puts back any of the three that you removed, and leaves your own.</p>

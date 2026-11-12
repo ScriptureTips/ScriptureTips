@@ -1,0 +1,20 @@
+<h1>Downloads</h1>
+
+<h2 id="extension">Browser extension</h2>
+<p>Scripture Tips links the scripture references on the pages you read and shows each passage when you point at it. It needs Chrome (or another Chromium browser), or Firefox 140 or later.</p>
+<ul>
+{{#if chromeStore}}<li><a href="{{chromeStore}}">Scripture Tips in the Chrome Web Store</a></li>
+{{else}}<li>Chrome: search for “Scripture Tips” in the Chrome Web Store.</li>
+{{/if}}{{#if firefoxStore}}<li><a href="{{firefoxStore}}">Scripture Tips at Firefox Add-ons</a></li>
+{{else}}<li>Firefox: the listing at Firefox Add-ons is being prepared.</li>
+{{/if}}</ul>
+<p>Your browser keeps the extension up to date by itself. To see which version you have, open your browser's extensions page; the <a href="/about/extension/">help</a> is kept for each version.</p>
+<p>The extension can also be built from its <a href="https://github.com/adonai-reigns/ScriptureTips">source code</a> (<code>apps/extension</code>).</p>
+
+<h2 id="plugin">Website plugin</h2>
+<p>To show passages on your own website, add this at the end of your page's <code>&lt;body&gt;</code>, with the CSS selector of the part of the page to link:</p>
+<pre><code>&lt;script src="{{data}}/widget/scripturetips.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  ScriptureTips.run("main");
+&lt;/script&gt;</code></pre>
+<p>There is nothing to install and no account to make. The script is small, sets no cookies, and always gives you the current version. <a href="/about/widget/add-to-site/">Adding the plugin to your site</a> has the details, and the rest of the <a href="/about/widget/">help</a> covers its options.</p>

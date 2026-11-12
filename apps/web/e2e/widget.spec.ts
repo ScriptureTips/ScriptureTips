@@ -6,21 +6,18 @@ import { shot } from "./support.ts";
  * loads the script from the site and links the references in the area it's told to, so CORS is
  * exercised for real. The script is built by `pnpm --filter @scripturetips/widget build`.
  */
-const SCRIPT = "https://localhost:3000/widget/scripturetips.js";
+const SCRIPT = "https://dev.scripturetips.com/widget/scripturetips.js";
 /**
  * The page the script is put on: another origin from the site's, so the API's CORS answers are
  * needed. Every request to it is answered here. Chromium counts a page answered this way as
- * public and won't let it reach `localhost` (the test browser's name for the web container), a rule
- * about local networks that a real public site loading the script doesn't meet, so that one check
+ * public and won't let it reach the dev site (a private address inside the stack), a rule about
+ * local networks that a real public site loading the script doesn't meet, so that one check
  * is off for these tests.
  */
 const FIXTURE = "https://fixture.test/";
 test.use({
   launchOptions: {
-    args: [
-      `--host-resolver-rules=MAP localhost ${process.env["WEB_HOST"] ?? "web"}`,
-      "--disable-features=LocalNetworkAccessChecks",
-    ],
+    args: ["--disable-features=LocalNetworkAccessChecks"],
   },
 });
 
@@ -76,7 +73,7 @@ test("vision §3.6: the plugin links the references in the area it's given, and 
   // A link goes to the ScriptureTips reader, which reads the reference as written.
   await expect(links.first()).toHaveAttribute(
     "href",
-    "https://localhost:3000/read?t=eng-kjv&ref=John%203%3A16",
+    "https://dev.scripturetips.com/read?t=eng-kjv&ref=John%203%3A16",
   );
 });
 
@@ -93,11 +90,11 @@ test("vision §3.6: hovering a reference shows the passage, in the visitor's bro
   await expect(pop.getByRole("combobox", { name: "Translation" })).toHaveValue("eng-kjv");
   await expect(pop.getByRole("link", { name: "Read more" })).toHaveAttribute(
     "href",
-    "https://localhost:3000/read?t=eng-kjv&ref=John+3%3A16",
+    "https://dev.scripturetips.com/read?t=eng-kjv&ref=John+3%3A16",
   );
   await page.screenshot(shot("widget-tooltip"));
   // No cookie goes to the site, nothing is stored on the page's origin.
-  expect(await page.context().cookies("https://localhost:3000")).toEqual([]);
+  expect(await page.context().cookies("https://dev.scripturetips.com")).toEqual([]);
   expect(await page.evaluate(() => localStorage.length + sessionStorage.length)).toBe(0);
   // It stays while the pointer is over it, and goes when it leaves.
   await pop.hover();
@@ -160,6 +157,81 @@ test("vision §3.6: the tooltip stays while a translation is chosen, though the 
   await expect(pop).toBeHidden();
 });
 
+test("vision §3.6: a pinned tooltip stays open, on its passage, while the reader writes elsewhere", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "A phone has no hover.");
+  await open(
+    page,
+    page$(
+      "",
+      `<div style="height:1600px"></div><textarea id="reply" aria-label="Reply"></textarea>`,
+    ),
+  );
+  await page.locator("#content a.st-ref", { hasText: "John 3:16" }).hover();
+  const pop = tooltip(page);
+  await expect(pop.getByText("For God so loved the world")).toBeVisible();
+  // The pin is beside the translation picker, on its right.
+  const pin = pop.getByRole("button", { name: "Keep open" });
+  await expect(pin).toHaveAttribute("aria-pressed", "false");
+  const [select, pinBox] = await Promise.all([
+    pop.getByRole("combobox", { name: "Translation" }).boundingBox(),
+    pin.boundingBox(),
+  ]);
+  expect(select && pinBox && pinBox.x >= select.x + select.width).toBe(true);
+  await pin.click();
+  await expect(pin).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot(shot("widget-pinned"));
+  // The pointer leaves, crosses another passage, and the reader goes to write a reply below.
+  await page.mouse.move(5, 5);
+  await page.locator("#content a.st-ref", { hasText: "Romans 5:8" }).hover();
+  await page.waitForTimeout(600);
+  const reply = page.getByRole("textbox", { name: "Reply" });
+  await reply.click();
+  await reply.pressSequentially("As it says, ");
+  await page.keyboard.press("Escape");
+  await expect(pop).toBeVisible();
+  await expect(pop.getByRole("heading", { name: "John 3:16" })).toBeVisible();
+  // Its link is scrolled away, but it stays in the window.
+  const tip = await pop.boundingBox();
+  const view = page.viewportSize();
+  expect(tip && view && tip.y >= 0 && tip.y + tip.height <= view.height).toBe(true);
+  await expect(reply).toHaveValue("As it says, ");
+  // Unpinned, it goes as usual when the pointer leaves, and the next opens unpinned.
+  await pin.click();
+  await expect(pin).toHaveAttribute("aria-pressed", "false");
+  await page.mouse.move(5, 5);
+  await expect(pop).toBeHidden();
+  await page.locator("#content a.st-ref", { hasText: "John 3:16" }).hover();
+  await expect(pop.getByRole("button", { name: "Keep open" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});
+
+test("vision §3.6: the pin works from the keyboard, and Escape in the tooltip closes it pinned", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "A phone has no keyboard here.");
+  await open(page);
+  await page.locator("#content a.st-ref", { hasText: "John 3:16" }).focus();
+  const pop = tooltip(page);
+  const pin = pop.getByRole("button", { name: "Keep open" });
+  await pin.focus();
+  await page.keyboard.press("Enter");
+  await expect(pin).toHaveAttribute("aria-pressed", "true");
+  await expect(pin).toBeFocused();
+  // Another translation rebuilds the tooltip: the pin keeps its state.
+  await pop.getByRole("combobox", { name: "Translation" }).selectOption({ label: "BSB" });
+  await expect(pop.getByRole("button", { name: "Keep open" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await pop.getByRole("button", { name: "Keep open" }).focus();
+  await page.keyboard.press("Escape");
+  await expect(pop).toBeHidden();
+});
+
 const chosenIn = (page: Page) => tooltip(page).getByRole("combobox", { name: "Translation" });
 
 test("vision §3.6: a translation written after the passage, or in the link's own address, is where it opens", async ({
@@ -170,7 +242,7 @@ test("vision §3.6: a translation written after the passage, or in the link's ow
     page$(
       "",
       `<p>Isaiah 53:5 (BSB) and Mark 1:1 (NLT) are quoted.</p>
-       <p><a class="st-ref" href="https://localhost:3000/read?t=leb&amp;ref=Romans%205%3A8" data-st-ref="Rom.5.8" data-st-text="Romans 5:8">Romans 5:8</a> is the page's own link.</p>`,
+       <p><a class="st-ref" href="https://dev.scripturetips.com/read?t=leb&amp;ref=Romans%205%3A8" data-st-ref="Rom.5.8" data-st-text="Romans 5:8">Romans 5:8</a> is the page's own link.</p>`,
     ),
   );
   // "(BSB)" after the passage names a translation the plugin has.
@@ -392,6 +464,31 @@ test("vision §3.6: on a phone the first tap opens the passage, and Read more is
   const reader = await popup;
   await expect(reader).toHaveURL(/\/read\/eng-kjv\/john\/3\/16/);
   // A tap elsewhere puts it away.
+  await page
+    .locator("#content p")
+    .first()
+    .tap({ position: { x: 5, y: 5 } });
+  await expect(pop).toBeHidden();
+});
+
+test("vision §3.6: on a phone, a pinned tooltip stays through taps elsewhere and on other passages", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "phone", "A tap is a phone's way in.");
+  await open(page, page$("", `<textarea id="reply" aria-label="Reply"></textarea>`));
+  await page.locator("#content a.st-ref", { hasText: "John 3:16" }).tap();
+  const pop = tooltip(page);
+  await expect(pop).toContainText("For God so loved the world");
+  const pin = pop.getByRole("button", { name: "Keep open" });
+  await pin.tap();
+  await expect(pin).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot({ ...shot("widget-pinned-phone"), fullPage: false });
+  await page.getByRole("textbox", { name: "Reply" }).tap();
+  // Another passage isn't opened over it, nor followed: the pin is the way out.
+  await page.locator("#content a.st-ref", { hasText: "Romans 5:8" }).tap();
+  expect(page.url()).toBe(FIXTURE);
+  await expect(pop.getByRole("heading", { name: "John 3:16" })).toBeVisible();
+  await pin.tap();
   await page
     .locator("#content p")
     .first()

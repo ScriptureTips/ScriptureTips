@@ -1,0 +1,15 @@
+# What the production images (infra/docker/api, infra/docker/web) never need.
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/test-results
+**/coverage
+**/*.tsbuildinfo
+.git
+.cache
+.verify
+.ci
+.dev-certs
+.env
+.env.*
