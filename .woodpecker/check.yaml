@@ -26,18 +26,6 @@ services:
     environment:
       POSTGRES_USER: scripturetips
       POSTGRES_PASSWORD: scripturetips
-    # As in compose.yaml: tests don't need the data to survive a crash.
-    entrypoint:
-      [
-        docker-entrypoint.sh,
-        postgres,
-        -c,
-        fsync=off,
-        -c,
-        synchronous_commit=off,
-        -c,
-        full_page_writes=off,
-      ]
 
 steps:
   # The integration tests' file store (compose.yaml: garage-test). A detached step rather than a
