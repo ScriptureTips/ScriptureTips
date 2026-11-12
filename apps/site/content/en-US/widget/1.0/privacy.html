@@ -1,0 +1,15 @@
+<p>The plugin is built so that adding it changes nothing about your site's privacy position. The full <a href="/privacy/">privacy policy</a> covers the service.</p>
+
+<h2>What it sends</h2>
+<ul>
+<li><strong>Passage requests only.</strong> When a visitor opens a tooltip, their browser asks {{dataHost}} for that passage: the reference and the translation. It also asks once for the list of translations.</li>
+<li><strong>No cookies,</strong> sent or set.</li>
+<li><strong>Nothing about the page:</strong> not its address, its text or the visitor. As with any request a page makes, the browser names your site's domain and the server sees the visitor's IP address.</li>
+</ul>
+<p>Until a visitor opens a tooltip, nothing is requested: finding the references happens in their browser.</p>
+
+<h2>What it keeps</h2>
+<p>One thing: the translation a visitor chose for a link, in their own browser (<code>localStorage</code>, under <code>scripturetips:translations</code>), written only when they choose. It is never sent anywhere, and at most the latest 500 choices are kept. Set the <a href="topic:options"><code>storage</code></a> option to <code>null</code> to keep nothing beyond the page.</p>
+
+<h2>Its weight</h2>
+<p>One script, under 45 KB before compression, with no dependencies and no fonts, images or stylesheets of its own.</p>

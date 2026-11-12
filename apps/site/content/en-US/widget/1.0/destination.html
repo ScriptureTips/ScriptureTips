@@ -1,0 +1,23 @@
+<p>A linked reference, and <em>Read more</em> in its tooltip, open in a new tab. By default that is the ScriptureTips reader at {{siteHost}}, at the passage, in the tooltip's translation.</p>
+
+<h2>Another Bible site</h2>
+<p>Set <code>destination</code> to an address pattern, and <code>destinationTranslation</code> to that site's own code for the translation to open:</p>
+<pre><code>ScriptureTips.run("main", {
+  destination: "https://www.biblegateway.com/passage/?search=ST_REFERENCE&amp;version=ST_TRANSLATION",
+  destinationTranslation: "NKJV",
+});</code></pre>
+<table>
+<thead><tr><th>Word</th><th>Becomes</th><th>For John 3:16</th></tr></thead>
+<tbody>
+<tr><td><code>ST_REFERENCE</code></td><td>The whole reference</td><td>John 3:16</td></tr>
+<tr><td><code>ST_BOOKNAME</code></td><td>The book</td><td>John</td></tr>
+<tr><td><code>ST_CHAPTER</code></td><td>The chapter</td><td>3</td></tr>
+<tr><td><code>ST_VERSE</code></td><td>The verse</td><td>16</td></tr>
+<tr><td><code>ST_TRANSLATION</code></td><td><code>destinationTranslation</code></td><td>NKJV</td></tr>
+</tbody>
+</table>
+<p>The tooltip still shows the passage from ScriptureTips; only the links' address changes. Without <code>destinationTranslation</code>, <code>ST_TRANSLATION</code> is the ID of the translation in the tooltip.</p>
+
+<h2>Another ScriptureTips installation</h2>
+<p>To open links in a church's or community's own ScriptureTips reader, set <code>site</code> to its address:</p>
+<pre><code>ScriptureTips.run("main", { site: "https://scripture.example.org" });</code></pre>

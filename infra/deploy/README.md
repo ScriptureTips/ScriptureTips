@@ -4,7 +4,7 @@ The two deployments of vision.md §7.2, for the extension release (vision.md §1
 
 | File | Site | Runs |
 |---|---|---|
-| `compose.data.yaml` | `scripture.tips` | PostgreSQL and the API with `API_ROLE=data`: only `/api/widget/*`. Port 8101 on the loopback address. |
+| `compose.data.yaml` | `scripture.tips` | PostgreSQL and the API with `API_ROLE=data`: only `/api/widget/*` (port 8101), and the site's pages and the plugin's script (`apps/site`, port 8103), all on the loopback address. |
 | `compose.app.yaml` | `scripturetips.com` (or a satellite) | PostgreSQL, the API with `ACCOUNTS=closed`, and the web app: the reader, landing, about, contact, privacy, terms and credits pages. Port 8102 on the loopback address. |
 
 Each copies its `*.env.example` to a `*.env` file that is never committed (secrets come from Ansible Vault).
@@ -16,13 +16,15 @@ Built from the repository root:
 ```bash
 docker build -f infra/docker/api/Dockerfile -t scripturetips-api:latest .
 docker build -f infra/docker/web/Dockerfile -t scripturetips-web:latest .
+docker build -f infra/docker/site/Dockerfile -t scripturetips-site:latest \
+  --build-arg CONTACT_EMAIL=… .   # also ST_SITE, ST_DATA, CHROME_STORE_URL, FIREFOX_STORE_URL
 ```
 
 The web image reads `API_URL` when it's built (`http://api:3001/api` by default), so the API's service in `compose.app.yaml` must stay named `api`. `ACCOUNTS` and `CONTACT_EMAIL` are read per request.
 
 ## Reverse proxy
 
-- `scripture.tips`: `/api/*` to `127.0.0.1:8101`. Nothing else is served there yet. The proxy must not add cookies.
+- `scripture.tips`: `/api/*` to `127.0.0.1:8101`, everything else to the site's container (`site` in `compose.data.yaml`, `127.0.0.1:8103`): home, help, downloads, credits, privacy, terms, contact and the plugin's script. The proxy must not add cookies, and must pass the site's `Cache-Control`, `ETag` and `Content-Encoding` through (the cache policy is in `apps/site/site.caddy`; the site container sets it).
 - `scripturetips.com`: everything to `127.0.0.1:8102`.
 
 Keep the access logs only as long as they are needed for running and securing the service (the privacy policy promises this without naming a period). Rotate and delete them; don't keep them indefinitely.

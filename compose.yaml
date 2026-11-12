@@ -229,7 +229,7 @@ services:
     profiles: [dev]
 
   # The reverse proxy (infra/caddy/Caddyfile), as in production: https://dev.scripturetips.com
-  # (the web app) and https://dev.scripture.tips (the data server). Their public DNS records point
+  # (the web app) and https://dev.scripture.tips (the data server: its API, and the site's pages). Their public DNS records point
   # at this machine's network address, which `./dev up --lan` listens on. Plain `./dev up` listens
   # on 127.0.0.1 only, reached through a hosts-file entry for both names. Inside the stack the
   # names are aliases of this container, so the end-to-end tests reach it by name too.
@@ -239,6 +239,9 @@ services:
     image: scripturetips-caddy:dev
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # The scripture.tips site (apps/site): its serving rules, and the files `./dev up` builds.
+      - ./apps/site/site.caddy:/etc/caddy/site.caddy:ro
+      - ./apps/site/dist:/srv/site:ro
       # `./dev` sets DEV_TLS to acme-dns once .dev-certs/acme-dns.json exists.
       - ./infra/caddy/tls-${DEV_TLS:-self-signed}.caddy:/etc/caddy/tls.caddy:ro
       - ./.dev-certs:/certs:ro

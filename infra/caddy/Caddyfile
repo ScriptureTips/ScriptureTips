@@ -13,19 +13,26 @@
 	}
 }
 
+import /etc/caddy/site.caddy
+
 # The app instance: everything goes to the web app, which passes /api/* on to the API.
 dev.scripturetips.com {
 	import /etc/caddy/tls.caddy
 	reverse_proxy web:3000
 }
 
-# The data server: only the API's widget routes (the data role serves nothing else).
+# The data server: the API's widget routes (the data role serves nothing else), and the
+# scripture.tips site (apps/site, built into apps/site/dist by `./dev up`), served under the rules
+# the production image uses.
 dev.scripture.tips {
 	import /etc/caddy/tls.caddy
 	handle /api/* {
 		reverse_proxy api-data:3001
 	}
 	handle {
-		respond 404
+		import site /srv/site
+	}
+	handle_errors {
+		import site_errors /srv/site
 	}
 }

@@ -11,4 +11,6 @@ The browser extension (vision §3.6): the rewrite of v1.0.3 (`../ScriptureTips-B
 - **Icons** are v1.0.3's (the commissioned logo, docs/branding.md). UI text is NZ English, in the pages and `_locales/en` (Chrome has no `en_NZ`).
 - **Not built yet:** the note composer and insert flow, sign-in and the user's own compilation (they wait for notes and accounts in the extension, stage 4), the local cache of passages (sources.md §8 item 29), translating the UI, Safari, and Edge testing.
 
+**Help:** every feature built here is documented, with screenshots, on the `scripture.tips` site before it is done (`apps/site/AGENTS.md`: topic, screenshot script, version folder). Its topics are what a later in-extension help icon will link to, so a topic's id never changes.
+
 Tests: `./toolbox pnpm --filter @scripturetips/extension test` (settings and migration, the link generator, the manifest, the bundle); in a browser, `apps/web/e2e/extension.spec.ts` (build first; desktop only).

@@ -5,7 +5,7 @@ The shared core of the website plugin and the browser extension (vision §3.6): 
 ```ts
 import { createScriptureLinks } from "@scripturetips/scripture-links";
 
-const links = createScriptureLinks({ api: "https://scripturetips.org/api" });
+const links = createScriptureLinks({ api: "https://scripture.tips/api" });
 links.run("#content"); // and what appears in #content later
 links.setPreferences({ translation: "bsb" });
 links.on("tooltip-open", (e) => console.log(e.reference));
@@ -26,5 +26,7 @@ links.destroy(); // every link is replaced by its words again
 - **Events** (`on`): `tooltip-open` (`{ reference, translation }`), `translation-change` (`{ reference, translation }`), `scan`.
 - **Strings** are NZ English (`strings.ts`), replaceable through the options.
 - **Not built yet:** lite mode, moving and resizing the tooltip, expanding to the paragraph, stepping to the next and previous passage, search in the tooltip, serving publications (public translations only for now), the user's own compilation and a local cache of passages (the extension; vision §3.6, sources.md §8 item 29). The client's `fetch` option is where it plugs in.
+
+**Help:** every feature built here is documented, with screenshots, on the `scripture.tips` site before it is done (`apps/site/AGENTS.md`: topic, screenshot script, version folder). Its topics are what a later in-extension help icon will link to, so a topic's id never changes.
 
 Run the tests: `./toolbox pnpm --filter @scripturetips/scripture-links test` (the pure parts: finding, destinations, the client). The DOM behavior is tested end to end in `apps/web/e2e/widget.spec.ts` and `extension.spec.ts`.

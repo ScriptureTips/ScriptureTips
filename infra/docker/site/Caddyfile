@@ -1,0 +1,15 @@
+# The scripture.tips site's own server, behind the reverse proxy that holds the certificate
+# (infra/deploy/README.md). The rules are apps/site/site.caddy.
+{
+	admin off
+	auto_https off
+}
+
+import /etc/caddy/site.caddy
+
+:8080 {
+	import site /srv
+	handle_errors {
+		import site_errors /srv
+	}
+}

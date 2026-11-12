@@ -201,3 +201,11 @@ NKJV
 Recognises
 serviceworker
 xcaddy
+biblegateway
+biblehub
+contentinfo
+nosniff
+redir
+ranslation
+chromewebstore
+labelledby

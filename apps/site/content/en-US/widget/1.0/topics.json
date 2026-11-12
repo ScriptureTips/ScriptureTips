@@ -1,0 +1,138 @@
+{
+  "groups": [
+    {
+      "title": "Getting started",
+      "topics": [
+        {
+          "id": "overview",
+          "title": "What the plugin does",
+          "summary": "One script that links the references in your pages and shows each passage in a tooltip.",
+          "keywords": ["introduction", "start", "about", "features", "widget"]
+        },
+        {
+          "id": "add-to-site",
+          "title": "Adding the plugin to your site",
+          "summary": "The two lines to add to your pages, and how to choose the part of the page to link.",
+          "keywords": [
+            "install",
+            "script",
+            "snippet",
+            "embed",
+            "selector",
+            "run",
+            "async",
+            "wordpress"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "For your visitors",
+      "topics": [
+        {
+          "id": "passage-tooltip",
+          "title": "The passage tooltip",
+          "summary": "What your visitors see: the passage, a translation menu, a pin and Read more.",
+          "keywords": [
+            "hover",
+            "popup",
+            "tap",
+            "touch",
+            "keyboard",
+            "pin",
+            "keep open",
+            "read more"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Setting it up",
+      "topics": [
+        {
+          "id": "what-is-linked",
+          "title": "What is linked, and leaving parts out",
+          "summary": "Which text is scanned, what is always left alone, and how to exclude more.",
+          "keywords": [
+            "ignore",
+            "exclude",
+            "skip",
+            "st-ignore",
+            "scan",
+            "code",
+            "numbering",
+            "scheme"
+          ]
+        },
+        {
+          "id": "translation",
+          "title": "The translation passages open in",
+          "summary": "Set your site's translation, and how it gives way to your author's and your visitor's choices.",
+          "keywords": ["default", "version", "bible", "kjv", "abbreviation", "preference"]
+        },
+        {
+          "id": "destination",
+          "title": "Where links go",
+          "summary": "Links open the ScriptureTips reader, or any Bible site you give an address pattern for.",
+          "keywords": ["destination", "reader", "template", "biblegateway", "address", "read more"]
+        },
+        {
+          "id": "theme",
+          "title": "Matching your site's look",
+          "summary": "Set the tooltip's colors, corners and font with CSS variables.",
+          "keywords": ["css", "style", "color", "font", "variables", "theme", "dark"]
+        },
+        {
+          "id": "options",
+          "title": "All the options",
+          "summary": "Every option run() takes, in one table.",
+          "keywords": [
+            "settings",
+            "configuration",
+            "reference",
+            "hoverDelayMs",
+            "strings",
+            "language"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "For developers",
+      "topics": [
+        {
+          "id": "javascript-api",
+          "title": "The JavaScript API",
+          "summary": "run, rescan, setPreferences and the events a page can listen for.",
+          "keywords": [
+            "api",
+            "events",
+            "rescan",
+            "setPreferences",
+            "on",
+            "tooltip-open",
+            "spa",
+            "dynamic"
+          ]
+        },
+        {
+          "id": "own-links",
+          "title": "Drawing the links yourself",
+          "summary": "Give your own links a passage tooltip without having the page scanned.",
+          "keywords": ["react", "data-st-ref", "st-ref", "osis", "markup", "data-st-key"]
+        }
+      ]
+    },
+    {
+      "title": "Privacy",
+      "topics": [
+        {
+          "id": "privacy",
+          "title": "What the plugin sends and keeps",
+          "summary": "No cookies; only passage requests, and each visitor's choices stay in their browser.",
+          "keywords": ["cookies", "gdpr", "consent", "storage", "localStorage", "tracking", "size"]
+        }
+      ]
+    }
+  ]
+}

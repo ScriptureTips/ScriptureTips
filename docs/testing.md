@@ -39,6 +39,7 @@ ScriptureTips is a large system that will be built largely with LLM coding agent
 | **End-to-end** | Playwright | Main user journeys in the web app, against a seeded stack |
 | **Browser extension** | Playwright with the extension loaded in Chromium (`e2e/extension.spec.ts`, desktop only; build it first: `./toolbox pnpm --filter @scripturetips/extension build`), plus unit tests of the settings and their migration from v1.0.3, the link generator, the manifest (no permission v1.0.3 didn't have) and a bundle test | Page scanning, one tooltip per link beside a site's own plugin, nothing kept in the site's storage, turning off per site, the upgrade path, the link generator, the settings. Later: the note composer, **insert at cursor** in each editor type (§5) |
 | **Website widget** | Playwright against a fixture page on another origin (`e2e/widget.spec.ts`; build the script first: `./toolbox pnpm --filter @scripturetips/widget build`), plus unit tests of the pure parts and a bundle test (size budget, no versification tables) | Scanning only the chosen area, leaving links alone, rescanning and content added later, the JavaScript API, hover, tap on a phone, switching translation, other numbering, CORS |
+| **scripture.tips site** | Vitest (the content, versioned addresses, links and images, search, caching names) and Playwright against the dev stack (`apps/site/e2e`: pages, search, redirects, cache headers, no cookies, the plugin served from there). The help's screenshots are taken by `apps/site/shots` | Every page, every link and image, the cache policy |
 | **Accessibility** | axe-core in Playwright | Every main page and dialog |
 | **PDF output** | Render pages to images and compare against approved images; preflight checks | The book designer: page count, spine width, TOC and labels, fonts embedded, bleed |
 | **Language** | Spelling checker with two dictionaries | US English in code and docs; en-NZ in UI strings; no missing translation keys |
@@ -91,6 +92,7 @@ Each test opens the composer, inserts a link, and checks that the link is at the
   1. tests added or updated for the behavior, named after the spec section where there is one;
   2. `pnpm verify` passes;
   3. for UI changes, Playwright screenshots of the changed screens, checked by the agent;
+  3a. for any new or changed feature of the browser extension, the website plugin or `scripture-links`, its help topic on the `scripture.tips` site with screenshots taken from the real extension or plugin (apps/site/AGENTS.md): the site's tests fail when a product's current version has no help;
   4. a short report: what changed, what was tested, anything skipped or weakened and why, and any open questions.
 - **Automatic checks in Claude Code:** project hooks run the formatter after edits, and the affected type-check and tests before the agent finishes its turn, so the agent sees failures before handing back.
 - **Seeing the running system:** the agent can start the stack (`./dev up --lan`, so it's on the local network for the owner's tablet too), load a scenario, read structured logs (one file per service) and take screenshots with Playwright.

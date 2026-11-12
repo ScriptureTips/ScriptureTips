@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["es2024", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src",
+    "shots",
+    "e2e",
+    "build.ts",
+    "playwright.config.ts",
+    "playwright.shots.config.ts"
+  ]
+}

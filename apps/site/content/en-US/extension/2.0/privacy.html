@@ -1,0 +1,15 @@
+<p>The extension is built to send as little as possible. The full <a href="/privacy/">privacy policy</a> covers the service; this is what the extension itself does.</p>
+
+<h2>What it sends</h2>
+<p>When you open a <a href="topic:passage-tooltip">tooltip</a>, the extension asks {{dataHost}} for that passage. The request carries the reference and the translation, and nothing else: not the page you're on, not any other text from it, and no cookie. Until you point at a reference, tap it or reach it with the keyboard, nothing is sent about the page at all: finding the references happens in your browser.</p>
+<p>The settings page also asks {{dataHost}} for the list of translations.</p>
+
+<h2>What it keeps</h2>
+<ul>
+<li><strong>Your settings</strong> are kept in your browser's storage for extensions. If your browser's sync is on, your browser carries them to your other devices.</li>
+<li><strong>The translation you chose for each link</strong> is kept on your device, grouped by site. It is never sent anywhere.</li>
+</ul>
+<p>The extension keeps nothing in the storage of the websites you visit.</p>
+
+<h2>What it's allowed to do</h2>
+<p>It reads the text of the pages you visit in order to find references, which is why your browser says it can read your data on all websites. It asks for the same permissions as version 1.0.3, or fewer. In Firefox, the passage requests are declared as “website content” that leaves the browser, and Firefox asks for your consent when you install it.</p>

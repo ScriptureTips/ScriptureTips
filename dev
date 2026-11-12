@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Start or stop the local development stack (testing.md §2): ./dev up, ./dev down, ./dev logs,
-# ./dev migrate (applies pending database migrations to the development database).
+# ./dev migrate (applies pending database migrations to the development database), ./dev site
+# (builds the scripture.tips site's pages again, apps/site).
 # The stack is served through Caddy as https://dev.scripturetips.com (the web app) and
 # https://dev.scripture.tips (the data server), whose public DNS records point at this machine's
 # network address. `./dev up --lan` listens on the network (to try it on a phone or tablet);
@@ -45,9 +46,17 @@ certificate() {
 
 SERVICES=(caddy web api api-data pdf-worker mailpit)
 
+# The scripture.tips site's pages (apps/site), with the website plugin's script they serve: plain
+# files in apps/site/dist, which Caddy serves. `./dev site` builds them again after a change.
+site() {
+  ./toolbox env CONTACT_EMAIL=contact@scripture.tips sh -c \
+    'pnpm --filter @scripturetips/widget build && pnpm --filter @scripturetips/site build'
+}
+
 case "${1:-}" in
   up)
     certificate
+    site
     if [[ "${2:-}" == "--lan" ]]; then export LAN_BIND=0.0.0.0; fi
     docker compose --profile dev up -d --wait --force-recreate "${SERVICES[@]}"
     for site in "${SITES[@]}"; do echo "https://$site"; done
@@ -62,8 +71,9 @@ case "${1:-}" in
   down) exec docker compose --profile dev stop ;;
   logs) exec docker compose --profile dev logs -f "${@:2}" ;;
   migrate) exec ./toolbox pnpm --filter @scripturetips/db migrate ;;
+  site) site ;;
   *)
-    echo "Usage: ./dev up [--lan] | down | logs [service] | migrate" >&2
+    echo "Usage: ./dev up [--lan] | down | logs [service] | migrate | site" >&2
     exit 1
     ;;
 esac
