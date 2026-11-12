@@ -1,0 +1,66 @@
+# Checks every change: lint, dependency boundaries, spelling, type-check and tests, exactly as
+# `pnpm verify:full` does on the owner's machine (docs/testing.md §2). The steps live in
+# scripts/ci/check.sh, so nothing about the checks is tied to this CI server.
+#
+# Runs for pushes and pull requests to main, and for release tags, where release.yaml waits for it.
+when:
+  - event: [push, pull_request]
+    branch: main
+  - event: tag
+    ref: refs/tags/v*
+
+# The workspace is /woodpecker/src, where the garage-test step finds its configuration.
+workspace:
+  base: /woodpecker
+  path: src
+
+# Base images are pinned by version and digest. To update one, change both together.
+variables:
+  - &node node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
+
+# The integration tests' database server (compose.yaml: postgres-test). Local-only credentials,
+# not secrets; the hostname is the one the tests expect.
+services:
+  - name: postgres-test
+    image: postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    environment:
+      POSTGRES_USER: scripturetips
+      POSTGRES_PASSWORD: scripturetips
+    # As in compose.yaml: tests don't need the data to survive a crash.
+    entrypoint:
+      [
+        docker-entrypoint.sh,
+        postgres,
+        -c,
+        fsync=off,
+        -c,
+        synchronous_commit=off,
+        -c,
+        full_page_writes=off,
+      ]
+
+steps:
+  # The integration tests' file store (compose.yaml: garage-test). A detached step rather than a
+  # service, because it reads its configuration from the cloned repository.
+  - name: garage-test
+    image: dxflrs/garage:v2.4.1@sha256:9c96caa2612d3411acc5b0e6701fb238dbfba33e533a6d7d3d811a4b12d0d020
+    detach: true
+    environment:
+      GARAGE_CONFIG_FILE: /woodpecker/src/infra/garage/garage.toml
+      GARAGE_RPC_SECRET: 483d6e7676f649fcc7ca9cbbd7cc4af430b259aec4543e0612c3b3ae4f57652a
+      GARAGE_ADMIN_TOKEN: development-only-garage-admin-token
+
+  - name: verify
+    image: *node
+    environment:
+      CI: "true"
+      # The same settings as the toolbox in compose.yaml.
+      TEST_DATABASE_URL: postgres://scripturetips:scripturetips@postgres-test:5432/postgres
+      TEST_GARAGE_ADMIN_URL: http://garage-test:3903
+      TEST_GARAGE_ADMIN_TOKEN: development-only-garage-admin-token
+      TEST_STORAGE_ENDPOINT: http://garage-test:3900
+      TEST_STORAGE_ACCESS_KEY: GKb2e75133b9874f5cb7b7cf92
+      TEST_STORAGE_SECRET_KEY: 85d4c95d964ccd37bdb8d4e2de648db19b390cc768945fc1c77f126471578445
+      TEST_STORAGE_BUCKET: scripturetips-test
+    commands:
+      - bash scripts/ci/check.sh

@@ -25,7 +25,7 @@ services:
 
   # The service's name must stay `api`: the web image is built with API_URL=http://api:3001/api.
   api:
-    image: ${API_IMAGE:-scripturetips-api:latest}
+    image: ${API_IMAGE:?set API_IMAGE to a tagged image, never latest}
     restart: unless-stopped
     environment:
       API_ROLE: app
@@ -47,7 +47,7 @@ services:
     mem_limit: ${API_MEMORY:-384m}
 
   web:
-    image: ${WEB_IMAGE:-scripturetips-web:latest}
+    image: ${WEB_IMAGE:?set WEB_IMAGE to a tagged image, never latest}
     restart: unless-stopped
     environment:
       ACCOUNTS: closed

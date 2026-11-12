@@ -9,6 +9,10 @@ What changed in ScriptureTips, newest first, in terms of what people can do. For
 - The website plugin is served at `/widget/scripturetips.js` and now has version 1.0.0.
 - A production image for the site (`infra/docker/site`) and a `site` service in `infra/deploy/compose.data.yaml`.
 - `./dev site` rebuilds the site's pages.
+- A Woodpecker pipeline (`.woodpecker/`): the checks for every push and pull request to `main`, and on a `v*` tag, once they pass, the API, web and site images pushed to the Forgejo registry under that tag.
+
+### Fixed
+- The JPS 1917 conversion test no longer crashes where the source texts are absent; it skips as intended.
 
 ### Changed
 - The plugin's links open the site named by `ST_SITE` instead of the server the script was loaded from.

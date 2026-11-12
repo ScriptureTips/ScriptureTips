@@ -24,7 +24,7 @@ services:
     mem_limit: ${POSTGRES_MEMORY:-768m}
 
   api:
-    image: ${API_IMAGE:-scripturetips-api:latest}
+    image: ${API_IMAGE:?set API_IMAGE to a tagged image, never latest}
     restart: unless-stopped
     environment:
       API_ROLE: data
@@ -48,7 +48,7 @@ services:
 
   # The site's pages (infra/docker/site): Caddy serving the files built into the image.
   site:
-    image: ${SITE_IMAGE:-scripturetips-site:latest}
+    image: ${SITE_IMAGE:?set SITE_IMAGE to a tagged image, never latest}
     restart: unless-stopped
     ports:
       - 127.0.0.1:${SITE_PORT:-8103}:8080

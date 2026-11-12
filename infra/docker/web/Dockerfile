@@ -4,7 +4,7 @@
 # `API_URL` is read when the app is built (next.config.ts's proxy rewrites), so it's a build
 # argument: the API's address inside the Compose network. `ACCOUNTS` and `CONTACT_EMAIL` are
 # read per request, so one image serves any instance.
-FROM node:24.22.1-bookworm-slim AS build
+FROM node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205 AS build
 RUN npm install -g pnpm@12.15.0
 WORKDIR /repo
 COPY . .
@@ -13,7 +13,7 @@ ENV API_URL=${API_URL} NEXT_TELEMETRY_DISABLED=1
 RUN pnpm install --frozen-lockfile --filter "@scripturetips/web..." \
   && pnpm --filter @scripturetips/web exec next build
 
-FROM node:24.22.1-bookworm-slim
+FROM node:24.22.1-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 WORKDIR /app
 COPY --from=build /repo/apps/web/.next/standalone ./

@@ -1,0 +1,48 @@
+# Builds and pushes the production images when a version is tagged: `git tag v1.4.0`. Runs only
+# after check.yaml has passed for the same tag; if the checks fail, nothing is pushed.
+#
+# Each image is tagged with the git tag (v1.4.0) and nothing else: never `latest`. Production
+# pins the exact tag; the deploy is in the Ansible repository, not here. Names: infra/deploy.
+when:
+  - event: tag
+    ref: refs/tags/v*
+
+depends_on:
+  - check
+
+# One build step per image, sharing everything but the name and the Dockerfile. Each step runs
+# the plugin's own Docker daemon, so it needs no access to the agent's.
+variables:
+  - &build
+    image: woodpeckerci/plugin-docker-buildx:6.1.2
+    settings: &build-settings
+      registry: git.antzcode.com
+      context: .
+      platforms: linux/amd64
+      tags: ${CI_COMMIT_TAG}
+      username:
+        from_secret: registry_user
+      password:
+        from_secret: registry_token
+
+steps:
+  - name: api
+    <<: *build
+    settings:
+      <<: *build-settings
+      repo: git.antzcode.com/adonai-reigns/scripturetips-api
+      dockerfile: infra/docker/api/Dockerfile
+
+  - name: web
+    <<: *build
+    settings:
+      <<: *build-settings
+      repo: git.antzcode.com/adonai-reigns/scripturetips-web
+      dockerfile: infra/docker/web/Dockerfile
+
+  - name: site
+    <<: *build
+    settings:
+      <<: *build-settings
+      repo: git.antzcode.com/adonai-reigns/scripturetips-site
+      dockerfile: infra/docker/site/Dockerfile

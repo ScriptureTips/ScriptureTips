@@ -9,6 +9,23 @@ The two deployments of vision.md §7.2, for the extension release (vision.md §1
 
 Each copies its `*.env.example` to a `*.env` file that is never committed (secrets come from Ansible Vault).
 
+## Releases
+
+Tagging a version builds and pushes the images; the Ansible roles pin that exact tag. The pipelines are in `.woodpecker/` and run on the owner's self-hosted Woodpecker (https://ci.antzcode.com), with Forgejo (https://git.antzcode.com) as the git host and registry.
+
+- `check.yaml`: `pnpm verify:full` (lint, boundaries, spelling, types, tests, with a PostgreSQL and a Garage as in `compose.yaml`) for pushes and pull requests to `main`, and for `v*` tags.
+- `release.yaml`: for `v*` tags, after `check` passes, builds and pushes the three images below, each tagged with the git tag (`v1.4.0`) and nothing else. Never `latest`.
+
+| Image | Used as |
+|---|---|
+| `git.antzcode.com/adonai-reigns/scripturetips-api:{tag}` | `API_IMAGE` (`compose.data.yaml`, `compose.app.yaml`) |
+| `git.antzcode.com/adonai-reigns/scripturetips-web:{tag}` | `WEB_IMAGE` (`compose.app.yaml`) |
+| `git.antzcode.com/adonai-reigns/scripturetips-site:{tag}` | `SITE_IMAGE` (`compose.data.yaml`) |
+
+The PDF worker has no image yet: it runs only when accounts are open (the development stack builds it from `infra/docker/pdf-worker`).
+
+Base images are pinned by version and digest (change both together). The workflow needs the secrets `registry_user` and `registry_token`, and the Woodpecker server must allow `woodpeckerci/plugin-docker-buildx` as a privileged plugin (`WOODPECKER_PLUGINS_PRIVILEGED`). Commit the pipeline before tagging: the tag must point at a commit that contains `.woodpecker/`.
+
 ## Images
 
 Built from the repository root:
