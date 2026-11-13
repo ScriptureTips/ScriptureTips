@@ -213,3 +213,4 @@ Forgejo
 antzcode
 woodpeckerci
 buildx
+psql

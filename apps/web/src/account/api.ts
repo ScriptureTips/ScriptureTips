@@ -26,7 +26,7 @@ export interface Account {
   favoritesOnly: boolean;
 }
 
-const API = process.env["API_URL"] ?? "http://127.0.0.1:3001/api";
+const API = process.env["API_URL"] ?? "http://api:3001/api";
 
 /** The account of whoever is viewing, or null when signed out. Server components only. */
 export async function currentAccount(): Promise<Account | null> {

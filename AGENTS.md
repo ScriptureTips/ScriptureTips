@@ -93,5 +93,5 @@ Ask before adding any package that isn't already approved. Approved so far: Vite
 2. `pnpm verify` passes.
 3. For UI changes: Playwright screenshots of the changed screens, checked.
 3a. For extension and plugin features: the help topic and its screenshots on the `scripture.tips` site (apps/site/AGENTS.md).
-3b. A line under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md) for any change people would notice (features, fixes, security), in US English.
+3b. A line under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md) for any change people would notice (features, fixes, security), in US English. When a version is tagged, the owner moves `[Unreleased]` under a new `[x.y.z] - date` heading (the tag, without the `v`).
 4. A short report covering what changed, what was tested, anything skipped or weakened and why, and any open questions.

@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 /** The API (compose.yaml sets `API_URL` in the stack). */
-const API = process.env["API_URL"] ?? "http://127.0.0.1:3001/api";
+const API = process.env["API_URL"] ?? "http://api:3001/api";
 
 const config: NextConfig = {
   // Production images (infra/docker/web) run the standalone server, traced from the repository

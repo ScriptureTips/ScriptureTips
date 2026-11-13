@@ -4,9 +4,9 @@ Loads the original-language data (domain-model §2.4) into the database (package
 
 ```bash
 ./toolbox pnpm --filter @scripturetips/db migrate
-./toolbox pnpm --filter @scripturetips/original-import run load /source-texts
-./toolbox pnpm --filter @scripturetips/original-import run align            # every translation
-./toolbox pnpm --filter @scripturetips/original-import run align eng-kjv    # or by catalog ID
+./toolbox pnpm --filter @scripturetips/original-import exec node src/cli.ts load /source-texts
+./toolbox pnpm --filter @scripturetips/original-import exec node src/cli.ts align            # every translation
+./toolbox pnpm --filter @scripturetips/original-import exec node src/cli.ts align eng-kjv    # or by catalog ID
 ```
 
 - **`load`** reads the sources under `../source-texts/` (evidence in `docs/license-evidence/`) and **replaces** everything an earlier load put there: `lexicon`, `lexicon_entry`, `lemma`, `proper_name`, `source_text`, `token`, and the alignment (which hangs from lemmas and tokens, so run `align` again after). It takes about two minutes. It prints what it read, what it left out, and notes worth a look (entries that couldn't be linked, rows that couldn't be read); the same counts for each text are in `source_text.report`.

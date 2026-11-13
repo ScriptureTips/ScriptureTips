@@ -56,7 +56,7 @@ export type PublicationPassage =
     }
   | { ok: false; code: string; status: number };
 
-const API = process.env["API_URL"] ?? "http://127.0.0.1:3001/api";
+const API = process.env["API_URL"] ?? "http://api:3001/api";
 
 const path = (handle: string, slug: string) =>
   `${API}/publications/${encodeURIComponent(handle)}/${encodeURIComponent(slug)}`;

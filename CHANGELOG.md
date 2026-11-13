@@ -2,16 +2,24 @@
 
 What changed in ScriptureTips, newest first, in terms of what people can do. Format after [Keep a Changelog](https://keepachangelog.com/). The browser extension and the website plugin each have their own version (`apps/extension/package.json`, `apps/widget/package.json`); their help is on scripture.tips, versioned the same way.
 
+The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the API, web and site images under that tag, and production pins it (`infra/deploy/README.md`, Releases). Entries from before v0.0.1 are dated instead.
+
 ## [Unreleased]
+
+## [0.0.1] - 2026-11-14
+
+The first tagged version: the extension release.
 
 ### Added
 - The `scripture.tips` site (`apps/site`): home, downloads, credits, privacy, terms and contact pages, and searchable help for the browser extension and the website plugin, with screenshots. Help addresses are versioned: `/about/{product}/{version}/{topic}/` stays accurate for that version, and `/about/{product}/{topic}/` is the current one.
 - The website plugin is served at `/widget/scripturetips.js` and now has version 1.0.0.
 - A production image for the site (`infra/docker/site`) and a `site` service in `infra/deploy/compose.data.yaml`.
 - `./dev site` rebuilds the site's pages.
+- `scripts/reference-dump.sh` builds the reference data dump (translations and original-language data) that production's database is restored from.
 - A Woodpecker pipeline (`.woodpecker/`): the checks for every push and pull request to `main`, and on a `v*` tag, once they pass, the API, web and site images pushed to the Forgejo registry under that tag.
 
 ### Fixed
+- The reader and the home page's translation picker were empty on scripturetips.com: the web image didn't pass the API's address to its server, which then looked for the API on its own loopback. The address is now set in the image, and is also the code's default.
 - The JPS 1917 conversion test no longer crashes where the source texts are absent; it skips as intended.
 
 ### Changed
@@ -73,3 +81,6 @@ What changed in ScriptureTips, newest first, in terms of what people can do. For
 
 ### Security
 - Next.js, nodemailer and NestJS upgraded for security advisories.
+
+[Unreleased]: https://git.antzcode.com/adonai-reigns/ScriptureTips/compare/v0.0.1...HEAD
+[0.0.1]: https://git.antzcode.com/adonai-reigns/ScriptureTips/releases/tag/v0.0.1

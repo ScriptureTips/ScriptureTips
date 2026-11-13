@@ -1,6 +1,6 @@
 import type { StudyWords } from "./types.ts";
 
-const API = process.env["API_URL"] ?? "http://127.0.0.1:3001/api";
+const API = process.env["API_URL"] ?? "http://api:3001/api";
 
 /**
  * How study mode draws each Strong's number (`H0430`): its category and the word it is. Server

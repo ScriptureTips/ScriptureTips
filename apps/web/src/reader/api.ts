@@ -76,8 +76,8 @@ export type PassageResponse =
   | { ok: true; translation: Translation; passages: PassageResult[]; sources?: Source[] }
   | { ok: false; code: string; index?: number };
 
-/** `API_URL`: the API inside the dev stack (compose.yaml), or the local one. */
-const API = process.env["API_URL"] ?? "http://127.0.0.1:3001/api";
+/** `API_URL`, or the API's address in the Compose network (production and the dev stack set the same). */
+const API = process.env["API_URL"] ?? "http://api:3001/api";
 
 export async function translations(): Promise<Translation[]> {
   const res = await fetch(`${API}/translations`, { next: { revalidate: 300 } });

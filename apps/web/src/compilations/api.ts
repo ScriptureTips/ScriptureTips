@@ -128,7 +128,7 @@ export interface VerseEditor {
   }[];
 }
 
-const API = process.env["API_URL"] ?? "http://127.0.0.1:3001/api";
+const API = process.env["API_URL"] ?? "http://api:3001/api";
 
 async function get<T>(path: string): Promise<T | null> {
   const cookie = (await cookies()).toString();

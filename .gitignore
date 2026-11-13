@@ -16,3 +16,6 @@ next-env.d.ts
 
 # The website plugin, built by apps/widget.
 apps/web/public/widget/
+
+# Reference data dumps (scripts/reference-dump.sh): 300 MB, never committed.
+*.dump
