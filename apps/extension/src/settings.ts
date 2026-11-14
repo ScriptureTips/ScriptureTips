@@ -160,6 +160,13 @@ export const BUILT_IN_SITE: string = typeof __ST_SITE__ === "string" ? __ST_SITE
 declare const __ST_DATA__: string;
 export const BUILT_IN_DATA: string = typeof __ST_DATA__ === "string" ? __ST_DATA__ : "";
 
+/**
+ * A path of the data server whose pages are ordinary ones for the extension (`ST_DEMO` at build
+ * time): the demo pages of the development stack. Empty in a release build.
+ */
+declare const __ST_DEMO__: string;
+export const BUILT_IN_DEMO: string = typeof __ST_DEMO__ === "string" ? __ST_DEMO__ : "";
+
 const trimmed = (address: string): string => address.replace(/\/$/, "");
 
 /** The ScriptureTips site whose reader links open: a satellite, or the built-in one. */
@@ -170,17 +177,25 @@ export const siteOf = (settings: Settings, builtIn = BUILT_IN_SITE): string =>
 export const apiOf = (data = BUILT_IN_DATA): string => `${trimmed(data)}/api`;
 
 /** Whether the extension leaves this page alone: turned off here, or the ScriptureTips site itself. */
-export function leftAlone(settings: Settings, url: URL): boolean {
+export function leftAlone(
+  settings: Settings,
+  url: URL,
+  data = BUILT_IN_DATA,
+  demo = BUILT_IN_DEMO,
+): boolean {
   if (!/^https?:$/.test(url.protocol)) return true;
   if (settings.disabledSites.includes(url.host)) return true;
-  // The reader's own pages, and the data server's: ScriptureTips links its own references.
-  return [siteOf(settings), BUILT_IN_DATA].some((address) => {
+  const sameOrigin = (address: string): boolean => {
     try {
       return url.origin === new URL(address).origin;
     } catch {
       return false;
     }
-  });
+  };
+  // The reader's own pages, and the data server's: ScriptureTips links its own references. The
+  // development stack's demo pages, on the data server, are written like anyone else's.
+  if (sameOrigin(siteOf(settings))) return true;
+  return sameOrigin(data) && !(demo !== "" && url.pathname.startsWith(demo));
 }
 
 /** The outside site links go to, if not the reader. */

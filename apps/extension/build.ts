@@ -21,6 +21,15 @@ const SITE = process.env["ST_SITE"] ?? "https://dev.scripturetips.com";
  */
 const DATA = process.env["ST_DATA"] ?? "https://dev.scripture.tips";
 
+/**
+ * A path on the data server whose pages the extension treats like any other site's: the demo
+ * pages (apps/extension/demo), written to try it on. `ST_DEMO` at build time; by default only
+ * the development stack's data server has them, so a release build has none.
+ */
+export const demoPath = (data: string, given?: string): string =>
+  given ?? (data === "https://dev.scripture.tips" ? "/demo/" : "");
+const DEMO = demoPath(DATA, process.env["ST_DEMO"]);
+
 /** Bundles the extension's scripts (each one file, no imports at run time). */
 export async function bundle(outdir: string | null) {
   return build({
@@ -33,7 +42,11 @@ export async function bundle(outdir: string | null) {
     metafile: true,
     write: outdir !== null,
     outdir: outdir ?? join(here, "dist/check"),
-    define: { __ST_SITE__: JSON.stringify(SITE), __ST_DATA__: JSON.stringify(DATA) },
+    define: {
+      __ST_SITE__: JSON.stringify(SITE),
+      __ST_DATA__: JSON.stringify(DATA),
+      __ST_DEMO__: JSON.stringify(DEMO),
+    },
     logLevel: "warning",
   });
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bundle } from "../build.ts";
+import { bundle, demoPath } from "../build.ts";
 
 /** The most the content script may weigh, minified: it runs in every page and frame. */
 const CONTENT_BUDGET = 50 * 1024;
@@ -14,5 +14,14 @@ describe("vision §3.6: the browser extension's scripts", () => {
     );
     const content = Object.entries(metafile.outputs).find(([path]) => path.endsWith("content.js"));
     expect(content?.[1].bytes).toBeLessThan(CONTENT_BUDGET);
+  });
+
+  it("have the demo pages' exception only in a build for the development stack", () => {
+    expect(demoPath("https://dev.scripture.tips")).toBe("/demo/");
+    // A release build, for the real data server, has none.
+    expect(demoPath("https://scripture.tips")).toBe("");
+    expect(demoPath("https://data.example.org")).toBe("");
+    // Unless asked for.
+    expect(demoPath("https://scripture.tips", "/try/")).toBe("/try/");
   });
 });

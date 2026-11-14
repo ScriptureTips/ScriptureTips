@@ -242,6 +242,8 @@ services:
       # The scripture.tips site (apps/site): its serving rules, and the files `./dev up` builds.
       - ./apps/site/site.caddy:/etc/caddy/site.caddy:ro
       - ./apps/site/dist:/srv/site:ro
+      # Pages for trying the browser extension (dev.scripture.tips/demo): the dev stack only.
+      - ./apps/extension/demo:/srv/demo:ro
       # `./dev` sets DEV_TLS to acme-dns once .dev-certs/acme-dns.json exists.
       - ./infra/caddy/tls-${DEV_TLS:-self-signed}.caddy:/etc/caddy/tls.caddy:ro
       - ./.dev-certs:/certs:ro

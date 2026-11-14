@@ -23,11 +23,19 @@ dev.scripturetips.com {
 
 # The data server: the API's widget routes (the data role serves nothing else), and the
 # scripture.tips site (apps/site, built into apps/site/dist by `./dev up`), served under the rules
-# the production image uses.
+# the production image uses, and /demo, the extension's test pages.
 dev.scripture.tips {
 	import /etc/caddy/tls.caddy
 	handle /api/* {
 		reverse_proxy api-data:3001
+	}
+	# Pages for trying the browser extension (apps/extension/demo): written like other people's
+	# sites, with no ScriptureTips script. The development stack only; production has no /demo.
+	redir /demo /demo/ 308
+	handle_path /demo/* {
+		root * /srv/demo
+		header Cache-Control "no-store"
+		file_server
 	}
 	handle {
 		import site /srv/site

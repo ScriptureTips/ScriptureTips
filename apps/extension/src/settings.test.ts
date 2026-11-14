@@ -80,6 +80,17 @@ describe("vision §3.6: where the extension stays out", () => {
     expect(leftAlone(s, new URL("https://on.test/"))).toBe(false);
   });
 
+  it("leaves the data server alone, except the demo pages of a development build", () => {
+    const data = "https://data.test";
+    expect(leftAlone(s, new URL("https://data.test/about/extension/"), data, "")).toBe(true);
+    expect(leftAlone(s, new URL("https://data.test/demo/jonah.html"), data, "")).toBe(true);
+    expect(leftAlone(s, new URL("https://data.test/demo/jonah.html"), data, "/demo/")).toBe(false);
+    expect(leftAlone(s, new URL("https://data.test/demos/"), data, "/demo/")).toBe(true);
+    expect(leftAlone(s, new URL("https://data.test/about/extension/"), data, "/demo/")).toBe(true);
+    // The reader is left alone whatever the demo path is.
+    expect(leftAlone(s, new URL("https://st.test/demo/x"), data, "/demo/")).toBe(true);
+  });
+
   it("sends links to ScriptureTips while the chosen site has no address yet", () => {
     const filling = {
       ...s,

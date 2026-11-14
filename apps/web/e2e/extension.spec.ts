@@ -143,6 +143,33 @@ test("vision §3.6: hovering shows the passage, fetched by the extension, with n
   expect(String(kept["choices:fixture.test"])).toContain("leb");
 });
 
+test("vision §3.6: the demo blog entry on the dev stack is linked by the extension alone", async ({
+  page,
+}) => {
+  // dev.scripture.tips/demo (apps/extension/demo): a page with no ScriptureTips script.
+  const scripts: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/widget/") || r.url().includes("scripturetips.js")) scripts.push(r.url());
+  });
+  await page.goto("https://dev.scripture.tips/demo/jonah.html");
+  const links = page.locator("article a.st-ref");
+  await expect.poll(() => links.count()).toBeGreaterThanOrEqual(60);
+  // Every link is the extension's, and each reference is linked once.
+  await expect(page.locator('a.st-ref:not([data-st-owner="extension"])')).toHaveCount(0);
+  await expect(page.locator("a.st-ref a, a a.st-ref")).toHaveCount(0);
+  // What it leaves alone: the author's own link, code, and a field.
+  await expect(page.locator('a[href="#commentary"]')).toHaveText("Matthew 12:40");
+  await expect(page.locator("pre a, code a, textarea a")).toHaveCount(0);
+  expect(await page.locator("textarea").inputValue()).toBe(
+    "I think you could also mention John 1:1 here.",
+  );
+  // A reference written with its translation, "John 3:16 (KJV)", shows that one.
+  await page.locator("a.st-ref", { hasText: "John 3:16" }).hover();
+  await expect(tooltip(page)).toContainText("For God so loved the world");
+  await page.screenshot(shot("extension-demo-jonah"));
+  expect(scripts).toEqual([]);
+});
+
 test("vision §3.6: on a page with a strict content security policy, the tooltip still works and is styled", async ({
   page,
 }) => {

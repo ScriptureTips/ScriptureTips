@@ -47,3 +47,7 @@ The development machine's own address is never published. Until the setup below 
 **Then** run `./dev up --lan`. When `.dev-certs/acme-dns.json` exists, `./dev` switches Caddy to [tls-acme-dns.caddy](tls-acme-dns.caddy), and `./dev logs caddy` shows the certificates being obtained.
 
 **Checking:** `dig +short TXT _acme-challenge.dev.scripturetips.com` follows the CNAME to acme-dns (empty until a check is running), and `dig +short NS acme.scripture.tips` names `acme-ns.scripture.tips`.
+
+## The extension's demo pages
+
+`https://dev.scripture.tips/demo/` serves `apps/extension/demo` (mounted read-only at `/srv/demo`, answered before the site's pages, never cached). They are for trying the browser extension, so they carry no ScriptureTips script. Only this development Caddyfile has the route: production's data server has no `/demo`.
