@@ -216,3 +216,7 @@ buildx
 psql
 Amittai
 Dalmanutha
+themable
+hotpink
+Neue
+Noto

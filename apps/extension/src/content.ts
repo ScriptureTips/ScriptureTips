@@ -7,6 +7,7 @@ import {
 import { ext } from "./browser.ts";
 import { apiOf, leftAlone, outsideSite, type Settings, siteOf } from "./settings.ts";
 import { type FetchReply, loadSettings, onSettingsChange } from "./store.ts";
+import { DEFAULT_TEXT_SCALE, loadTextScale, onTextScaleChange } from "./text-scale.ts";
 
 /** Who the extension's links are marked as made by: a site's own plugin leaves them alone. */
 const OWNER = "extension";
@@ -49,6 +50,8 @@ async function choicesFor(host: string): Promise<Storage> {
 }
 
 let instance: ScriptureLinks | null = null;
+/** The reader's text size for the tooltip (the popup's magnifying glasses), per browser. */
+let textScale = DEFAULT_TEXT_SCALE;
 /** Which start is the latest, so one overtaken while it waited gives way. */
 let latest = 0;
 
@@ -69,10 +72,21 @@ async function start(settings: Settings): Promise<void> {
     ...(settings.translation ? { translation: settings.translation } : {}),
     fetch: viaBackground,
     storage,
+    textScale,
+    // No page restyles the tooltip: not even through the custom properties a site's plugin reads.
+    themable: false,
   });
   instance.run("body");
 }
 
-void loadSettings().then(start);
+void Promise.all([loadSettings(), loadTextScale()]).then(([settings, scale]) => {
+  textScale = scale;
+  return start(settings);
+});
+// A new text size reaches the tooltip at once, without the page being scanned again.
+onTextScaleChange((scale) => {
+  textScale = scale;
+  instance?.setPreferences({ textScale: scale });
+});
 // Turned off or on here, or another destination chosen: the page is done again.
 onSettingsChange((settings) => void start(settings));

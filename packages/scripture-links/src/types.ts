@@ -72,6 +72,18 @@ export interface LinksOptions {
   readonly strings?: Partial<Strings>;
   /** What to skip besides links, code and form fields: a CSS selector. `.st-ignore` always is. */
   readonly ignore?: string;
+  /**
+   * Whether the page's own `--st-accent`, `--st-ink`, `--st-muted`, `--st-rule`, `--st-paper`,
+   * `--st-radius` and `--st-font` CSS custom properties theme the tooltip. True if left out: a site
+   * may theme the website plugin. The browser extension gives false, so no page changes its look.
+   * Either way nothing else from the page's styles reaches the tooltip.
+   */
+  readonly themable?: boolean;
+  /**
+   * How much larger or smaller the tooltip's text is than its own size: 1.3 is 30% larger. The
+   * page's own text isn't touched. 1 if left out; change it later with `setPreferences`.
+   */
+  readonly textScale?: number;
   /** How long the pointer rests on a reference before the tooltip opens (ms). 300. */
   readonly hoverDelayMs?: number;
   /** How the API is reached (the browser extension fetches through its background script). */

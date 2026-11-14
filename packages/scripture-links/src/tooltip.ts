@@ -17,42 +17,88 @@ const LEAVE_MS = 250;
 const PIN_PATH = "M16 3l5 5-2 1-3 3 1 5-1.5 1.5L11 14l-5 6-1-1 6-5-4.5-4.5L8 8l5 1 3-3z";
 
 /**
- * Theme the tooltip with these CSS custom properties on the page (they pass into the shadow
- * root): `--st-accent`, `--st-ink`, `--st-muted`, `--st-rule`, `--st-paper`, `--st-radius`,
- * `--st-font`. Nothing from the page's own styles reaches in otherwise.
+ * The tooltip's own font stack: named here, never inherited from the page.
  */
+const FONT =
+  'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif';
+/** The tooltip's text size, in CSS pixels, before the reader's text size (`--st-text-scale`). */
+const BASE_PX = 15;
+
+/**
+ * The tooltip is ours, not the page's. Nothing from the page's styles reaches it:
+ * - The host element, the one thing of ours in the page's own tree, has every property reset by
+ *   inline `!important` declarations (`isolate`), which no page rule outranks. Inside the shadow
+ *   root nothing is inherited, and no page selector matches.
+ * - Every size is in pixels, or in `em` of the tooltip's own pixel size: never `rem`, which would
+ *   follow the page's root font size.
+ * - The font is our own stack (`FONT`), set here.
+ * The website plugin may be themed by its site with these CSS custom properties on the page
+ * (they pass into the shadow root): `--st-accent`, `--st-ink`, `--st-muted`, `--st-rule`,
+ * `--st-paper`, `--st-radius`, `--st-font`. The browser extension turns that off (`isolated`).
+ * The text sizes are all multiplied by `--st-text-scale` (1 unless the host asked for another:
+ * `setTextScale`), so the reader can make the words larger or smaller without touching the
+ * page's own text.
+ */
+const THEME_PROPERTIES = [
+  "--st-accent",
+  "--st-ink",
+  "--st-muted",
+  "--st-rule",
+  "--st-paper",
+  "--st-radius",
+  "--st-font",
+] as const;
+
 const STYLES = `
   :host { all: initial; }
   .box {
     position: fixed; z-index: 2147483000; box-sizing: border-box;
-    width: min(${WIDTH}px, calc(100vw - 16px)); max-height: min(70vh, 28rem); overflow: auto;
-    padding: 0.7rem 0.85rem; font: 0.9rem/1.45 var(--st-font, system-ui, -apple-system, "Segoe UI", sans-serif);
+    width: min(${WIDTH}px, calc(100vw - 16px)); max-height: min(70vh, calc(420px * var(--st-text-scale, 1))); overflow: auto;
+    padding: 0.75em 0.9em;
+    font-family: var(--st-font, ${FONT}); font-size: calc(${BASE_PX}px * var(--st-text-scale, 1)); line-height: 1.45;
+    font-weight: 400; font-style: normal; letter-spacing: normal; word-spacing: normal; text-transform: none;
+    text-align: start; text-indent: 0; text-shadow: none; white-space: normal; direction: ltr;
     color: var(--st-ink, #1d232a); background: var(--st-paper, #fff);
-    border: 1px solid var(--st-rule, #dfe3e6); border-radius: var(--st-radius, 0.4rem);
-    box-shadow: 0 0.5rem 1.4rem rgb(0 30 60 / 0.2);
+    border: 1px solid var(--st-rule, #dfe3e6); border-radius: var(--st-radius, 6px);
+    box-shadow: 0 6px 18px rgb(0 30 60 / 0.2);
   }
   .box[hidden] { display: none; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem; }
-  h2 { margin: 0; font-size: 0.95rem; font-weight: 600; }
-  .tools { display: inline-flex; align-items: center; gap: 0.4rem; margin-inline-start: auto; }
-  label { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: var(--st-muted, #5b6672); }
-  select { font: inherit; max-width: 11rem; color: inherit; background: var(--st-paper, #fff); border: 1px solid var(--st-rule, #dfe3e6); border-radius: 0.3rem; }
-  p { margin: 0.35rem 0; }
-  sup { margin-inline-end: 0.15rem; font-size: 0.7em; color: var(--st-muted, #5b6672); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 0.5em; margin-bottom: 0.4em; }
+  h2 { margin: 0; font-size: 1.05em; font-weight: 600; }
+  .tools { display: inline-flex; align-items: center; gap: 0.4em; margin-inline-start: auto; }
+  label { display: inline-flex; align-items: center; gap: 0.3em; font-size: 0.9em; color: var(--st-muted, #5b6672); }
+  select { font: inherit; max-width: 12em; color: inherit; background: var(--st-paper, #fff); border: 1px solid var(--st-rule, #dfe3e6); border-radius: 0.3em; }
+  p { margin: 0.35em 0; }
+  sup { margin-inline-end: 0.15em; font-size: 0.7em; color: var(--st-muted, #5b6672); }
   .status { color: var(--st-muted, #5b6672); }
-  .attribution { margin-top: 0.5rem; font-size: 0.75rem; color: var(--st-muted, #5b6672); }
-  footer { margin-top: 0.5rem; }
+  .attribution { margin-top: 0.5em; font-size: 0.85em; color: var(--st-muted, #5b6672); }
+  footer { margin-top: 0.5em; }
   a { color: var(--st-accent, #0054a5); }
   .pin {
-    display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; padding: 0;
-    color: var(--st-muted, #5b6672); background: transparent; border: 1px solid transparent; border-radius: 0.3rem; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; width: 1.7em; height: 1.7em; padding: 0;
+    color: var(--st-muted, #5b6672); background: transparent; border: 1px solid transparent; border-radius: 0.3em; cursor: pointer;
   }
   .pin:hover { border-color: var(--st-rule, #dfe3e6); }
   .pin[aria-pressed="true"] { color: #fff; background: var(--st-accent, #0054a5); border-color: var(--st-accent, #0054a5); }
-  .pin svg { width: 1rem; height: 1rem; fill: currentColor; }
+  .pin svg { width: 1.1em; height: 1.1em; fill: currentColor; }
   a:focus-visible, select:focus-visible, .pin:focus-visible { outline: 2px solid var(--st-accent, #0054a5); outline-offset: 1px; }
   @media print { .box { display: none; } }
 `;
+
+/**
+ * Resets the host element, the part of the tooltip that is in the page's own tree, so no page
+ * rule can restyle, hide, move or scale it: inline and `!important`. (`all` leaves out `direction`
+ * and custom properties, which are set apart.) With `themable` the page's `--st-*` properties
+ * still pass in, so a site can theme the website plugin; otherwise they are turned off too.
+ */
+function isolate(host: HTMLElement, themable: boolean): void {
+  const set = (property: string, value: string) =>
+    host.style.setProperty(property, value, "important");
+  set("all", "initial");
+  set("direction", "ltr");
+  set("unicode-bidi", "normal");
+  if (!themable) for (const property of THEME_PROPERTIES) set(property, "initial");
+}
 
 export interface TooltipOptions {
   readonly client: Client;
@@ -66,9 +112,15 @@ export interface TooltipOptions {
   readonly emit: <K extends LinksEventName>(name: K, detail: LinksEvents[K]) => void;
   /** Whose links this tooltip shows (`LinksOptions.owner`): only those carrying the same owner. */
   readonly owner?: string | undefined;
+  /** How much larger or smaller its text is than its own size (`LinksOptions.textScale`). */
+  readonly textScale?: number | undefined;
+  /** Whether the page's `--st-*` custom properties may theme it (`LinksOptions.themable`). */
+  readonly themable?: boolean | undefined;
 }
 
 export interface Tooltip {
+  /** Makes the tooltip's text larger or smaller (1 is its own size); an open one is placed again. */
+  setTextScale(scale: number): void;
   /** Shows the passage for a link (what hovering or tapping does). */
   open(anchor: HTMLAnchorElement): void;
   close(): void;
@@ -101,6 +153,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   const linkOf = linkFinder(options.owner ?? "");
   const host = doc.createElement("div");
   host.className = "st-host";
+  isolate(host, options.themable ?? true);
   const root = host.attachShadow({ mode: "open" });
   const style = doc.createElement("style");
   style.textContent = STYLES;
@@ -500,7 +553,16 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   window.addEventListener("resize", reposition);
   window.addEventListener("scroll", reposition, true);
 
+  const setTextScale = (scale: number) => {
+    // On the tooltip's own host, so it reaches nothing else on the page.
+    const valid = Number.isFinite(scale) && scale > 0;
+    host.style.setProperty("--st-text-scale", String(valid ? scale : 1), "important");
+    if (!box.hidden) place();
+  };
+  setTextScale(options.textScale ?? 1);
+
   return {
+    setTextScale,
     open,
     close,
     destroy() {

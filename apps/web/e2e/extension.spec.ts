@@ -6,7 +6,7 @@ import {
   type Page,
   type Worker,
 } from "@playwright/test";
-import { shot } from "./support.ts";
+import { HOSTILE_STYLES, HOSTILE_THEME, shot, tooltipLooks } from "./support.ts";
 
 /**
  * The browser extension (vision §3.6, testing.md "Browser extension"), loaded unpacked into
@@ -343,4 +343,96 @@ test("vision §3.6: the popup offers to turn the extension off for the tab's sit
   await expect(page.getByRole("checkbox", { name: "Turn off on this site" })).toBeDisabled();
   await expect(page.getByRole("link", { name: "Link generator" })).toBeVisible();
   await page.screenshot(shot("extension-popup"));
+});
+
+test("vision §3.6: the popup's magnifying glasses change the text of the passage tooltips only", async ({
+  context,
+  page,
+  extensionId,
+}) => {
+  const size = (selector: string) =>
+    page.evaluate(
+      (sel) => Number.parseFloat(getComputedStyle(document.querySelector(sel) as Element).fontSize),
+      selector,
+    );
+  const tooltipSize = (p: Page) =>
+    p.evaluate(() => {
+      const host = document.querySelector(".st-host")?.shadowRoot;
+      const text = host?.querySelector(".box p");
+      return text ? Number.parseFloat(getComputedStyle(text).fontSize) : 0;
+    });
+
+  await open(page);
+  const pageBefore = await size("#content p");
+  await page.locator("a.st-ref", { hasText: "John 3:16" }).hover();
+  await expect(tooltip(page)).toContainText("For God so loved the world");
+  const before = await tooltipSize(page);
+  expect(before).toBeGreaterThan(0);
+
+  // The popup, in a tab of its own (it needn't be on a web page to change the size).
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  const smaller = popup.getByRole("button", { name: "Make the text smaller" });
+  const larger = popup.getByRole("button", { name: "Make the text larger" });
+  const now = popup.locator("#zoom-now");
+  await expect(now).toHaveText("100%");
+  const popupText = () =>
+    popup.evaluate(() => [
+      Number.parseFloat(getComputedStyle(document.body).fontSize),
+      Number.parseFloat(getComputedStyle(document.querySelector("h1") as Element).fontSize),
+    ]);
+  const popupBefore = await popupText();
+  await larger.click();
+  await larger.click();
+  await expect(now).toHaveText("130%");
+  // The popup's own text stays as it was: only the tooltips on pages change.
+  expect(await popupText()).toEqual(popupBefore);
+  await popup.screenshot(shot("extension-popup-zoom"));
+
+  // The open tooltip grows at once, with the page left as it was.
+  await expect.poll(() => tooltipSize(page)).toBeCloseTo(before * 1.3, 0);
+  expect(await size("#content p")).toBe(pageBefore);
+
+  // It lasts: another page of the browser, opened later, shows the larger text.
+  const later = await context.newPage();
+  await later.route(`${FIXTURE}**`, (route) =>
+    route.fulfill({ status: 200, contentType: "text/html", body: page$() }),
+  );
+  await later.goto(FIXTURE);
+  await later.locator("a.st-ref", { hasText: "John 3:16" }).hover();
+  await expect(tooltip(later)).toContainText("For God so loved the world");
+  expect(await tooltipSize(later)).toBeCloseTo(before * 1.3, 0);
+
+  // The ends of the range stop the buttons.
+  for (let i = 0; i < 6; i++) if (await larger.isEnabled()) await larger.click();
+  await expect(now).toHaveText("200%");
+  await expect(larger).toBeDisabled();
+  for (let i = 0; i < 6; i++) if (await smaller.isEnabled()) await smaller.click();
+  await expect(now).toHaveText("85%");
+  await expect(smaller).toBeDisabled();
+  await expect.poll(() => tooltipSize(page)).toBeCloseTo(before * 0.85, 0);
+});
+
+test("vision §3.6: no page's styles change how the tooltip looks; its size and font are its own", async ({
+  context,
+}) => {
+  const looks = async (html: string) => {
+    const page = await context.newPage();
+    await open(page, html);
+    await page.locator("a.st-ref", { hasText: "John 3:16" }).hover();
+    await expect(tooltip(page)).toContainText("For God so loved the world");
+    return tooltipLooks(page);
+  };
+  const plain = await looks(page$());
+  // The page restyles every element and every div, and sets the custom properties the website
+  // plugin reads: none of it reaches the extension's tooltip.
+  const hostile = await looks(page$(`<style>${HOSTILE_STYLES} ${HOSTILE_THEME}</style>`));
+  expect(hostile).toEqual(plain);
+  // Its own absolute size, and its own font stack.
+  expect(plain.box?.fontSize).toBe("15px");
+  expect(plain.box?.fontFamily).toContain("system-ui");
+  expect(plain.box?.fontFamily).not.toContain("Comic");
+  expect(plain.box?.backgroundColor).toBe("rgb(255, 255, 255)");
+  expect(plain.box?.direction).toBe("ltr");
+  expect(plain.box?.transform).toBe("none");
 });

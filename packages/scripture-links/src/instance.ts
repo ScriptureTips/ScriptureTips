@@ -26,8 +26,8 @@ export interface ScriptureLinks {
   run(selector: string): void;
   /** Looks again, in one element or in every area `run` was given. */
   rescan(element?: Element): void;
-  /** What the visitor prefers: the translation the tooltip opens with. */
-  setPreferences(preferences: { translation?: string }): void;
+  /** What the visitor prefers: the translation the tooltip opens with, and its text size. */
+  setPreferences(preferences: { translation?: string; textScale?: number }): void;
   on<K extends LinksEventName>(name: K, handler: (detail: LinksEvents[K]) => void): () => void;
   /** Puts the page back as it was: every link made is replaced by its words. */
   destroy(): void;
@@ -119,6 +119,8 @@ export function createScriptureLinks(options: LinksOptions): ScriptureLinks {
     },
     emit,
     owner: options.owner,
+    textScale: options.textScale,
+    themable: options.themable,
   });
 
   const scanOptions = {
@@ -199,6 +201,7 @@ export function createScriptureLinks(options: LinksOptions): ScriptureLinks {
       for (const root of element ? [element] : roots()) scan(root);
     },
     setPreferences(preferences) {
+      if (preferences.textScale !== undefined) tooltip.setTextScale(preferences.textScale);
       if (preferences.translation !== undefined) {
         preferred = preferences.translation;
         refreshAddresses();

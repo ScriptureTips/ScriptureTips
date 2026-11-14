@@ -155,3 +155,67 @@ export async function openStudy(page: Page): Promise<Locator> {
   await expect(study).not.toHaveClass(/moving/);
   return study;
 }
+
+/**
+ * A page that restyles everything it can reach: its root size, and its fonts, colors, spacing,
+ * text transform and direction on every element, and the box model, position, visibility and
+ * transforms of every `div`. The tooltip's host is a `div` in the page's tree, so each rule
+ * matches it. (Inside the tooltip's shadow root, no page selector matches.)
+ */
+export const HOSTILE_STYLES = `html { font-size: 4px !important; }
+  * { font-family: "Comic Sans MS", cursive !important; font-size: 33px !important;
+    color: red !important; letter-spacing: 4px !important; word-spacing: 9px !important;
+    text-transform: uppercase !important; font-style: italic !important; font-weight: 900 !important;
+    line-height: 3 !important; text-align: right !important; text-indent: 50px !important;
+    text-shadow: 2px 2px blue !important; direction: rtl !important; }
+  div { display: none !important; transform: scale(0.3) !important; filter: blur(3px) !important;
+    opacity: 0.4 !important; margin: 80px !important; padding: 80px !important; zoom: 0.5 !important;
+    position: relative !important; width: 10px !important; height: 10px !important;
+    overflow: hidden !important; visibility: hidden !important; contain: strict !important; }`;
+
+/** The custom properties a site's own styles may set to theme the website plugin's tooltip. */
+export const HOSTILE_THEME = `html { --st-accent: hotpink; --st-ink: lime; --st-paper: black;
+    --st-muted: yellow; --st-rule: red; --st-radius: 40px; --st-font: "Comic Sans MS", cursive;
+    --st-text-scale: 6; }`;
+
+/** What a tooltip looks like, as the browser works it out: its box, heading, verse and link. */
+export const tooltipLooks = (page: Page) =>
+  page.evaluate(() => {
+    const root = document.querySelector(".st-host")?.shadowRoot;
+    const keys = [
+      "fontFamily",
+      "fontSize",
+      "fontWeight",
+      "fontStyle",
+      "lineHeight",
+      "color",
+      "letterSpacing",
+      "wordSpacing",
+      "textTransform",
+      "textAlign",
+      "textIndent",
+      "textShadow",
+      "direction",
+      "backgroundColor",
+      "borderRadius",
+      "borderTopColor",
+      "paddingTop",
+      "paddingLeft",
+      "width",
+      "boxShadow",
+      "opacity",
+      "filter",
+      "transform",
+    ] as const;
+    const pick = (el: Element | null | undefined) => {
+      if (!el) return null;
+      const css = getComputedStyle(el);
+      return Object.fromEntries(keys.map((k) => [k, css[k]]));
+    };
+    return {
+      box: pick(root?.querySelector(".box")),
+      heading: pick(root?.querySelector("h2")),
+      verse: pick(root?.querySelector(".box p")),
+      link: pick(root?.querySelector("a")),
+    };
+  });

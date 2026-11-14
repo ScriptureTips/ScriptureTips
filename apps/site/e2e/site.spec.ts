@@ -35,7 +35,8 @@ test("vision §7.2: the home page leads to the extension, the plugin, the help a
     "href",
     "/downloads/#extension",
   );
-  await expect(page.getByRole("link", { name: "dev.scripturetips.com" })).toHaveAttribute(
+  // The page shows the public name; the link goes to the reader this build is for.
+  await expect(page.getByRole("link", { name: "scripturetips.com", exact: true })).toHaveAttribute(
     "href",
     "https://dev.scripturetips.com",
   );
@@ -56,7 +57,7 @@ test("vision §7.2: the home page leads to the extension, the plugin, the help a
 test("the downloads page gives the plugin's script from this site", async ({ page }) => {
   await page.goto("/downloads/");
   await expect(page.locator("pre").first()).toContainText(
-    '<script src="https://dev.scripture.tips/widget/scripturetips.js"></script>',
+    '<script src="https://scripture.tips/widget/scripturetips.js"></script>',
   );
   await page.screenshot(shot("downloads"));
 });
@@ -118,7 +119,9 @@ test("a help topic: its screenshot, its place in the contents, and the way on", 
   );
   await page.screenshot(shot("help-topic"));
   await page.getByRole("link", { name: /^Next/ }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("The link generator");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Making the text larger or smaller",
+  );
   expect(errors).toEqual([]);
 });
 

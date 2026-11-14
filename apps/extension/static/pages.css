@@ -114,6 +114,44 @@ body.popup nav {
   gap: 1rem;
   margin-top: 0.75rem;
 }
+body.popup .zoom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+body.popup .zoom-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+body.popup .zoom output {
+  min-width: 2.8rem;
+  text-align: center;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+button.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+}
+button.icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
 
 /*
  * The settings page sits over the clouds-and-birds artwork (docs/branding.md §3): a fixed layer

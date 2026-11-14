@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { shot } from "./support.ts";
+import { HOSTILE_STYLES, shot, tooltipLooks } from "./support.ts";
 
 /**
  * The website plugin (vision §3.6, testing.md "Website widget"): a fixture page on another origin
@@ -494,4 +494,24 @@ test("vision §3.6: on a phone, a pinned tooltip stays through taps elsewhere an
     .first()
     .tap({ position: { x: 5, y: 5 } });
   await expect(pop).toBeHidden();
+});
+
+test("vision §3.6: a page's own styles don't change how the plugin's tooltip looks", async ({
+  page,
+  context,
+}) => {
+  const looks = async (p: Page, html: string) => {
+    await open(p, html);
+    await p.locator("a.st-ref", { hasText: "John 3:16" }).hover();
+    await expect(tooltip(p)).toContainText("For God so loved the world");
+    return tooltipLooks(p);
+  };
+  const plain = await looks(page, page$());
+  const hostile = await looks(
+    await context.newPage(),
+    page$("", `<style>${HOSTILE_STYLES}</style>`),
+  );
+  expect(hostile).toEqual(plain);
+  expect(plain.box?.fontSize).toBe("15px");
+  expect(plain.box?.fontFamily).toContain("system-ui");
 });

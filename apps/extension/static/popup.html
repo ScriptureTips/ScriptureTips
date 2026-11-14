@@ -13,6 +13,18 @@
     <a href="tool.html" target="_blank" id="tool">Link generator</a>
     <a href="options.html" target="_blank" id="settings">Settings</a>
   </nav>
+  <footer class="zoom">
+    <span class="zoom-label">Text size</span>
+    <span class="zoom-buttons">
+      <button type="button" class="quiet icon" id="zoom-out" aria-label="Make the text smaller" title="Make the text smaller">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6"/><path d="M7 10h6"/></svg>
+      </button>
+      <output id="zoom-now" for="zoom-out zoom-in" aria-live="polite">100%</output>
+      <button type="button" class="quiet icon" id="zoom-in" aria-label="Make the text larger" title="Make the text larger">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><path d="M15 15l6 6"/><path d="M7 10h6M10 7v6"/></svg>
+      </button>
+    </span>
+  </footer>
   <script src="popup.js"></script>
 </body>
 </html>

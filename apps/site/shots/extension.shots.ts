@@ -87,10 +87,42 @@ test("the toolbar popup", async ({ page, extensionId }) => {
     const tabs = (globalThis as unknown as { chrome: { tabs: { query: unknown } } }).chrome.tabs;
     tabs.query = async () => [{ url }];
   }, DEMO);
-  await page.setViewportSize({ width: 300, height: 220 });
+  await page.setViewportSize({ width: 300, height: 300 });
   await page.goto(`chrome-extension://${extensionId}/popup.html`);
   await expect(page.locator("#where")).toHaveText("blog.example");
   await capture(page, image("popup"), { around: [page.locator("body")], pad: 0 });
+});
+
+test("text size: the popup's magnifying glasses, and a larger tooltip", async ({
+  context,
+  page,
+  extensionId,
+}) => {
+  const popup = await context.newPage();
+  await popup.addInitScript((url) => {
+    const tabs = (globalThis as unknown as { chrome: { tabs: { query: unknown } } }).chrome.tabs;
+    tabs.query = async () => [{ url }];
+  }, DEMO);
+  await popup.setViewportSize({ width: 300, height: 360 });
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  const larger = popup.getByRole("button", { name: "Make the text larger" });
+  await larger.click();
+  await larger.click();
+  await expect(popup.locator("#zoom-now")).toHaveText("130%");
+  await capture(popup, image("text-size-popup"), {
+    around: [popup.locator("body")],
+    ring: popup.locator(".zoom-buttons"),
+    pad: 0,
+  });
+
+  // The tooltip on a page, at that size, beside the page's own text.
+  await demo(page);
+  await page.locator("a.st-ref", { hasText: "John 3:16" }).hover();
+  const pop = tooltip(page);
+  await expect(pop).toContainText("For God so loved the world");
+  await capture(page, image("text-size-tooltip"), {
+    around: [page.locator("#first"), page.locator("#second"), pop],
+  });
 });
 
 test("the settings page, part by part", async ({ page, extensionId }) => {

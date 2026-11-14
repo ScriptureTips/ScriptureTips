@@ -43,6 +43,23 @@
           "title": "Keeping a passage open",
           "summary": "Pin the tooltip so it stays while you write or read elsewhere on the page.",
           "keywords": ["keep open", "pin", "stay", "reply", "unpin"]
+        },
+        {
+          "id": "text-size",
+          "title": "Making the text larger or smaller",
+          "summary": "Change the size of the words in passage tooltips, without touching the page's own text.",
+          "keywords": [
+            "zoom",
+            "magnifying glass",
+            "magnify",
+            "font",
+            "bigger",
+            "larger",
+            "smaller",
+            "size",
+            "readable",
+            "accessibility"
+          ]
         }
       ]
     },

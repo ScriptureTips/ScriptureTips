@@ -6,7 +6,11 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ## [Unreleased]
 
+### Added
+- The browser extension's toolbar popup has a footer with magnifying glasses to make the text of the passage tooltips larger or smaller (85% to 200%). The page's own text and the popup itself are unchanged, and the size is kept per browser. Help: "Making the text larger or smaller".
+
 ### Fixed
+- Passage tooltips no longer pick up a website's styles: their text is a fixed 15 pixels in the tooltip's own font stack, and no page rule can restyle, hide or move them. In the browser extension, not even a site's `--st-*` theme variables apply; the website plugin still honors them.
 - Searching for a range of verses, such as John 3:16-17, now previews every verse of the range, not only the first.
 - Picking a passage in the home page's search goes straight to the reader, without first loading the passage into the search field.
 - "Jude 1", "2 John 1" and the other one-chapter books (Obadiah, Philemon, 3 John) now show the whole book, not only verse 1. Verse 1 is "Jude 1:1".
