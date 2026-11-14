@@ -26,9 +26,9 @@ test("the footer links the about, contact, privacy, terms and credits pages", as
 
 test("the contact page gives the instance's own address", async ({ page }) => {
   await page.goto("/contact");
-  await expect(page.getByRole("link", { name: "contact@scripturetips.localhost" })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: "help@scripturetips.localhost" })).toHaveAttribute(
     "href",
-    "mailto:contact@scripturetips.localhost",
+    "mailto:help@scripturetips.localhost",
   );
 });
 

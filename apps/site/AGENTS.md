@@ -33,7 +33,7 @@ A build-time index per product version (`assets/search-{product}-{version}.{hash
 
 ## Settings (environment at build time; the pages are static)
 
-`ST_SITE` (the reader, `scripturetips.com`), `ST_DATA` (this site), `CONTACT_EMAIL` (`contact@scripture.tips` in the image and the dev build; no contact page if empty), `CHROME_STORE_URL` and `FIREFOX_STORE_URL` (named on the downloads page once they exist; never invent a listing). The production image takes them as build arguments (`infra/docker/site`).
+`ST_SITE` (the reader, `scripturetips.com`), `ST_DATA` (this site), `CONTACT_EMAIL` (`help@scripturetips.com` in the image and the dev build; no contact page if empty), `CHROME_STORE_URL` and `FIREFOX_STORE_URL` (named on the downloads page once they exist; never invent a listing). The production image takes them as build arguments (`infra/docker/site`).
 
 ## Language
 

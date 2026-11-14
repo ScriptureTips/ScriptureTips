@@ -221,7 +221,7 @@ services:
       API_URL: http://api:3001/api
       NEXT_TELEMETRY_DISABLED: "1"
       ACCOUNTS: ${ACCOUNTS:-open}
-      CONTACT_EMAIL: contact@scripturetips.localhost
+      CONTACT_EMAIL: help@scripturetips.localhost
       # The site name the browser uses, for the dev server's own requests (hot reload).
       DEV_ORIGINS: dev.scripturetips.com
     depends_on:

@@ -13,7 +13,7 @@ ARG ST_SITE=https://scripturetips.com
 ARG ST_DATA=https://scripture.tips
 # The contact page's address (no contact page without it), and the extension's store listings
 # (named on the downloads page once they exist).
-ARG CONTACT_EMAIL=contact@scripture.tips
+ARG CONTACT_EMAIL=help@scripturetips.com
 ARG CHROME_STORE_URL=
 ARG FIREFOX_STORE_URL=
 ENV ST_SITE=${ST_SITE} ST_DATA=${ST_DATA} CONTACT_EMAIL=${CONTACT_EMAIL} \

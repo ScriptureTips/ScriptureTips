@@ -49,7 +49,7 @@ SERVICES=(caddy web api api-data pdf-worker mailpit)
 # The scripture.tips site's pages (apps/site), with the website plugin's script they serve: plain
 # files in apps/site/dist, which Caddy serves. `./dev site` builds them again after a change.
 site() {
-  ./toolbox env CONTACT_EMAIL=contact@scripture.tips sh -c \
+  ./toolbox env CONTACT_EMAIL=help@scripturetips.com sh -c \
     'pnpm --filter @scripturetips/widget build && pnpm --filter @scripturetips/site build'
 }
 
