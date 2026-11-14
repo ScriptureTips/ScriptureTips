@@ -46,6 +46,9 @@ export function formatPassage(p: Passage, options: FormatOptions = {}): string {
   if (SINGLE_CHAPTER_BOOKS.has(book) && start.chapter === 1 && sameChapter) {
     // "Jude 3", but "Psalm 151:3", whose name ends in a number.
     const lead = /\d$/.test(name) ? `${name}:` : `${name} `;
+    // "Jude 1" alone reads as the whole book, so its first verse is "Jude 1:1".
+    if (same(start, end) && start.verse === 1 && start.part === 0 && !/\d$/.test(name))
+      return `${name} 1:1`;
     return same(start, end)
       ? `${lead}${verse(start)}`
       : `${lead}${verse(start)}${DASH}${verse(end)}`;

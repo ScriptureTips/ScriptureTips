@@ -9,6 +9,7 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 ### Fixed
 - Searching for a range of verses, such as John 3:16-17, now previews every verse of the range, not only the first.
 - Picking a passage in the home page's search goes straight to the reader, without first loading the passage into the search field.
+- "Jude 1", "2 John 1" and the other one-chapter books (Obadiah, Philemon, 3 John) now show the whole book, not only verse 1. Verse 1 is "Jude 1:1".
 
 ## [0.0.1] - 2026-11-14
 

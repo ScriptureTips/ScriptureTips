@@ -79,6 +79,18 @@ describe("reading a reference (testing.md §2: reference parser corpus)", () => 
     expect(entered("Psalm 151:3")).toEqual(["AddPs.1.3"]);
   });
 
+  it("reads a lone 1 in a single-chapter book as the whole book", () => {
+    expect(entered("Jude 1")).toEqual(["Jude.1.1-Jude.1.25"]);
+    expect(entered("2 John 1")).toEqual(["2John.1.1-2John.1.13"]);
+    expect(entered("Obad 1")).toEqual(["Obad.1.1-Obad.1.21"]);
+    expect(entered("Philem 1")).toEqual(["Phlm.1.1-Phlm.1.25"]);
+    // Verse 1 is still there: written with its chapter, in a range, with a part or in a list.
+    expect(entered("Jude 1:1")).toEqual(["Jude.1.1"]);
+    expect(entered("Jude 1-3")).toEqual(["Jude.1.1-Jude.1.3"]);
+    expect(entered("Jude 1, 3")).toEqual(["Jude.1.1", "Jude.1.3"]);
+    expect(entered("Jude 1; Gen 1:1")).toEqual(["Jude.1.1-Jude.1.25", "Gen.1.1"]);
+  });
+
   it("reads a Psalm heading as verse 0", () => {
     expect(entered("Ps 3:title")).toEqual(["Ps.3.0"]);
     expect(entered("Ps 3 (title)")).toEqual(["Ps.3.0"]);
@@ -147,6 +159,16 @@ describe("errors", () => {
 describe("finding references in text", () => {
   const find = (text: string) =>
     findReferences(text, KJV).map((r) => [r.text, formatOsisPassage(r.entered)]);
+
+  it("reads a lone 1 in a one-chapter book as the whole book, unless a number follows", () => {
+    // Prose after it isn't a list or a range.
+    expect(find("Jude 1, which says")).toEqual([["Jude 1", "Jude.1.1-Jude.1.25"]]);
+    expect(find("See 2 John 1 – a short letter.")).toEqual([["2 John 1", "2John.1.1-2John.1.13"]]);
+    expect(find("Jude 1, 3 and 5")).toEqual([
+      ["Jude 1", "Jude.1.1"],
+      ["3", "Jude.1.3"],
+    ]);
+  });
 
   it("finds each reference with its place in the text", () => {
     const text = "As Paul says in Rom 5:8, God loves us. See John 3:16-18 and 1 Cor 13.";

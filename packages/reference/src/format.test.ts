@@ -18,6 +18,7 @@ describe("formatting a passage", () => {
     ["Ps.1.1-Ps.3.8", "Psalms 1–3", "Ps 1–3"],
     ["Ps.3.0-Ps.3.2", "Psalm 3:title–2", "Ps 3:title–2"],
     ["Ps.3.1-Ps.3.8", "Psalm 3:1–8", "Ps 3:1–8"],
+    ["Jude.1.1", "Jude 1:1", "Jude 1:1"],
     ["Jude.1.3", "Jude 3", "Jude 3"],
     ["Jude.1.3-Jude.1.5", "Jude 3–5", "Jude 3–5"],
     ["Jude.1.1-Jude.1.25", "Jude", "Jude"],

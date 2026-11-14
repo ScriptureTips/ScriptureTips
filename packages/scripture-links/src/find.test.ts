@@ -22,6 +22,21 @@ describe("vision §3.6: finding references on a page", () => {
     ]);
   });
 
+  it("reads a lone 1 in a one-chapter book as the whole book, and a verse in the other ways", () => {
+    const osis = (text: string) => findInText(text).map((f) => f.osis);
+    expect(osis("Jude 1")).toEqual(["Jude.1.1-Jude.1.25"]);
+    expect(osis("See 2 John 1, and Philemon 1.")).toEqual([
+      "2John.1.1-2John.1.13",
+      "Phlm.1.1-Phlm.1.25",
+    ]);
+    expect(osis("Jude 3")).toEqual(["Jude.1.3"]);
+    expect(osis("Jude 1:1")).toEqual(["Jude.1.1"]);
+    expect(osis("Jude 1-3")).toEqual(["Jude.1.1-Jude.1.3"]);
+    // The text a link covers is the whole reference, with its "1".
+    const [found] = findInText("Read Jude 1 today.");
+    expect(found?.text).toBe("Jude 1");
+  });
+
   it("notes an abbreviation in brackets right after a reference, which may name its translation", () => {
     const found = findInText(
       "John 3:16 (NLT) and Romans 5:8 ( KJV ), then Mark 1:1 (see below), and Luke 2:1.",

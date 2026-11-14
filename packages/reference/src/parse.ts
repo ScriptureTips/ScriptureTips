@@ -203,7 +203,7 @@ class Reader {
 
 /**
  * The first reference after a book name: "3", "3:16a", "3:16-18", "2:28-3:1", "1-3", "1-2:3";
- * for a single-chapter book, "3" or "1:3" is a verse.
+ * for a single-chapter book, "3" or "1:3" is a verse, and a lone "1" the whole book.
  */
 function readFirst(r: Reader, book: string, start: number): Item | undefined {
   r.skipSpace();
@@ -213,15 +213,28 @@ function readFirst(r: Reader, book: string, start: number): Item | undefined {
   if (n === undefined) return undefined;
   let from: Item["from"];
   if (SINGLE_CHAPTER_BOOKS.has(book)) {
-    // "Jude 1:3" names chapter 1; otherwise the number is the verse.
+    // "Jude 1:3" names chapter 1; otherwise the number is the verse, except a lone "1", which
+    // is the chapter, so the whole book ("Jude 3" is verse 3, but "Jude 1" isn't only verse 1).
+    // A "1" that goes on as a range, a part or a list ("1-3", "1a", "1, 3") is still verse 1.
     const after = n === 1 ? r.verseAfterSeparator() : undefined;
-    from = after ? { chapter: 1, ...after } : { chapter: 1, verse: n, part: r.part() };
+    if (after) from = { chapter: 1, ...after };
+    else if (n === 1 && !continuesAsVerse(r)) from = { chapter: 1, verse: null, part: 0 };
+    else from = { chapter: 1, verse: n, part: r.part() };
   } else {
     const after = r.verseAfterSeparator();
     from = after ? { chapter: n, ...after } : { chapter: n, verse: null, part: 0 };
   }
   const to = readRangeEnd(r, from) ?? from;
   return { book, start, end: r.pos, from, to };
+}
+
+/** Whether what follows a lone "1" in a single-chapter book makes it a verse: "-3", "a", ", 3". */
+function continuesAsVerse(r: Reader): boolean {
+  const saved = r.pos;
+  // A comma or a dash only continues it when a number follows ("1, 3"; not "1, which says").
+  const continues = r.part() !== 0 || ((r.dash() || r.list(",")) && r.number() !== undefined);
+  r.pos = saved;
+  return continues;
 }
 
 /** After a dash: "18", "18b", "3:1" (another chapter), or for a chapter range "3" or "2:3". */

@@ -25,6 +25,28 @@ test("the home search finds a passage, and picking it opens the reader", async (
   expect(shownInWidget).toEqual([]);
 });
 
+test("the home search reads Jude 1 as the whole book, and Jude 1:1 as its first verse", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("combobox", { name: "Translation" }).selectOption("leb");
+  const field = page.getByRole("combobox", { name: "Passage or words" });
+  const first = page.getByRole("listitem").filter({ hasText: "Jude" }).first();
+
+  await field.fill("Jude 1");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(first.locator("[part=label]")).toHaveText("Jude");
+  await first.click();
+  await expect(page).toHaveURL(/\/read\/leb\/jude\/1$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Jude" })).toBeVisible();
+
+  await page.goto("/");
+  await page.getByRole("combobox", { name: "Translation" }).selectOption("leb");
+  await field.fill("Jude 1:1");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(first.locator("[part=label]")).toHaveText("Jude 1:1");
+});
+
 test("the home page has its search field in the page itself, and it reads a passage without scripts", async ({
   browser,
 }) => {
