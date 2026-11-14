@@ -132,8 +132,9 @@ export class SearchService {
       label: p.label,
       reference: p.entered,
       translation: { id, abbreviation: found.translation.abbreviation },
+      // A range's preview runs through its verses, so it isn't only the first.
       preview: clip(
-        editableText((p.verses[0]?.content ?? []) as never).replace(/\u00b6\s*/g, ""),
+        p.verses.map((v) => editableText(v.content as never).replace(/\u00b6\s*/g, "")).join(" "),
         previewLength,
       ),
     }));

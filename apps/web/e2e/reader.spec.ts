@@ -13,9 +13,16 @@ test("the home search finds a passage, and picking it opens the reader", async (
   const field = page.getByRole("combobox", { name: "Passage or words" });
   await field.fill("gen 2 18-25");
   await page.getByRole("button", { name: "Search", exact: true }).click();
+  // The widget's own pick (the passage shown in the field first) is replaced by the redirect,
+  // so the page never asks for the passage's text to show it there.
+  const shownInWidget: string[] = [];
+  page.on("request", (r) => {
+    if (r.url().includes("/passages?")) shownInWidget.push(r.url());
+  });
   await page.getByRole("listitem").filter({ hasText: "Genesis 2:18" }).first().click();
   await expect(page).toHaveURL(/\/read\/leb\/genesis\/2\/18-25$/);
   await expect(page.getByRole("heading", { level: 1, name: "Genesis 2:18–25" })).toBeVisible();
+  expect(shownInWidget).toEqual([]);
 });
 
 test("the home page has its search field in the page itself, and it reads a passage without scripts", async ({

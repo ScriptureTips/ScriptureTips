@@ -206,6 +206,16 @@ describe("vision §3.14: reference lookup", () => {
     );
   });
 
+  it("shows every verse of a range in the preview, not only the first", async () => {
+    const { body } = await find(
+      "q=jn%203:16-17&kinds=reference&translations=kjv&previewLength=500",
+    );
+    expect(body.results[0]).toMatchObject({ reference: "John.3.16-John.3.17" });
+    expect(body.results[0].preview).toBe(
+      "For God so loved the world, that he gave his only begotten Son For God sent not his Son into the world to condemn the world",
+    );
+  });
+
   it("finds nothing in a query that isn't a reference", async () => {
     expect((await find("q=so%20loved&kinds=reference")).body.results).toEqual([]);
   });

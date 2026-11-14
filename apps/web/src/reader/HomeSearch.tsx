@@ -85,17 +85,22 @@ export function HomeSearch({
     });
   }, [translation, catalog, labels.field, labels.placeholder, labels.button]);
 
-  // A passage or a verse picked opens in the reader.
-  useEffect(
-    () =>
-      getSearch(HOME_SEARCH).onResultsSelect(({ result }) => {
+  // A passage or a verse picked opens in the reader. This is the widget's `onSelect`, not the
+  // `select` event: a handler replaces the widget's own action (showing the passage in the field
+  // first), so the visitor goes straight to the reader.
+  useEffect(() => {
+    getSearch(HOME_SEARCH, {
+      onSelect: ({ result }) => {
         if (result.kind === "original") return;
         router.push(
           `/read?t=${encodeURIComponent(translation)}&ref=${encodeURIComponent(result.label)}`,
         );
-      }),
-    [router, translation],
-  );
+      },
+    });
+    return () => {
+      getSearch(HOME_SEARCH, { onSelect: null });
+    };
+  }, [router, translation]);
 
   return (
     <div className="home-search">
