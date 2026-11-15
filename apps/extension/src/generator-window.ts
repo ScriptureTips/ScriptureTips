@@ -1,5 +1,5 @@
 import { ext } from "./browser.ts";
-import { GENERATOR_HTML, mountGenerator } from "./generator.ts";
+import { GENERATOR_HTML, mountGenerator, parseHtml } from "./generator.ts";
 import type { Settings } from "./settings.ts";
 
 /**
@@ -129,13 +129,15 @@ export async function openGeneratorWindow(settings: Settings): Promise<void> {
   reset("all", "initial");
   reset("direction", "ltr");
   const root = host.attachShadow({ mode: "open" });
-  root.innerHTML = `<style>${STYLES}</style>
+  root.replaceChildren(
+    parseHtml(`<style>${STYLES}</style>
     <div class="win" role="dialog" aria-label="Link generator">
       <div class="bar"><h2>Link generator</h2>
         <button type="button" class="close" aria-label="Close the link generator" title="Close">×</button></div>
       <div class="body">${GENERATOR_HTML}</div>
       <div class="grip" role="separator" tabindex="0" aria-label="Resize the window: drag, or use the arrow keys" title="Drag to resize"></div>
-    </div>`;
+    </div>`),
+  );
   const win = root.querySelector<HTMLElement>(".win") as HTMLElement;
   const bar = root.querySelector<HTMLElement>(".bar") as HTMLElement;
   const grip = root.querySelector<HTMLElement>(".grip") as HTMLElement;

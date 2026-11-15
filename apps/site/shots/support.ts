@@ -51,7 +51,7 @@ const PUBLIC_HOSTS: readonly (readonly [string, string])[] = [
 ];
 
 /** Shows the public host names wherever the page displays a development one (text and fields). */
-async function showPublicHosts(page: Page): Promise<void> {
+export async function showPublicHosts(page: Page): Promise<void> {
   await page.evaluate((hosts) => {
     const swap = (text: string) => hosts.reduce((t, [from, to]) => t.split(from).join(to), text);
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);

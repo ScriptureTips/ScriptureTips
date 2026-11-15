@@ -52,6 +52,8 @@ export function manifest(browser: Browser, version: string) {
               // or tap: Mozilla counts that as website content (sources.md §8 item 33).
               data_collection_permissions: { required: ["websiteContent"] },
             },
+            // Firefox for Android only knows the data-collection key from 142.
+            gecko_android: { strict_min_version: "142.0" },
           },
         }
       : {}),

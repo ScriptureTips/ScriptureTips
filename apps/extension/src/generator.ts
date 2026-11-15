@@ -33,6 +33,17 @@ export const GENERATOR_HTML = `
     <span class="status" id="status" role="status"></span>
   </div>`;
 
+/**
+ * Turns the form's own markup (a constant, never what a page or reader wrote) into nodes without
+ * assigning `innerHTML`, which the stores' checks flag whatever is assigned.
+ */
+export function parseHtml(html: string): DocumentFragment {
+  const parsed = new DOMParser().parseFromString(`<!doctype html><body>${html}`, "text/html");
+  const fragment = document.createDocumentFragment();
+  fragment.append(...[...parsed.body.childNodes].map((node) => document.importNode(node, true)));
+  return fragment;
+}
+
 /** What the help icon beside the format says. */
 const FORMAT_HELP = {
   title: "Format",

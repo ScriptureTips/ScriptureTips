@@ -8,13 +8,16 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "build": "node build.ts",
-    "build:production": "ST_SITE=https://scripturetips.com ST_DATA=https://scripture.tips node build.ts"
+    "build:production": "ST_SITE=https://scripturetips.com ST_DATA=https://scripture.tips node build.ts",
+    "lint:firefox": "web-ext lint --source-dir dist/firefox --self-hosted",
+    "package:firefox": "web-ext build --source-dir dist/firefox --artifacts-dir dist/packages --filename scripturetips-{version}-firefox.zip --overwrite-dest"
   },
   "dependencies": {
     "@scripturetips/dialogs": "workspace:*",
     "@scripturetips/scripture-links": "workspace:*"
   },
   "devDependencies": {
-    "esbuild": "0.25.12"
+    "esbuild": "0.25.12",
+    "web-ext": "^10.8.0"
   }
 }
