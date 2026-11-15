@@ -295,6 +295,35 @@ test("vision §3.6: the link generator links what the reader writes, with undo a
   extensionId,
 }) => {
   await page.goto(`chrome-extension://${extensionId}/tool.html`);
+  // The same brand and layout as the settings page: the artwork behind a panel, the logo and
+  // the heading, and the credits the artwork's license asks for.
+  expect(
+    await page.evaluate(() => getComputedStyle(document.body, "::before").backgroundImage),
+  ).toContain("brand/clouds-and-birds.svg");
+  await expect(page.locator("h1.brand img")).toHaveJSProperty("naturalWidth", 48);
+  await expect(page.getByRole("heading", { name: "Scripture Tips link generator" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "“Clouds And Birds”" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "CC BY-NC 4.0" })).toBeVisible();
+  expect(
+    await page.evaluate(() => {
+      const bg = (el: Element | null) => (el ? getComputedStyle(el).backgroundColor : "");
+      return [
+        bg(document.querySelector("main")),
+        getComputedStyle(document.querySelector("main") as Element).maxWidth,
+      ];
+    }),
+  ).toEqual(
+    await (async () => {
+      const options = await page.context().newPage();
+      await options.goto(`chrome-extension://${extensionId}/options.html`);
+      const same = await options.evaluate(() => {
+        const main = document.querySelector("main") as Element;
+        return [getComputedStyle(main).backgroundColor, getComputedStyle(main).maxWidth];
+      });
+      await options.close();
+      return same;
+    })(),
+  );
   const text = page.getByRole("textbox", { name: "Your text" });
   await text.fill("As Paul says in Romans 5:8.\n[url=x]John 3:16[/url]");
   await page.getByRole("combobox", { name: "Format" }).selectOption({ label: "BBCode (forums)" });

@@ -7,6 +7,7 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 ## [Unreleased]
 
 ### Changed
+- The link generator's page (where it opens in a tab) has the same brand and layout as the settings page: the artwork behind a panel, the logo beside the heading, and the artwork's credits.
 - The extension's settings show the sites it is turned off on as cards (a heading each, edited by clicking it, a red × that asks first), always in alphabetical order, instead of a text box with one site per line. A whole address typed in is cut down to its site.
 - The extension's settings start with **Defaults** (where links go, the translation, and the link generator's format), then the sites turned off. The outside reading sites are edited in a window opened by the pencil beside "Where links go". The ScriptureTips address is under **Advanced settings**, closed until opened.
 - The extension's settings show the outside reading sites as cards in full-width rows: the name as the title (only as wide as its words, and growing as you type) with a short translation menu beside it, the address below, and a red round × to remove it, which asks in a dialog first (Remove or Cancel; Esc or a click outside cancels). The cards can be put in order by dragging their handles (or with the arrow keys). Names and addresses are edited where they stand, by clicking or tapping them.
