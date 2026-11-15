@@ -340,9 +340,61 @@ test("vision §3.6: the popup offers to turn the extension off for the tab's sit
   await expect(
     page.getByText("Scripture Tips doesn't link references on this page."),
   ).toBeVisible();
-  await expect(page.getByRole("checkbox", { name: "Turn off on this site" })).toBeDisabled();
-  await expect(page.getByRole("link", { name: "Link generator" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Scripture Tips on this site" })).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Generator" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  // The logo is to the left of the heading.
+  const [logo, heading] = await Promise.all([
+    page.locator(".brand img").boundingBox(),
+    page.getByRole("heading", { name: "Scripture Tips" }).boundingBox(),
+  ]);
+  expect((logo?.x ?? 0) + (logo?.width ?? 0) <= (heading?.x ?? 0)).toBe(true);
   await page.screenshot(shot("extension-popup"));
+});
+
+test("vision §3.6: the popup's switch is on (green, right) until the site is turned off (red, left)", async ({
+  page,
+  extensionId,
+}) => {
+  await page.addInitScript(() => {
+    const tabs = (globalThis as unknown as { chrome: { tabs: { query: unknown } } }).chrome.tabs;
+    tabs.query = async () => [{ url: "https://blog.example/post" }];
+  });
+  await page.setViewportSize({ width: 300, height: 360 });
+  await page.goto(`chrome-extension://${extensionId}/popup.html`);
+  const toggle = page.getByRole("switch", { name: "Scripture Tips on this site" });
+  const track = page.locator(".switch .track");
+  const color = () => track.evaluate((t) => getComputedStyle(t).backgroundColor);
+  await expect(page.locator("#where")).toHaveText("blog.example");
+  await expect(toggle).toBeChecked();
+  await expect.poll(color).toBe("rgb(30, 142, 62)");
+  // The domain is on the left, the switch to its right; the cards are 80px squares, two wide.
+  const [where, switchBox] = await Promise.all([
+    page.locator("#where").boundingBox(),
+    page.locator(".switch").boundingBox(),
+  ]);
+  expect((switchBox?.x ?? 0) > (where?.x ?? 0) + (where?.width ?? 0) - 1).toBe(true);
+  const cards = await page.locator("a.card").evaluateAll((els) =>
+    els.map((e) => {
+      const r = e.getBoundingClientRect();
+      return [r.width, r.height, Math.round(r.y)];
+    }),
+  );
+  expect(cards.map(([w, h]) => [w, h])).toEqual([
+    [80, 80],
+    [80, 80],
+  ]);
+  expect(cards[0]?.[2]).toBe(cards[1]?.[2]);
+  await page.screenshot(shot("extension-popup-switch-on"));
+  await toggle.click();
+  await expect(toggle).not.toBeChecked();
+  await expect.poll(color).toBe("rgb(217, 48, 37)");
+  await page.screenshot(shot("extension-popup-switch-off"));
+  // It lasts: the popup opened again shows the site as off.
+  await page.reload();
+  await expect(page.getByRole("switch", { name: "Scripture Tips on this site" })).not.toBeChecked();
+  await page.getByRole("switch", { name: "Scripture Tips on this site" }).click();
+  await expect(page.getByRole("switch", { name: "Scripture Tips on this site" })).toBeChecked();
 });
 
 test("vision §3.6: the popup's magnifying glasses change the text of the passage tooltips only", async ({

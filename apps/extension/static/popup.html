@@ -6,12 +6,26 @@
   <link rel="stylesheet" href="pages.css">
 </head>
 <body class="popup">
-  <h1>Scripture Tips</h1>
-  <p id="where" class="hint"></p>
-  <label class="check"><input type="checkbox" id="off"> Turn off on this site</label>
-  <nav>
-    <a href="tool.html" target="_blank" id="tool">Link generator</a>
-    <a href="options.html" target="_blank" id="settings">Settings</a>
+  <header class="brand">
+    <img src="icons/icon-48.png" alt="" width="32" height="32">
+    <h1>Scripture Tips</h1>
+  </header>
+  <div class="site">
+    <p id="where" class="hint"></p>
+    <label class="switch" title="Scripture Tips on this site">
+      <input type="checkbox" role="switch" aria-checked="true" id="on" aria-label="Scripture Tips on this site">
+      <span class="track" aria-hidden="true"></span>
+    </label>
+  </div>
+  <nav class="cards">
+    <a href="tool.html" target="_blank" id="tool" class="card" title="Link generator">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
+      <span>Generator</span>
+    </a>
+    <a href="options.html" target="_blank" id="settings" class="card">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+      <span>Settings</span>
+    </a>
   </nav>
   <footer class="zoom">
     <span class="zoom-label">Text size</span>

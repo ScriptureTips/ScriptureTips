@@ -109,10 +109,128 @@ fieldset {
 body.popup {
   width: 18rem;
 }
-body.popup nav {
+body.popup .brand {
   display: flex;
-  gap: 1rem;
-  margin-top: 0.75rem;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+body.popup .brand img {
+  flex: none;
+}
+body.popup .brand h1 {
+  margin: 0;
+}
+body.popup .site {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+body.popup .site .hint {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* A slide switch: red and to the left is off, green and to the right is on. */
+.switch {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 2.75rem;
+  height: 1.5rem;
+}
+.switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.switch .track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #d93025;
+  transition: background 0.15s;
+  pointer-events: none;
+}
+.switch .track::after {
+  content: "";
+  position: absolute;
+  top: 0.19rem;
+  left: 0.19rem;
+  width: 1.12rem;
+  height: 1.12rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  transition: transform 0.15s;
+}
+.switch input:checked + .track {
+  background: #1e8e3e;
+}
+.switch input:checked + .track::after {
+  transform: translateX(1.25rem);
+}
+.switch input:focus-visible + .track {
+  outline: 2px solid var(--deep);
+  outline-offset: 2px;
+}
+.switch input:disabled {
+  cursor: default;
+}
+.switch input:disabled + .track {
+  opacity: 0.45;
+}
+@media (prefers-reduced-motion: reduce) {
+  .switch .track,
+  .switch .track::after {
+    transition: none;
+  }
+}
+body.popup .cards {
+  display: grid;
+  grid-template-columns: repeat(2, 80px);
+  gap: 0.75rem;
+  margin-top: 0.9rem;
+}
+a.card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 80px;
+  height: 80px;
+  padding: 0.25rem;
+  color: var(--deep);
+  font-size: 0.8125rem;
+  text-align: center;
+  text-decoration: none;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgb(0 30 60 / 0.12);
+}
+a.card:hover {
+  border-color: var(--deep);
+}
+a.card:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 2px;
+}
+a.card svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 body.popup .zoom {
   display: flex;
