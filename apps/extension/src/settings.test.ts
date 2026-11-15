@@ -4,9 +4,11 @@ import {
   DEFAULT_SETTINGS,
   leftAlone,
   migrate,
+  moveOutsideSite,
   normalize,
   outsideSite,
   PRESET_SITES,
+  type Settings,
   siteOf,
 } from "./settings.ts";
 
@@ -109,5 +111,51 @@ describe("vision §7.2: reader and data addresses", () => {
       "https://scripturetips.test",
     );
     expect(apiOf("https://data.test/")).toBe("https://data.test/api");
+  });
+});
+
+describe("vision §3.6: the outside sites can be put in order", () => {
+  const base: Settings = {
+    ...DEFAULT_SETTINGS,
+    outsideSites: ["a", "b", "c", "d"].map((name) => ({
+      name,
+      url: `https://${name}.test`,
+      translation: "",
+    })),
+  };
+  const names = (s: Settings) => s.outsideSites.map((x) => x.name).join(",");
+
+  it("moves a site up or down", () => {
+    expect(names(moveOutsideSite(base, 3, 0))).toBe("d,a,b,c");
+    expect(names(moveOutsideSite(base, 0, 2))).toBe("b,c,a,d");
+    expect(names(moveOutsideSite(base, 1, 1))).toBe("a,b,c,d");
+  });
+
+  it("leaves things as they are for a place that isn't there", () => {
+    expect(moveOutsideSite(base, 0, 9)).toBe(base);
+    expect(moveOutsideSite(base, -1, 2)).toBe(base);
+  });
+
+  it("keeps the chosen destination on its site, wherever it ends up", () => {
+    const chosen = (from: number, to: number, destination: number) => {
+      const moved = moveOutsideSite({ ...base, destination }, from, to);
+      return moved.outsideSites[moved.destination as number]?.name;
+    };
+    for (const destination of [0, 1, 2, 3]) {
+      for (const [from, to] of [
+        [0, 3],
+        [3, 0],
+        [1, 2],
+        [2, 1],
+        [0, 1],
+        [3, 2],
+      ] as const) {
+        expect(chosen(from, to, destination)).toBe(base.outsideSites[destination]?.name);
+      }
+    }
+    // ScriptureTips stays the choice.
+    expect(moveOutsideSite({ ...base, destination: "scripturetips" }, 0, 2).destination).toBe(
+      "scripturetips",
+    );
   });
 });

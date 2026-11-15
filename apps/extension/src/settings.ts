@@ -205,3 +205,24 @@ export function outsideSite(settings: Settings): OutsideSite | null {
   // One still being filled in, with no address yet, leaves links going to ScriptureTips.
   return site?.url.trim() ? site : null;
 }
+
+/**
+ * The outside sites with the one at `from` moved to `to`. The destination follows its site: the
+ * one chosen is still the one chosen wherever it ends up.
+ */
+export function moveOutsideSite(settings: Settings, from: number, to: number): Settings {
+  const last = settings.outsideSites.length - 1;
+  if (from === to || from < 0 || from > last || to < 0 || to > last) return settings;
+  const sites = [...settings.outsideSites];
+  const [moved] = sites.splice(from, 1);
+  if (!moved) return settings;
+  sites.splice(to, 0, moved);
+  const d = settings.destination;
+  let destination = d;
+  if (typeof d === "number") {
+    if (d === from) destination = to;
+    else if (from < d && to >= d) destination = d - 1;
+    else if (from > d && to <= d) destination = d + 1;
+  }
+  return { ...settings, outsideSites: sites, destination };
+}

@@ -7,7 +7,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "build": "node build.ts"
+    "build": "node build.ts",
+    "build:production": "ST_SITE=https://scripturetips.com ST_DATA=https://scripture.tips node build.ts"
   },
   "dependencies": {
     "@scripturetips/scripture-links": "workspace:*"

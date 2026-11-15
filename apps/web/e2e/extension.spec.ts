@@ -659,3 +659,158 @@ test("vision §3.6: no page's styles change how the link generator's window look
   expect(plain[0]).toContain("14px");
   expect(plain[0]).not.toContain("Comic");
 });
+
+test("vision §3.6: the outside reading sites are cards, edited where they stand", async ({
+  page,
+  extensionId,
+}) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.goto(`chrome-extension://${extensionId}/options.html`);
+  const cards = page.locator("#sites .site-card");
+  await expect(cards).toHaveCount(3);
+  const first = cards.first();
+  // Full-width rows: the name as the title, with the short menu right beside it (the title is only
+  // as wide as its words), the address below, and the red round delete at the far right.
+  const [row, list, title, address, menu, remove] = await Promise.all([
+    first.boundingBox(),
+    page.locator("#sites").boundingBox(),
+    first.locator(".site-title").boundingBox(),
+    first.locator(".site-address").boundingBox(),
+    first.getByRole("combobox").boundingBox(),
+    first.getByRole("button", { name: /^Remove/ }).boundingBox(),
+  ]);
+  expect(Math.round(row?.width ?? 0)).toBe(Math.round(list?.width ?? 1));
+  expect((address?.y ?? 0) > (title?.y ?? 0)).toBe(true);
+  expect((menu?.x ?? 0) >= (title?.x ?? 0) + (title?.width ?? 0)).toBe(true);
+  expect((menu?.x ?? 0) - ((title?.x ?? 0) + (title?.width ?? 0))).toBeLessThan(40);
+  expect((title?.width ?? 0) < (address?.width ?? 0) / 2).toBe(true);
+  expect((menu?.y ?? 0) < (address?.y ?? 0)).toBe(true);
+  expect((remove?.x ?? 0) >= (address?.x ?? 0) + (address?.width ?? 0)).toBe(true);
+  expect(Math.round((remove?.x ?? 0) + (remove?.width ?? 0))).toBeGreaterThan(
+    Math.round((row?.x ?? 0) + (row?.width ?? 0)) - 20,
+  );
+  expect(
+    await first
+      .getByRole("button", { name: /^Remove/ })
+      .evaluate((b) => [getComputedStyle(b).backgroundColor, getComputedStyle(b).borderRadius]),
+  ).toEqual(["rgb(217, 48, 37)", "50%"]);
+  // No labels, and no borders but the cards'.
+  await expect(page.locator("#sites label, #sites fieldset")).toHaveCount(0);
+  await page.screenshot(shot("extension-settings-sites"));
+
+  // The name and the address are edited by clicking them.
+  await first.getByRole("button", { name: /^Name: BibleGateway\.com/ }).click();
+  const nameBox = first.getByRole("textbox", { name: "Name" });
+  const narrow = (await nameBox.boundingBox())?.width ?? 0;
+  await nameBox.fill("Gateway with a much longer name than before");
+  expect((await nameBox.boundingBox())?.width ?? 0).toBeGreaterThan(narrow + 100);
+  await nameBox.fill("Gateway");
+  await page.keyboard.press("Enter");
+  await expect(first.locator(".site-title")).toHaveText("Gateway");
+  await first.getByRole("button", { name: /^Address/ }).click();
+  await first.getByRole("textbox", { name: "Address" }).fill("https://example.org/?q=ST_REFERENCE");
+  await first.getByRole("textbox", { name: "Address" }).blur();
+  await expect(first.locator(".site-address")).toHaveText("https://example.org/?q=ST_REFERENCE");
+  // Escape gives up an edit.
+  await first.getByRole("button", { name: /^Name/ }).click();
+  await first.getByRole("textbox", { name: "Name" }).fill("Nope");
+  await page.keyboard.press("Escape");
+  await expect(first.locator(".site-title")).toHaveText("Gateway");
+  await first.getByRole("combobox").selectOption("ESV");
+  await expect(page.getByRole("status")).toHaveText("Saved.");
+
+  // It lasts.
+  await page.reload();
+  const kept = page.locator("#sites .site-card").first();
+  await expect(kept.locator(".site-title")).toHaveText("Gateway");
+  await expect(kept.locator(".site-address")).toHaveText("https://example.org/?q=ST_REFERENCE");
+  await expect(kept.getByRole("combobox")).toHaveValue("ESV");
+
+  // A site added opens with its name ready to type; the red x removes a card.
+  await page.getByRole("button", { name: "Add a site" }).click();
+  await expect(page.locator("#sites .site-card")).toHaveCount(4);
+  await expect(page.getByRole("textbox", { name: "Name" })).toBeFocused();
+  await page.keyboard.type("My site");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#sites .site-card").last().locator(".site-title")).toHaveText(
+    "My site",
+  );
+  // The red x asks first: Cancel keeps the card, Remove removes it.
+  await page.getByRole("button", { name: "Remove My site" }).click();
+  const ask = page.getByRole("group", { name: "Remove My site?" });
+  await expect(ask).toBeVisible();
+  await expect(ask.getByRole("button", { name: "Cancel" })).toBeFocused();
+  await page.screenshot(shot("extension-settings-remove-ask"));
+  await page.keyboard.press("Escape");
+  await expect(ask).toHaveCount(0);
+  await expect(page.locator("#sites .site-card")).toHaveCount(4);
+  await page.getByRole("button", { name: "Remove My site" }).click();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.locator("#sites .site-card")).toHaveCount(4);
+  await page.getByRole("button", { name: "Remove My site" }).click();
+  await page.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(page.locator("#sites .site-card")).toHaveCount(3);
+});
+
+test("vision §3.6: the outside reading sites are sortable by their handles", async ({
+  page,
+  extensionId,
+}) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.goto(`chrome-extension://${extensionId}/options.html`);
+  const names = () => page.locator("#sites .site-title").allTextContents();
+  await expect.poll(names).toEqual(["BibleGateway.com", "BibleHub.com", "BlueLetterBible.org"]);
+  // The handle is left of the heading.
+  const first = page.locator("#sites .site-card").first();
+  const [handle, title] = await Promise.all([
+    first.getByRole("button", { name: /^Move BibleGateway/ }).boundingBox(),
+    first.locator(".site-title").boundingBox(),
+  ]);
+  expect((handle?.x ?? 0) + (handle?.width ?? 0) <= (title?.x ?? 0)).toBe(true);
+
+  // Drag the last card's handle above the first.
+  const grab = async (name: string) => {
+    const box = await page.getByRole("button", { name: new RegExp(`^Move ${name}`) }).boundingBox();
+    if (!box) throw new Error(`no handle for ${name}`);
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  };
+  const from = await grab("BlueLetterBible");
+  const top = await page.locator("#sites .site-card").first().boundingBox();
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x, (top?.y ?? 0) + 4, { steps: 8 });
+  await expect(page.locator("#sites .site-card.dragging")).toHaveCount(1);
+  await page.screenshot(shot("extension-settings-sorting"));
+  await page.mouse.up();
+  await expect.poll(names).toEqual(["BlueLetterBible.org", "BibleGateway.com", "BibleHub.com"]);
+  await expect(page.getByRole("status")).toHaveText("Saved.");
+
+  // Escape puts a drag back.
+  const again = await grab("BibleHub");
+  await page.mouse.move(again.x, again.y);
+  await page.mouse.down();
+  await page.mouse.move(again.x, (top?.y ?? 0) + 4, { steps: 8 });
+  await page.keyboard.press("Escape");
+  await page.mouse.up();
+  await expect.poll(names).toEqual(["BlueLetterBible.org", "BibleGateway.com", "BibleHub.com"]);
+
+  // By keyboard: the arrows move the card, and the handle keeps the focus.
+  await page.getByRole("button", { name: /^Move BlueLetterBible/ }).focus();
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(names).toEqual(["BibleGateway.com", "BlueLetterBible.org", "BibleHub.com"]);
+  await expect(page.getByRole("button", { name: /^Move BlueLetterBible/ })).toBeFocused();
+
+  // The order lasts, and the chosen place for links goes with its site.
+  await page.reload();
+  await expect.poll(names).toEqual(["BibleGateway.com", "BlueLetterBible.org", "BibleHub.com"]);
+  await page
+    .getByRole("combobox", { name: "Where links go" })
+    .selectOption({ label: "BibleHub.com" });
+  await page.getByRole("button", { name: /^Move BibleHub/ }).focus();
+  await page.keyboard.press("ArrowUp");
+  await expect.poll(names).toEqual(["BibleGateway.com", "BibleHub.com", "BlueLetterBible.org"]);
+  await expect(page.getByRole("combobox", { name: "Where links go" })).toHaveValue("1");
+  await expect(
+    page.getByRole("combobox", { name: "Where links go" }).locator("option:checked"),
+  ).toHaveText("BibleHub.com");
+});

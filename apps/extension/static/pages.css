@@ -322,3 +322,178 @@ h1.brand {
   width: auto;
   max-width: 100%;
 }
+
+/* The outside reading sites: a card for each, in full-width rows. Only the cards have borders. */
+.site-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+.site-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgb(0 30 60 / 0.1);
+}
+.site-main {
+  flex: 1;
+  min-width: 0;
+}
+.site-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.site-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-weight: 600;
+}
+.site-title button.edit,
+.site-title input.edit {
+  margin: 0;
+}
+.site-title button.edit {
+  width: auto;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+}
+.site-title input.edit {
+  width: auto;
+  max-width: 100%;
+  min-width: 6ch;
+}
+.site-body {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.site-address {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.site-translation {
+  flex: none;
+  width: auto;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.8125rem;
+  border-color: transparent;
+  background-color: transparent;
+}
+.site-translation:hover,
+.site-translation:focus-visible {
+  border-color: var(--rule);
+}
+/* The text that is edited in place: plain until clicked, then a text box in the same spot. */
+button.edit {
+  display: block;
+  width: 100%;
+  padding: 0.1rem 0.25rem;
+  margin: 0 -0.25rem;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+button.edit:hover,
+button.edit:focus-visible {
+  border-color: var(--rule);
+}
+button.edit .empty {
+  font-weight: 400;
+  font-style: italic;
+  opacity: 0.7;
+}
+input.edit {
+  padding: 0.1rem 0.25rem;
+  margin: 0 -0.25rem;
+  font: inherit;
+  font-weight: inherit;
+  width: calc(100% + 0.5rem);
+}
+.site-card .remove {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  color: #fff;
+  background: #d93025;
+  border: 0;
+  border-radius: 50%;
+}
+.site-card .remove:hover {
+  background: #b3261e;
+}
+.site-card .remove svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.remove-ask {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+button.danger {
+  background: #d93025;
+}
+button.danger:hover {
+  background: #b3261e;
+}
+.site-card .handle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.75rem;
+  padding: 0;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  cursor: grab;
+  touch-action: none;
+}
+.site-card .handle:hover,
+.site-card .handle:focus-visible {
+  color: var(--ink);
+  border-color: var(--rule);
+}
+.site-card .handle svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: currentColor;
+}
+.site-card.dragging {
+  border-color: var(--deep);
+  box-shadow: 0 6px 16px rgb(0 30 60 / 0.25);
+  user-select: none;
+}
+.site-card.dragging .handle {
+  cursor: grabbing;
+}

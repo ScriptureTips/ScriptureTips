@@ -7,6 +7,7 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 ## [Unreleased]
 
 ### Changed
+- The extension's settings show the outside reading sites as cards in full-width rows: the name as the title (only as wide as its words, and growing as you type) with a short translation menu beside it, the address below, and a red round × to remove it, which asks Remove or Cancel first. The cards can be put in order by dragging their handles (or with the arrow keys). Names and addresses are edited where they stand, by clicking or tapping them.
 - The browser extension's toolbar popup shows the logo beside its heading, turns the extension on or off for the current site with a slide switch beside the site's name (green and right is on, red and left is off) instead of a checkbox, and leads to the link generator and the settings with two square 80px buttons. The link generator now opens as a window on the page you're on, which you can drag by its title bar and resize by its corner (it remembers where you left it), instead of a new tab; on pages the extension can't open it on, it still opens in a tab. In HTML, the links it makes open in a new tab. "Links go to" has its own line, with a cog beside it that opens the settings.
 
 ### Added
