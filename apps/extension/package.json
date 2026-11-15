@@ -11,6 +11,7 @@
     "build:production": "ST_SITE=https://scripturetips.com ST_DATA=https://scripture.tips node build.ts"
   },
   "dependencies": {
+    "@scripturetips/dialogs": "workspace:*",
     "@scripturetips/scripture-links": "workspace:*"
   },
   "devDependencies": {

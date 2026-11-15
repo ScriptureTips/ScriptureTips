@@ -262,6 +262,9 @@ importers:
 
   apps/extension:
     dependencies:
+      '@scripturetips/dialogs':
+        specifier: workspace:*
+        version: link:../../packages/dialogs
       '@scripturetips/scripture-links':
         specifier: workspace:*
         version: link:../../packages/scripture-links
@@ -382,6 +385,8 @@ importers:
       drizzle-kit:
         specifier: 0.31.11
         version: 0.31.11
+
+  packages/dialogs: {}
 
   packages/licenses: {}
 

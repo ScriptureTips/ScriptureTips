@@ -451,19 +451,6 @@ input.edit {
   stroke-width: 2.5;
   stroke-linecap: round;
 }
-.remove-ask {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-}
-button.danger {
-  background: #d93025;
-}
-button.danger:hover {
-  background: #b3261e;
-}
 .site-card .handle {
   flex: none;
   display: inline-flex;

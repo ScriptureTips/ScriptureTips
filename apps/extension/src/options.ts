@@ -1,3 +1,4 @@
+import { confirmDialog } from "@scripturetips/dialogs";
 import { DEFAULT_TRANSLATION, type WidgetTranslation } from "@scripturetips/scripture-links";
 import { byId, destinationOf, destinations, FORMAT_NAMES, fill } from "./pages.ts";
 import {
@@ -280,35 +281,17 @@ function siteCard(site: OutsideSite, index: number, startEditing: boolean): HTML
       typeof d !== "number" || d === index ? "scripturetips" : d > index ? d - 1 : d;
     void save({ ...settings, outsideSites: sites, destination }, true);
   };
-  // The red × asks first, on the card itself: Remove, or Cancel (under where the × was, so a
-  // second click on the spot doesn't remove it).
-  remove.addEventListener("click", () => {
-    const ask = document.createElement("div");
-    ask.className = "remove-ask";
-    ask.setAttribute("role", "group");
-    ask.setAttribute("aria-label", `Remove ${site.name || "this site"}?`);
-    const question = document.createElement("span");
-    question.textContent = "Remove this site?";
-    const yes = document.createElement("button");
-    yes.type = "button";
-    yes.className = "danger";
-    yes.textContent = "Remove";
-    yes.addEventListener("click", removeSite);
-    const no = document.createElement("button");
-    no.type = "button";
-    no.className = "quiet";
-    no.textContent = "Cancel";
-    const cancel = () => {
-      ask.replaceWith(remove);
-      remove.focus();
-    };
-    no.addEventListener("click", cancel);
-    ask.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") cancel();
+  // The red × asks first (a dialog, as every prompt is); Cancel is where the focus starts.
+  remove.addEventListener("click", async () => {
+    const name = site.name || "this site";
+    const go = await confirmDialog({
+      title: `Remove ${name}?`,
+      message: "It will no longer be offered as a place for links to go.",
+      confirmLabel: "Remove",
+      cancelLabel: "Cancel",
+      danger: true,
     });
-    ask.append(question, yes, no);
-    remove.replaceWith(ask);
-    no.focus();
+    if (go) removeSite();
   });
   card.append(main, remove);
   return card;

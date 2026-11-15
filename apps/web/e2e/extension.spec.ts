@@ -735,9 +735,9 @@ test("vision §3.6: the outside reading sites are cards, edited where they stand
   await expect(page.locator("#sites .site-card").last().locator(".site-title")).toHaveText(
     "My site",
   );
-  // The red x asks first: Cancel keeps the card, Remove removes it.
+  // The red x asks first, in a dialog: Esc and Cancel keep the card, Remove removes it.
   await page.getByRole("button", { name: "Remove My site" }).click();
-  const ask = page.getByRole("group", { name: "Remove My site?" });
+  const ask = page.getByRole("alertdialog", { name: "Remove My site?" });
   await expect(ask).toBeVisible();
   await expect(ask.getByRole("button", { name: "Cancel" })).toBeFocused();
   await page.screenshot(shot("extension-settings-remove-ask"));
@@ -745,10 +745,15 @@ test("vision §3.6: the outside reading sites are cards, edited where they stand
   await expect(ask).toHaveCount(0);
   await expect(page.locator("#sites .site-card")).toHaveCount(4);
   await page.getByRole("button", { name: "Remove My site" }).click();
-  await page.getByRole("button", { name: "Cancel" }).click();
+  await ask.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.locator("#sites .site-card")).toHaveCount(4);
+  // A press on the backdrop is a no, too.
+  await page.getByRole("button", { name: "Remove My site" }).click();
+  await page.mouse.click(5, 5);
+  await expect(ask).toHaveCount(0);
   await expect(page.locator("#sites .site-card")).toHaveCount(4);
   await page.getByRole("button", { name: "Remove My site" }).click();
-  await page.getByRole("button", { name: "Remove", exact: true }).click();
+  await ask.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(page.locator("#sites .site-card")).toHaveCount(3);
 });
 
