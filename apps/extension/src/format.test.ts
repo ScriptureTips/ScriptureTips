@@ -9,7 +9,7 @@ describe("vision §3.6: the link generator", () => {
   it("links each reference in the format chosen", () => {
     const text = "As Paul says in Romans 5:8, and John 3:16.";
     expect(linkText(text, "html", to)).toBe(
-      'As Paul says in <a href="https://st.test/r/Rom.5.8">Romans 5:8</a>, and <a href="https://st.test/r/John.3.16">John 3:16</a>.',
+      'As Paul says in <a href="https://st.test/r/Rom.5.8" target="_blank" rel="noopener">Romans 5:8</a>, and <a href="https://st.test/r/John.3.16" target="_blank" rel="noopener">John 3:16</a>.',
     );
     expect(linkText(text, "bbcode", to)).toContain(
       "[url=https://st.test/r/Rom.5.8]Romans 5:8[/url]",
@@ -39,7 +39,7 @@ describe("vision §3.6: the link generator", () => {
 
   it("escapes what HTML needs", () => {
     expect(linkText("John 3:16", "html", () => 'https://x.test/?a=1&b="2"')).toBe(
-      '<a href="https://x.test/?a=1&amp;b=&quot;2&quot;">John 3:16</a>',
+      '<a href="https://x.test/?a=1&amp;b=&quot;2&quot;" target="_blank" rel="noopener">John 3:16</a>',
     );
   });
 

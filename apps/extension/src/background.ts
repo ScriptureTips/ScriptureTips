@@ -31,6 +31,11 @@ async function load(url: string): Promise<FetchReply> {
 }
 
 ext.runtime.onMessage.addListener((message, _sender, respond) => {
+  // The link generator's window on a page asks for the settings page.
+  if ((message as { type?: string } | null)?.type === "open-options") {
+    void ext.runtime.openOptionsPage();
+    return undefined;
+  }
   if (!isFetch(message)) return undefined;
   load(message.url).then(respond);
   // The answer comes later.

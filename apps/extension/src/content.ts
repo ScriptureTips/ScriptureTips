@@ -5,6 +5,7 @@ import {
   type ScriptureLinks,
 } from "@scripturetips/scripture-links";
 import { ext } from "./browser.ts";
+import { openGeneratorWindow } from "./generator-window.ts";
 import { apiOf, leftAlone, outsideSite, type Settings, siteOf } from "./settings.ts";
 import { type FetchReply, loadSettings, onSettingsChange } from "./store.ts";
 import { DEFAULT_TEXT_SCALE, loadTextScale, onTextScaleChange } from "./text-scale.ts";
@@ -90,3 +91,12 @@ onTextScaleChange((scale) => {
 });
 // Turned off or on here, or another destination chosen: the page is done again.
 onSettingsChange((settings) => void start(settings));
+// The popup's Generator opens the link generator as a window on this page (the top frame only: the
+// message reaches every frame of the tab).
+ext.runtime.onMessage.addListener((message) => {
+  if ((message as { type?: string } | null)?.type !== "open-generator" || window !== window.top) {
+    return undefined;
+  }
+  void loadSettings().then(openGeneratorWindow);
+  return undefined;
+});

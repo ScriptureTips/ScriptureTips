@@ -22,7 +22,9 @@ const escapeHtml = (s: string) =>
 export function link(format: LinkFormat, text: string, url: string): string {
   switch (format) {
     case "html":
-      return `<a href="${escapeHtml(url)}">${escapeHtml(text)}</a>`;
+      // Always a new tab, so the reader keeps the page they were on (`noopener` so the new tab can't
+      // reach back into it). Only HTML can say so: the other formats have no way to.
+      return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(text)}</a>`;
     case "bbcode":
       return `[url=${url}]${text}[/url]`;
     case "wiki":

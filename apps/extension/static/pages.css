@@ -313,3 +313,12 @@ h1.brand {
     background-position: 0% 100%;
   }
 }
+
+/* The link generator page: each menu beside its label, the cog after "Links go to". */
+#generator .row label {
+  margin: 0;
+}
+#generator .row select {
+  width: auto;
+  max-width: 100%;
+}

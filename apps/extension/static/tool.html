@@ -9,22 +9,7 @@
 <body>
 <main>
   <h1>Link generator</h1>
-  <p class="hint">Paste what you're writing, and every scripture reference in it becomes a link. References that are already links stay as they are.</p>
-  <label for="text">Your text</label>
-  <textarea id="text" spellcheck="false"></textarea>
-  <div class="row">
-    <label for="format">Format</label>
-    <select id="format"></select>
-    <label for="destination">Links go to</label>
-    <select id="destination"></select>
-  </div>
-  <div class="row">
-    <button type="button" id="apply">Add links</button>
-    <button type="button" class="quiet" id="undo">Undo</button>
-    <button type="button" class="quiet" id="redo">Redo</button>
-    <button type="button" class="quiet" id="copy">Copy</button>
-    <span class="status" id="status" role="status"></span>
-  </div>
+  <div id="generator"></div>
 </main>
 <script src="tool.js"></script>
 </body>

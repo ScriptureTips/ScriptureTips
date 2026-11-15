@@ -7,7 +7,7 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 ## [Unreleased]
 
 ### Changed
-- The browser extension's toolbar popup shows the logo beside its heading, turns the extension on or off for the current site with a slide switch beside the site's name (green and right is on, red and left is off) instead of a checkbox, and leads to the link generator and the settings with two square 80px buttons.
+- The browser extension's toolbar popup shows the logo beside its heading, turns the extension on or off for the current site with a slide switch beside the site's name (green and right is on, red and left is off) instead of a checkbox, and leads to the link generator and the settings with two square 80px buttons. The link generator now opens as a window on the page you're on, which you can drag by its title bar and resize by its corner (it remembers where you left it), instead of a new tab; on pages the extension can't open it on, it still opens in a tab. In HTML, the links it makes open in a new tab. "Links go to" has its own line, with a cog beside it that opens the settings.
 
 ### Added
 - The browser extension's toolbar popup has a footer with magnifying glasses to make the text of the passage tooltips larger or smaller (85% to 200%). The page's own text and the popup itself are unchanged, and the size is kept per browser. Help: "Making the text larger or smaller".

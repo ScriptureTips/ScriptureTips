@@ -294,6 +294,10 @@ test("vision §3.6: the link generator links what the reader writes, with undo a
   await expect(text).toHaveValue(
     "As Paul says in [url=https://dev.scripturetips.com/read?t=eng-kjv&ref=Romans%205%3A8]Romans 5:8[/url].\n[url=x]John 3:16[/url]",
   );
+  // The cog beside "Links go to" opens the settings.
+  const settings = page.context().waitForEvent("page");
+  await page.getByRole("button", { name: /where links can go/ }).click();
+  expect((await settings).url()).toBe(`chrome-extension://${extensionId}/options.html`);
   await page.screenshot(shot("extension-tool"));
   await page.getByRole("button", { name: "Undo" }).click();
   await expect(text).toHaveValue("As Paul says in Romans 5:8.\n[url=x]John 3:16[/url]");
@@ -487,4 +491,171 @@ test("vision §3.6: no page's styles change how the tooltip looks; its size and 
   expect(plain.box?.backgroundColor).toBe("rgb(255, 255, 255)");
   expect(plain.box?.direction).toBe("ltr");
   expect(plain.box?.transform).toBe("none");
+});
+
+test("vision §3.6: the popup's Generator opens the link generator as a window on the page, to drag and resize", async ({
+  page,
+  context,
+  extensionId,
+}) => {
+  await open(page);
+  // The real ID of the page's tab (an extension page can read it), for the popup to be told.
+  const helper = await context.newPage();
+  await helper.goto(`chrome-extension://${extensionId}/options.html`);
+  await page.bringToFront();
+  const tabId = await helper.evaluate(async () => {
+    const chromeApi = (
+      globalThis as unknown as { chrome: { tabs: { query(q: object): Promise<{ id: number }[]> } } }
+    ).chrome;
+    return (await chromeApi.tabs.query({ active: true, lastFocusedWindow: true }))[0]?.id;
+  });
+  expect(tabId).toBeGreaterThan(0);
+  // Closed, so opening the settings later makes a tab (an open one would only be focused).
+  await helper.close();
+  const popup = await context.newPage();
+  await popup.addInitScript((id) => {
+    const tabs = (globalThis as unknown as { chrome: { tabs: { query: unknown } } }).chrome.tabs;
+    tabs.query = async () => [{ id, url: "https://fixture.test/" }];
+  }, tabId);
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.locator("#where")).toHaveText("fixture.test");
+  await popup.getByRole("link", { name: "Generator" }).click();
+  // A window on the page, not a tab of its own (the popup closes itself).
+
+  const win = page.getByRole("dialog", { name: "Link generator" });
+  await expect(win).toBeVisible();
+  expect(context.pages().some((p) => p.url().endsWith("/tool.html"))).toBe(false);
+  const text = win.getByRole("textbox", { name: "Your text" });
+  await expect(text).toBeFocused();
+  await text.fill("As Paul says in Romans 5:8.");
+  await win.getByRole("button", { name: "Add links" }).click();
+  await expect(text).toHaveValue(
+    /<a href="https:\/\/dev\.scripturetips\.com\/read[^"]*" target="_blank" rel="noopener">Romans 5:8<\/a>/,
+  );
+
+  // "Links go to" is on a line of its own, below Format, with a cog after its menu.
+  const [format, goesTo, menu, cog] = await Promise.all([
+    win.getByRole("combobox", { name: "Format" }).boundingBox(),
+    win.getByText("Links go to").boundingBox(),
+    win.getByRole("combobox", { name: "Links go to" }).boundingBox(),
+    win.getByRole("button", { name: /where links can go/ }).boundingBox(),
+  ]);
+  expect((goesTo?.y ?? 0) > (format?.y ?? 0) + (format?.height ?? 0) - 1).toBe(true);
+  expect((cog?.x ?? 0) >= (menu?.x ?? 0) + (menu?.width ?? 0)).toBe(true);
+  expect(
+    Math.abs((cog?.y ?? 0) + (cog?.height ?? 0) / 2 - ((menu?.y ?? 0) + (menu?.height ?? 0) / 2)),
+  ).toBeLessThan(6);
+  // The cog opens the settings.
+  const settings = context.waitForEvent("page");
+  await win.getByRole("button", { name: /where links can go/ }).click();
+  expect((await settings).url()).toBe(`chrome-extension://${extensionId}/options.html`);
+  await (await settings).close();
+  await page.bringToFront();
+
+  // Draggable by its title bar.
+  const frame = () => win.evaluate((e) => e.getBoundingClientRect().toJSON());
+  const start = await frame();
+  const bar = await win.locator(".bar").boundingBox();
+  if (!bar) throw new Error("no title bar");
+  await page.mouse.move(bar.x + 40, bar.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(bar.x - 160, bar.y + 90, { steps: 6 });
+  await page.mouse.up();
+  const moved = await frame();
+  expect(Math.round(moved.x - start.x)).toBe(-200);
+  expect(Math.round(moved.y - start.y)).toBe(80);
+  expect(Math.round(moved.width)).toBe(Math.round(start.width));
+
+  // Resizable by its corner, never below the least that works.
+  const grip = await win.locator(".grip").boundingBox();
+  if (!grip) throw new Error("no grip");
+  await page.mouse.move(grip.x + 9, grip.y + 9);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + 9 + 100, grip.y + 9 + 60, { steps: 6 });
+  await page.mouse.up();
+  const grown = await frame();
+  expect(Math.round(grown.width - moved.width)).toBe(100);
+  expect(Math.round(grown.height - moved.height)).toBe(60);
+  await page.mouse.move(grown.right - 9, grown.bottom - 9);
+  await page.mouse.down();
+  await page.mouse.move(grown.x + 10, grown.y + 10, { steps: 6 });
+  await page.mouse.up();
+  const least = await frame();
+  expect(Math.round(least.width)).toBe(340);
+  expect(Math.round(least.height)).toBe(380);
+  await page.screenshot(shot("extension-generator-window"));
+
+  // The page can't restyle it, and what the reader reads is still the page's own.
+  await expect(page.locator("main")).toContainText("As Paul says in Romans 5:8");
+  // Asked again, the one that's open is used; closed, it goes.
+  const again = await context.newPage();
+  await again.addInitScript((id) => {
+    const tabs = (globalThis as unknown as { chrome: { tabs: { query: unknown } } }).chrome.tabs;
+    tabs.query = async () => [{ id, url: "https://fixture.test/" }];
+  }, tabId);
+  await again.goto(`chrome-extension://${extensionId}/popup.html`);
+  await again.getByRole("link", { name: "Generator" }).click();
+  await expect(page.locator(".st-generator-host")).toHaveCount(1);
+  await win.getByRole("button", { name: "Close the link generator" }).click();
+  await expect(page.locator(".st-generator-host")).toHaveCount(0);
+});
+
+test("vision §3.6: no page's styles change how the link generator's window looks", async ({
+  page,
+  context,
+  extensionId,
+}) => {
+  const looks = async (html: string) => {
+    const p = await context.newPage();
+    await open(p, html);
+    const helper = await context.newPage();
+    await helper.goto(`chrome-extension://${extensionId}/options.html`);
+    await p.bringToFront();
+    const id = await helper.evaluate(async () => {
+      const api = (
+        globalThis as unknown as {
+          chrome: { tabs: { query(q: object): Promise<{ id: number }[]> } };
+        }
+      ).chrome;
+      return (await api.tabs.query({ active: true, lastFocusedWindow: true }))[0]?.id as number;
+    });
+    await helper.evaluate(
+      (tab) =>
+        (
+          globalThis as unknown as {
+            chrome: { tabs: { sendMessage(t: number, m: object): Promise<unknown> } };
+          }
+        ).chrome.tabs.sendMessage(tab, { type: "open-generator" }),
+      id,
+    );
+    const win = p.getByRole("dialog", { name: "Link generator" });
+    await expect(win).toBeVisible();
+    return win.evaluate((w) => {
+      const pick = (el: Element | null) => {
+        if (!el) return null;
+        const c = getComputedStyle(el);
+        return [
+          c.fontFamily,
+          c.fontSize,
+          c.color,
+          c.backgroundColor,
+          c.lineHeight,
+          c.textTransform,
+          c.letterSpacing,
+          c.direction,
+          c.width,
+          c.height,
+        ].join("|");
+      };
+      return [w, w.querySelector("h2"), w.querySelector("textarea"), w.querySelector("button")].map(
+        pick,
+      );
+    });
+  };
+  void page;
+  const plain = await looks(page$());
+  const hostile = await looks(page$(`<style>${HOSTILE_STYLES}</style>`));
+  expect(hostile).toEqual(plain);
+  expect(plain[0]).toContain("14px");
+  expect(plain[0]).not.toContain("Comic");
 });

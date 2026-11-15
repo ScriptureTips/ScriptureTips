@@ -48,6 +48,7 @@ export interface Ext {
   tabs: {
     query(query: { active: boolean; currentWindow: boolean }): Promise<Tab[]>;
     create(props: { url: string }): Promise<Tab>;
+    sendMessage(tabId: number, message: unknown): Promise<unknown>;
   };
 }
 

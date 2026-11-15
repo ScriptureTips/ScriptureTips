@@ -220,3 +220,5 @@ themable
 hotpink
 Neue
 Noto
+Menlo
+Consolas

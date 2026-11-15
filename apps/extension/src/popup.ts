@@ -12,7 +12,7 @@ import {
 
 /**
  * The toolbar popup: a switch that turns the extension off (or on again) for the site in the current
- * tab (right = on), and the cards that lead to the link generator and the settings. The tab's address is read through `activeTab`, which
+ * tab (right = on), and the cards that lead to the link generator (a window on the page) and the settings. The tab's address is read through `activeTab`, which
  * the click on the toolbar button grants. The footer's magnifying glasses make the text of the
  * passage tooltips on pages larger or smaller; this popup's own text stays as it is.
  */
@@ -53,6 +53,21 @@ async function main() {
     url = tab?.url ? new URL(tab.url) : null;
   } catch {
     url = null;
+  }
+  // The generator opens as a window on the page. Where that can't be (the page isn't one the
+  // extension runs on, or its script isn't there), the link opens it in a tab of its own.
+  const tool = byId<HTMLAnchorElement>("tool");
+  const tabId = tab?.id;
+  if (url && /^https?:$/.test(url.protocol) && tabId !== undefined) {
+    tool.addEventListener("click", async (event) => {
+      event.preventDefault();
+      try {
+        await ext.tabs.sendMessage(tabId, { type: "open-generator" });
+        window.close();
+      } catch {
+        await ext.tabs.create({ url: ext.runtime.getURL("tool.html") });
+      }
+    });
   }
   if (!url || !/^https?:$/.test(url.protocol)) {
     where.textContent = "Scripture Tips doesn't link references on this page.";

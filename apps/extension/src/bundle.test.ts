@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { bundle, demoPath } from "../build.ts";
 
-/** The most the content script may weigh, minified: it runs in every page and frame. */
-const CONTENT_BUDGET = 50 * 1024;
+/**
+ * The most the content script may weigh, minified: it runs in every page and frame. It was 50 KB
+ * before it held the link generator's window (about 3 KB of script and 2 KB of the formats and
+ * settings it needs); loading that on demand would need the `scripting` permission, which the
+ * manifest avoids asking for (src/manifest.ts).
+ */
+const CONTENT_BUDGET = 56 * 1024;
 
 describe("vision §3.6: the browser extension's scripts", () => {
   it("keep the content script small and the versification tables out", async () => {

@@ -163,3 +163,32 @@ test("the link generator", async ({ page, extensionId }) => {
   await expect(page.locator("#status")).toHaveText("Links added.");
   await capture(page, image("link-generator"), { around: [page.locator("main")] });
 });
+
+test("the link generator as a window on a page", async ({ page, context, extensionId }) => {
+  await page.setViewportSize({ width: 900, height: 560 });
+  await demo(page);
+  const helper = await context.newPage();
+  await helper.goto(`chrome-extension://${extensionId}/options.html`);
+  await page.bringToFront();
+  await helper.evaluate(async () => {
+    const api = (
+      globalThis as unknown as {
+        chrome: {
+          tabs: {
+            query(q: object): Promise<{ id: number }[]>;
+            sendMessage(t: number, m: object): Promise<unknown>;
+          };
+        };
+      }
+    ).chrome;
+    const [tab] = await api.tabs.query({ active: true, lastFocusedWindow: true });
+    await api.tabs.sendMessage(tab?.id as number, { type: "open-generator" });
+  });
+  const win = page.getByRole("dialog", { name: "Link generator" });
+  await win
+    .getByRole("textbox", { name: "Your text" })
+    .fill("Paul says in Romans 5:8 that love came first.");
+  await win.getByRole("button", { name: "Add links" }).click();
+  await expect(win.getByRole("status")).toHaveText("Links added.");
+  await capture(page, image("generator-window"), { around: [page.locator("h1"), win] });
+});

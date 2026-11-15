@@ -1,22 +1,30 @@
 <p>The link generator links the references in something you are writing, for people who don't have the extension: a forum post, a blog article, a wiki page or an email.</p>
 <figure>
-<img src="images/link-generator.png" alt="The link generator. A text box holds a sentence in which Romans 5:8 and John 3:16 have become BBCode links, above the Format and Links go to menus and the buttons Add links, Undo, Redo and Copy.">
+<img src="images/link-generator.png" alt="The link generator. A text box holds a sentence in which Romans 5:8 and John 3:16 have become BBCode links, above the Format menu, a line below it with the Links go to menu and a cog, and the buttons Add links, Undo, Redo and Copy.">
 <figcaption>A forum post after <strong>Add links</strong>, in BBCode.</figcaption>
 </figure>
 
 <h2>Using it</h2>
 <ol>
-<li>Click the extension's toolbar button, then <strong>Link generator</strong>. It opens in a new tab.</li>
+<li>On the page you're writing on, click the extension's toolbar button, then <strong>Generator</strong>. It opens as a window on the page.</li>
 <li>Paste or type your text into <strong>Your text</strong>.</li>
-<li>Choose the <strong>Format</strong> your site uses, and where the <strong>Links go to</strong>.</li>
+<li>Choose the <strong>Format</strong> your site uses, and where the <strong>Links go to</strong>. The cog beside it opens the settings, where you can add other sites for links to go to.</li>
 <li>Click <strong>Add links</strong>, then <strong>Copy</strong>, and paste it where you're writing.</li>
 </ol>
+
+<h2>The window</h2>
+<p>The generator opens as a small window on top of the page, so you can write beside what you're reading. Drag it by its title bar to move it, and drag the corner at its bottom right to make it larger or smaller (with the keyboard, focus the corner and use the arrow keys). It remembers where you left it. Close it with the × in its title bar, or press <kbd>Esc</kbd> while you're in it. The page's own styles never change how it looks.</p>
+<figure>
+<img src="images/generator-window.png" alt="A web page with the link generator open over it as a window: a title bar reading Link generator with a close button, the text box, the Format menu, the Links go to menu with a cog beside it, and a resize corner at the bottom right.">
+<figcaption>The generator, open over a page.</figcaption>
+</figure>
+<p>On a page where the extension can't open a window, such as the browser's own pages, the button opens the generator in a tab of its own instead.</p>
 
 <h2>Formats</h2>
 <table>
 <thead><tr><th>Format</th><th>A link looks like</th></tr></thead>
 <tbody>
-<tr><td>HTML</td><td><code>&lt;a href="…"&gt;John 3:16&lt;/a&gt;</code></td></tr>
+<tr><td>HTML</td><td><code>&lt;a href="…" target="_blank" rel="noopener"&gt;John 3:16&lt;/a&gt;</code></td></tr>
 <tr><td>BBCode (forums)</td><td><code>[url=…]John 3:16[/url]</code></td></tr>
 <tr><td>Wiki markup</td><td><code>[… John 3:16]</code></td></tr>
 <tr><td>Markdown</td><td><code>[John 3:16](…)</code></td></tr>
@@ -26,6 +34,7 @@
 
 <h2>Good to know</h2>
 <ul>
+<li>In HTML, every link opens in a new tab, so your readers keep their place. The other formats have no way to say that: whether those links open in a new tab is up to the forum, wiki or editor they're posted in.</li>
 <li>References that are already links, in any of the four formats, are left as they are, so running it twice changes nothing.</li>
 <li><strong>Undo</strong> and <strong>Redo</strong> step back and forward through each time you added links.</li>
 <li>If there is nothing to link, it says “No references to link.”</li>
