@@ -7,6 +7,7 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 ## [Unreleased]
 
 ### Changed
+- *Read more* in a passage's tooltip goes to the chosen outside reading site (not always the ScriptureTips reader), with the site's name beside it.
 - The link generator's page (where it opens in a tab) has the same brand and layout as the settings page: the artwork behind a panel, the logo beside the heading, and the artwork's credits.
 - The extension's settings show the sites it is turned off on as cards (a heading each, edited by clicking it, a red × that asks first), always in alphabetical order, instead of a text box with one site per line. A whole address typed in is cut down to its site.
 - The extension's settings start with **Defaults** (where links go, the translation, and the link generator's format), then the sites turned off. The outside reading sites are edited in a window opened by the pencil beside "Where links go". The ScriptureTips address is under **Advanced settings**, closed until opened.
@@ -14,6 +15,7 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 - The browser extension's toolbar popup shows the logo beside its heading, turns the extension on or off for the current site with a slide switch beside the site's name (green and right is on, red and left is off) instead of a checkbox, and leads to the link generator and the settings with two square 80px buttons. The link generator now opens as a window on the page you're on, which you can drag by its title bar and resize by its corner (it remembers where you left it), instead of a new tab; on pages the extension can't open it on, it still opens in a tab. In HTML, the links it makes open in a new tab. "Links go to" has its own line, with a cog beside it that opens the settings.
 
 ### Added
+- Any number of passage tooltips can be pinned on a page (extension and website plugin): while some are pinned, other references open their own tooltip, and only one tooltip that isn't pinned is ever open.
 - The browser extension's toolbar popup has a footer with magnifying glasses to make the text of the passage tooltips larger or smaller (85% to 200%). The page's own text and the popup itself are unchanged, and the size is kept per browser. Help: "Making the text larger or smaller".
 
 ### Fixed

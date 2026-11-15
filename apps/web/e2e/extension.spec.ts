@@ -370,6 +370,33 @@ test("vision §3.6: the settings choose where links go, and pages follow", async
     "href",
     "https://www.biblegateway.com/passage/?search=Romans%205%3A8&version=TLV",
   );
+  // Read more goes there too, with the site's name beside it.
+  await page.locator("a.st-ref").first().hover();
+  const pop = tooltip(page);
+  await expect(pop).toContainText("commendeth his love");
+  const more = pop.getByRole("link", { name: "Read more on BibleGateway.com" });
+  await expect(more).toHaveAttribute(
+    "href",
+    "https://www.biblegateway.com/passage/?search=Romans%205%3A8&version=TLV",
+  );
+  await expect(pop.locator("footer")).toContainText("Read more on BibleGateway.com");
+  await expect(more).toHaveAttribute("target", "_blank");
+  await page.screenshot(shot("extension-read-more-outside"));
+  // Back to the ScriptureTips reader: its own Read more, with no site named.
+  await options
+    .getByRole("combobox", { name: "Where links go" })
+    .selectOption({ label: "ScriptureTips" });
+  await expect(options.getByRole("status")).toHaveText("Saved.");
+  await expect(page.locator("a.st-ref").first()).toHaveAttribute(
+    "href",
+    /dev\.scripturetips\.com\/read/,
+  );
+  await page.locator("a.st-ref").first().hover();
+  await expect(pop.getByRole("link", { name: "Read more" })).toHaveAttribute(
+    "href",
+    /dev\.scripturetips\.com\/read\?.*Romans/,
+  );
+  await expect(pop.locator("footer .source")).toHaveCount(0);
 });
 
 test("vision §3.6: the popup offers to turn the extension off for the tab's site", async ({

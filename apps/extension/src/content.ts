@@ -70,6 +70,8 @@ async function start(settings: Settings): Promise<void> {
     owner: OWNER,
     destination: outside ? outside.url : SCRIPTURETIPS,
     ...(outside?.translation ? { destinationTranslation: outside.translation } : {}),
+    // Read more goes there too, with the site's name beside it.
+    ...(outside?.name ? { destinationName: outside.name } : {}),
     ...(settings.translation ? { translation: settings.translation } : {}),
     fetch: viaBackground,
     storage,

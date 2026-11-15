@@ -79,6 +79,24 @@ test("the tooltip, its translation menu and its pin", async ({ page }) => {
   await expect(pin).toHaveAttribute("aria-pressed", "true");
   await page.mouse.move(700, 600);
   await capture(page, image("tooltip-pin"), { around, ring: pin });
+
+  // Another reference opens its own tooltip beside the pinned one, which can be pinned too.
+  const other = page.locator("a.st-ref:not([aria-expanded])").first();
+  await other.hover();
+  await expect(tooltip(page)).toHaveCount(2);
+  const second = tooltip(page).last();
+  await expect(second.getByRole("button", { name: "Keep open" })).toBeVisible();
+  await second.getByRole("button", { name: "Keep open" }).click();
+  await page.mouse.move(700, 600);
+  await expect(tooltip(page)).toHaveCount(2);
+  await capture(page, image("tooltip-pin-several"), {
+    around: [
+      page.locator("#first"),
+      page.locator("#second"),
+      tooltip(page).first(),
+      tooltip(page).last(),
+    ],
+  });
 });
 
 test("the toolbar popup", async ({ page, extensionId }) => {
