@@ -6,6 +6,10 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-15
+
+The first production release: the websites (`scripturetips.com` and `scripture.tips`) are live from here on, because the browser extension depends on them.
+
 ### Changed
 - A long passage in a tooltip scrolls inside it: the reference, translation menu, pin and *Read more* stay in view (extension and website plugin).
 - *Read more* in a passage's tooltip goes to the chosen outside reading site (not always the ScriptureTips reader), with the site's name beside it.
@@ -102,5 +106,6 @@ The first tagged version: the extension release.
 ### Security
 - Next.js, nodemailer and NestJS upgraded for security advisories.
 
-[Unreleased]: https://git.antzcode.com/adonai-reigns/ScriptureTips/compare/v0.0.1...HEAD
+[Unreleased]: https://git.antzcode.com/adonai-reigns/ScriptureTips/compare/v1.0.0...HEAD
+[1.0.0]: https://git.antzcode.com/adonai-reigns/ScriptureTips/compare/v0.0.1...v1.0.0
 [0.0.1]: https://git.antzcode.com/adonai-reigns/ScriptureTips/releases/tag/v0.0.1
