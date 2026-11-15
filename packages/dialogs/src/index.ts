@@ -1,12 +1,14 @@
 import {
   type AlertOptions,
   type ConfirmOptions,
+  type ModalOptions,
   type Resolved,
   resolveAlert,
   resolveConfirm,
+  resolveModal,
 } from "./options.ts";
 
-export type { AlertOptions, ConfirmOptions } from "./options.ts";
+export type { AlertOptions, ConfirmOptions, ModalOptions } from "./options.ts";
 
 /**
  * Shared prompts (vision §3.6): an alert and a confirm, as a modal dialog over the page, with no
@@ -31,24 +33,25 @@ const STYLES = `
   }
   dialog::backdrop { background: rgb(15 23 32 / 0.5); }
   .body { padding: 18px 20px 6px; }
-  h2 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
-  p { margin: 0; color: #5b6672; overflow-wrap: anywhere; white-space: pre-line; }
+  .content { padding: 4px 20px 6px; }
+  .body h2 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
+  .body p { margin: 0; color: #5b6672; overflow-wrap: anywhere; white-space: pre-line; }
   .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px 18px; }
-  button {
+  .actions button {
     font: inherit; padding: 6px 16px; cursor: pointer; color: #fff; background: #0054a5;
     border: 1px solid #0054a5; border-radius: 6px;
   }
-  button.cancel { color: #0054a5; background: transparent; border-color: #c9d0d6; }
-  button.danger { background: #d93025; border-color: #d93025; }
-  button:hover { filter: brightness(0.92); }
-  button:focus-visible { outline: 2px solid #0054a5; outline-offset: 2px; }
-  button.danger:focus-visible { outline-color: #d93025; }
+  .actions button.cancel { color: #0054a5; background: transparent; border-color: #c9d0d6; }
+  .actions button.danger { background: #d93025; border-color: #d93025; }
+  .actions button:hover { filter: brightness(0.92); }
+  .actions button:focus-visible { outline: 2px solid #0054a5; outline-offset: 2px; }
+  .actions button.danger:focus-visible { outline-color: #d93025; }
   @media (prefers-color-scheme: dark) {
     dialog { color: #e8edf2; background: #161b21; border-color: #3a434c; }
-    p { color: #a8b3be; }
-    button { color: #0f1317; background: #7cc4ff; border-color: #7cc4ff; }
-    button.cancel { color: #7cc4ff; background: transparent; border-color: #3a434c; }
-    button.danger { color: #fff; background: #d93025; border-color: #d93025; }
+    .body p { color: #a8b3be; }
+    .actions button { color: #0f1317; background: #7cc4ff; border-color: #7cc4ff; }
+    .actions button.cancel { color: #7cc4ff; background: transparent; border-color: #3a434c; }
+    .actions button.danger { color: #fff; background: #d93025; border-color: #d93025; }
   }
 `;
 
@@ -133,4 +136,67 @@ export async function alertDialog(options: AlertOptions): Promise<void> {
 export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
   const resolved = resolveConfirm(options);
   return show(resolved, resolved.danger ? "alertdialog" : "dialog");
+}
+
+/**
+ * A modal holding content of the caller's own (a form, a list), closed with a Done button, Escape
+ * or a press on the backdrop. Resolves when it closes. The content is the caller's nodes, so they
+ * can keep them up to date while it is open; `stylesheets` bring the caller's own classes into the
+ * dialog (the dialog is in a shadow root, which the page's styles don't reach). Prompts opened from
+ * inside it (a confirm) stack above it.
+ */
+export function modalDialog(options: ModalOptions): Promise<void> {
+  const what = resolveModal(options);
+  return new Promise((resolve) => {
+    const id = `st-dialog-${++counter}`;
+    const host = document.createElement("div");
+    host.className = "st-dialog-host";
+    const reset = (property: string, value: string) =>
+      host.style.setProperty(property, value, "important");
+    reset("all", "initial");
+    reset("direction", "ltr");
+    const root = host.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = `${STYLES} dialog.modal { width: min(${what.width}px, calc(100vw - 32px)); }`;
+    const links = what.stylesheets.map((href) => {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = href;
+      return link;
+    });
+    const dialog = document.createElement("dialog");
+    dialog.className = "modal";
+    dialog.setAttribute("aria-labelledby", `${id}-title`);
+    const body = document.createElement("div");
+    body.className = "body";
+    const title = document.createElement("h2");
+    title.id = `${id}-title`;
+    title.textContent = what.title;
+    body.append(title);
+    const content = document.createElement("div");
+    content.className = "content";
+    content.append(options.content);
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    const done = document.createElement("button");
+    done.type = "button";
+    done.className = "confirm";
+    done.textContent = what.closeLabel;
+    done.addEventListener("click", () => dialog.close());
+    actions.append(done);
+    dialog.append(body, content, actions);
+    root.append(style, ...links, dialog);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+    dialog.addEventListener("close", () => {
+      host.remove();
+      resolve();
+    });
+    document.body.append(host);
+    dialog.showModal();
+    // The first thing in it that can be used; the Done button if there is nothing.
+    const first = content.querySelector<HTMLElement>("button, input, select, textarea, a[href]");
+    (first ?? done).focus();
+  });
 }

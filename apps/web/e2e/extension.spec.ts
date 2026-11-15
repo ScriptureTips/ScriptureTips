@@ -56,6 +56,14 @@ test.beforeEach(({}, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "Extensions run in desktop Chromium.");
 });
 
+/** Opens the outside reading sites' modal from the edit icon beside "Where links go". */
+async function openSites(page: Page) {
+  const edit = page.getByRole("button", { name: "Edit the list of outside reading sites" });
+  await expect(edit).toHaveAttribute("title", "Click to edit the list");
+  await edit.click();
+  await expect(page.getByRole("dialog", { name: "Outside reading sites" })).toBeVisible();
+}
+
 const page$ = (body = "") => `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>Fixture page</title><style>body { font: 18px/1.5 serif; margin: 1rem; }</style></head><body>
 <main id="content">
@@ -666,6 +674,14 @@ test("vision §3.6: the outside reading sites are cards, edited where they stand
 }) => {
   await page.setViewportSize({ width: 900, height: 900 });
   await page.goto(`chrome-extension://${extensionId}/options.html`);
+  // The list isn't on the page: it's in a modal, opened by the edit icon right of the menu.
+  await expect(page.locator("#sites")).toHaveCount(0);
+  const [menuBox, iconBox] = await Promise.all([
+    page.getByRole("combobox", { name: "Where links go" }).boundingBox(),
+    page.getByRole("button", { name: "Edit the list of outside reading sites" }).boundingBox(),
+  ]);
+  expect((iconBox?.x ?? 0) >= (menuBox?.x ?? 0) + (menuBox?.width ?? 0)).toBe(true);
+  await openSites(page);
   const cards = page.locator("#sites .site-card");
   await expect(cards).toHaveCount(3);
   const first = cards.first();
@@ -716,11 +732,14 @@ test("vision §3.6: the outside reading sites are cards, edited where they stand
   await first.getByRole("textbox", { name: "Name" }).fill("Nope");
   await page.keyboard.press("Escape");
   await expect(first.locator(".site-title")).toHaveText("Gateway");
+  // Esc gave up the edit only: the modal is still open.
+  await expect(page.getByRole("dialog", { name: "Outside reading sites" })).toBeVisible();
   await first.getByRole("combobox").selectOption("ESV");
   await expect(page.getByRole("status")).toHaveText("Saved.");
 
   // It lasts.
   await page.reload();
+  await openSites(page);
   const kept = page.locator("#sites .site-card").first();
   await expect(kept.locator(".site-title")).toHaveText("Gateway");
   await expect(kept.locator(".site-address")).toHaveText("https://example.org/?q=ST_REFERENCE");
@@ -755,6 +774,15 @@ test("vision §3.6: the outside reading sites are cards, edited where they stand
   await page.getByRole("button", { name: "Remove My site" }).click();
   await ask.getByRole("button", { name: "Remove", exact: true }).click();
   await expect(page.locator("#sites .site-card")).toHaveCount(3);
+  // Done closes the modal (so does Esc), and the menu behind it lists the sites as they are now.
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("dialog", { name: "Outside reading sites" })).toHaveCount(0);
+  await expect(page.getByRole("combobox", { name: "Where links go" }).locator("option")).toHaveText(
+    ["ScriptureTips", "Gateway", "BibleHub.com", "BlueLetterBible.org"],
+  );
+  await openSites(page);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Outside reading sites" })).toHaveCount(0);
 });
 
 test("vision §3.6: the outside reading sites are sortable by their handles", async ({
@@ -763,6 +791,7 @@ test("vision §3.6: the outside reading sites are sortable by their handles", as
 }) => {
   await page.setViewportSize({ width: 900, height: 900 });
   await page.goto(`chrome-extension://${extensionId}/options.html`);
+  await openSites(page);
   const names = () => page.locator("#sites .site-title").allTextContents();
   await expect.poll(names).toEqual(["BibleGateway.com", "BibleHub.com", "BlueLetterBible.org"]);
   // The handle is left of the heading.
@@ -807,6 +836,7 @@ test("vision §3.6: the outside reading sites are sortable by their handles", as
 
   // The order lasts, and the chosen place for links goes with its site.
   await page.reload();
+  await openSites(page);
   await expect.poll(names).toEqual(["BibleGateway.com", "BlueLetterBible.org", "BibleHub.com"]);
   await page
     .getByRole("combobox", { name: "Where links go" })
@@ -820,22 +850,18 @@ test("vision §3.6: the outside reading sites are sortable by their handles", as
   ).toHaveText("BibleHub.com");
 });
 
-test("vision §3.6: the settings page: Defaults, the outside sites, the sites turned off, and advanced settings closed", async ({
+test("vision §3.6: the settings page: Defaults, the sites turned off, and advanced settings closed", async ({
   page,
   extensionId,
 }) => {
   await page.setViewportSize({ width: 900, height: 900 });
   await page.goto(`chrome-extension://${extensionId}/options.html`);
   // The sections, in order.
-  await expect(page.locator("main h2")).toHaveText([
-    "Defaults",
-    "Outside reading sites",
-    "Sites turned off",
-  ]);
+  await expect(page.locator("main h2")).toHaveText(["Defaults", "Sites turned off"]);
   // Three fields under Defaults, the link generator's format the last of them.
   const defaults = page.locator("h2", { hasText: "Defaults" });
   const first = await defaults.boundingBox();
-  const sites = await page.locator("h2", { hasText: "Outside reading sites" }).boundingBox();
+  const sites = await page.locator("h2", { hasText: "Sites turned off" }).boundingBox();
   const fields = [
     "Where links go",
     "The translation the passage opens in",

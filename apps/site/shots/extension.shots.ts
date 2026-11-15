@@ -140,13 +140,11 @@ test("the settings page, part by part", async ({ page, extensionId }) => {
       page.locator(".hint").first(),
     ],
   });
-  await capture(page, image("settings-outside-sites"), {
-    around: [
-      heading("Outside reading sites"),
-      page.locator("#restore-sites"),
-      page.locator("#sites"),
-    ],
-  });
+  await page.getByRole("button", { name: "Edit the list of outside reading sites" }).click();
+  const sites = page.getByRole("dialog", { name: "Outside reading sites" });
+  await expect(sites).toBeVisible();
+  await capture(page, image("settings-outside-sites"), { around: [sites], pad: 0 });
+  await page.getByRole("button", { name: "Done" }).click();
   const disabled = page.locator("#disabled");
   await disabled.fill("example.org\nforum.example.net");
   await capture(page, image("settings-sites-off"), {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveAlert, resolveConfirm } from "./options.ts";
+import { resolveAlert, resolveConfirm, resolveModal } from "./options.ts";
 
 describe("vision §3.6: the shared dialogs' words and focus", () => {
   it("an alert has one button, with its focus", () => {
@@ -24,5 +24,22 @@ describe("vision §3.6: the shared dialogs' words and focus", () => {
       danger: true,
       focus: "cancel",
     });
+  });
+});
+
+describe("vision §3.6: a modal with content of the caller's own", () => {
+  const content = {} as Node;
+  it("closes with Done, at a usual width", () => {
+    expect(resolveModal({ title: "Sites", content })).toEqual({
+      title: "Sites",
+      closeLabel: "Done",
+      stylesheets: [],
+      width: 560,
+    });
+  });
+  it("keeps its width within reason", () => {
+    expect(resolveModal({ title: "x", content, width: 10 }).width).toBe(320);
+    expect(resolveModal({ title: "x", content, width: 5000 }).width).toBe(900);
+    expect(resolveModal({ title: "x", content, width: 640.4 }).width).toBe(640);
   });
 });

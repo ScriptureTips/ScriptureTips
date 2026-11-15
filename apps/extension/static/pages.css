@@ -501,3 +501,17 @@ details.advanced h3 {
   margin: 0.75rem 0 0.2rem;
   font-size: 0.9375rem;
 }
+
+/* A menu with a button after it (the edit icon beside "Where links go"). */
+.select-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.select-row select {
+  flex: 1;
+  min-width: 0;
+}
+.select-row button.icon {
+  flex: none;
+}

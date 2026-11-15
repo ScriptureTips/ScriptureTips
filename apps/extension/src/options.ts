@@ -1,4 +1,4 @@
-import { confirmDialog } from "@scripturetips/dialogs";
+import { confirmDialog, modalDialog } from "@scripturetips/dialogs";
 import { DEFAULT_TRANSLATION, type WidgetTranslation } from "@scripturetips/scripture-links";
 import { byId, destinationOf, destinations, FORMAT_NAMES, fill } from "./pages.ts";
 import {
@@ -19,6 +19,8 @@ import { loadSettings, saveSettings } from "./store.ts";
  * installation to use. Each change is saved as it's made.
  */
 let settings: Settings;
+/** The list of site cards while its modal is open, else null. */
+let sitesList: HTMLElement | null = null;
 
 const status = () => byId<HTMLParagraphElement>("status");
 
@@ -124,7 +126,12 @@ function editable(options: {
     };
     input.addEventListener("keydown", (event) => {
       if (event.key === "Enter") finish(true);
-      if (event.key === "Escape") finish(false);
+      if (event.key === "Escape") {
+        // Gives up the edit, and only that: the dialog around it stays.
+        event.preventDefault();
+        event.stopPropagation();
+        finish(false);
+      }
     });
     input.addEventListener("blur", () => finish(true));
     holder.replaceChildren(input);
@@ -142,7 +149,7 @@ function reorder(from: number, to: number, refocus: boolean): void {
   if (from === to) return;
   void save(moveOutsideSite(settings, from, to), true);
   if (refocus) {
-    document.querySelectorAll<HTMLElement>("#sites .site-card .handle")[to]?.focus();
+    sitesList?.querySelectorAll<HTMLElement>(".site-card .handle")[to]?.focus();
   }
 }
 
@@ -194,7 +201,11 @@ function sortable(handle: HTMLButtonElement, card: HTMLLIElement, index: number)
     const up = (e: PointerEvent) => end(e, false);
     const cancel = (e: PointerEvent) => end(e, true);
     const onEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") end(event, true);
+      if (e.key !== "Escape") return;
+      // Puts the drag back, and only that: the dialog around it stays.
+      e.preventDefault();
+      e.stopPropagation();
+      end(event, true);
     };
     handle.addEventListener("pointermove", move);
     handle.addEventListener("pointerup", up);
@@ -300,9 +311,45 @@ function siteCard(site: OutsideSite, index: number, startEditing: boolean): HTML
 /** `editing`: the card at this index opens with its name ready to type (a site just added). */
 function draw(editing = -1): void {
   fill(byId("destination"), destinations(settings), String(settings.destination));
-  byId("sites").replaceChildren(
+  sitesList?.replaceChildren(
     ...settings.outsideSites.map((site, i) => siteCard(site, i, i === editing)),
   );
+}
+
+/** The outside reading sites, in a modal: the cards, and the buttons to add and restore. */
+async function editSites(): Promise<void> {
+  const content = document.createElement("div");
+  content.innerHTML = `
+    <p class="hint">A link's address can use <code>ST_REFERENCE</code>, <code>ST_TRANSLATION</code>, <code>ST_BOOKNAME</code>, <code>ST_CHAPTER</code> and <code>ST_VERSE</code>. The translation is that site's own code for it (such as KJV).</p>
+    <ul id="sites" class="site-cards"></ul>
+    <div class="row">
+      <button type="button" class="quiet" id="add-site">Add a site</button>
+      <button type="button" class="quiet" id="restore-sites">Restore the usual sites</button>
+    </div>`;
+  sitesList = content.querySelector<HTMLElement>("#sites");
+  draw();
+  content.querySelector("#add-site")?.addEventListener("click", () => {
+    void save(
+      {
+        ...settings,
+        outsideSites: [...settings.outsideSites, { name: "", url: "", translation: "" }],
+      },
+      settings.outsideSites.length,
+    );
+  });
+  content.querySelector("#restore-sites")?.addEventListener("click", () => {
+    const known = new Set(settings.outsideSites.map((s) => s.url));
+    const missing = PRESET_SITES.filter((s) => !known.has(s.url));
+    void save({ ...settings, outsideSites: [...settings.outsideSites, ...missing] }, true);
+  });
+  await modalDialog({
+    title: "Outside reading sites",
+    content,
+    closeLabel: "Done",
+    stylesheets: ["pages.css"],
+    width: 640,
+  });
+  sitesList = null;
 }
 
 async function main() {
@@ -345,20 +392,7 @@ async function main() {
     }
     void save({ ...settings, site: value ? new URL(value).origin : null });
   });
-  byId<HTMLButtonElement>("add-site").addEventListener("click", () => {
-    void save(
-      {
-        ...settings,
-        outsideSites: [...settings.outsideSites, { name: "", url: "", translation: "" }],
-      },
-      settings.outsideSites.length,
-    );
-  });
-  byId<HTMLButtonElement>("restore-sites").addEventListener("click", () => {
-    const known = new Set(settings.outsideSites.map((s) => s.url));
-    const missing = PRESET_SITES.filter((s) => !known.has(s.url));
-    void save({ ...settings, outsideSites: [...settings.outsideSites, ...missing] }, true);
-  });
+  byId<HTMLButtonElement>("edit-sites").addEventListener("click", () => void editSites());
 
   const translation = byId<HTMLSelectElement>("translation");
   fill(translation, await translations(), settings.translation ?? DEFAULT_TRANSLATION);

@@ -57,3 +57,28 @@ export function resolveConfirm(options: ConfirmOptions): Resolved {
     focus: danger ? "cancel" : "confirm",
   };
 }
+
+/** What a modal holding content of the caller's own asks for. */
+export interface ModalOptions {
+  readonly title: string;
+  /** What it holds: nodes the caller builds and keeps in step while it is open. */
+  readonly content: Node;
+  /** The button that closes it ("Done"). */
+  readonly closeLabel?: string;
+  /** Style sheets (addresses) to bring into the dialog, so the caller's own classes work inside it. */
+  readonly stylesheets?: readonly string[];
+  /** Its width in CSS pixels, kept between 320 and 900 and within the window (560). */
+  readonly width?: number;
+}
+
+export const MODAL_WIDTH = { least: 320, most: 900, usual: 560 } as const;
+
+export function resolveModal(options: ModalOptions) {
+  const width = options.width ?? MODAL_WIDTH.usual;
+  return {
+    title: options.title,
+    closeLabel: options.closeLabel ?? "Done",
+    stylesheets: options.stylesheets ?? [],
+    width: Math.min(MODAL_WIDTH.most, Math.max(MODAL_WIDTH.least, Math.round(width))),
+  };
+}
