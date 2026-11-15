@@ -11,13 +11,16 @@
   <h1 class="brand"><img src="icons/icon-48.png" alt="" width="32" height="32"> Scripture Tips settings</h1>
   <p class="status" id="status" role="status"></p>
 
-  <h2>Links</h2>
+  <h2>Defaults</h2>
   <label for="destination">Where links go</label>
   <select id="destination"></select>
 
   <label for="translation">The translation the passage opens in</label>
   <select id="translation"></select>
   <p class="hint">On a passage, you can choose another in its tooltip; that choice is kept for that link.</p>
+
+  <label for="format">The link generator's format</label>
+  <select id="format"></select>
 
   <h2>Outside reading sites</h2>
   <p class="hint">A link's address can use <code>ST_REFERENCE</code>, <code>ST_TRANSLATION</code>, <code>ST_BOOKNAME</code>, <code>ST_CHAPTER</code> and <code>ST_VERSE</code>. The translation is that site's own code for it (such as KJV).</p>
@@ -27,17 +30,16 @@
     <button type="button" class="quiet" id="restore-sites">Restore the usual sites</button>
   </div>
 
-  <h2>Link generator</h2>
-  <label for="format">Format</label>
-  <select id="format"></select>
-
   <h2>Sites turned off</h2>
   <label for="disabled">One site per line (as in the address bar: example.org)</label>
   <textarea id="disabled" rows="5" spellcheck="false"></textarea>
 
-  <h2>ScriptureTips address</h2>
-  <label for="site">To open links in another ScriptureTips installation, give its address</label>
-  <input type="url" id="site" spellcheck="false">
+  <details id="advanced" class="advanced">
+    <summary>Advanced settings</summary>
+    <h3>ScriptureTips address</h3>
+    <label for="site">To open links in another ScriptureTips installation, give its address</label>
+    <input type="url" id="site" spellcheck="false">
+  </details>
 
   <footer class="credits">
     <p>Logo by <a href="https://www.fiverr.com/buzzzy" target="_blank" rel="noopener">buzzzy at Fiverr.com</a>.</p>

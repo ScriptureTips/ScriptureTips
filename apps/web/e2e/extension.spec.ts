@@ -819,3 +819,58 @@ test("vision §3.6: the outside reading sites are sortable by their handles", as
     page.getByRole("combobox", { name: "Where links go" }).locator("option:checked"),
   ).toHaveText("BibleHub.com");
 });
+
+test("vision §3.6: the settings page: Defaults, the outside sites, the sites turned off, and advanced settings closed", async ({
+  page,
+  extensionId,
+}) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.goto(`chrome-extension://${extensionId}/options.html`);
+  // The sections, in order.
+  await expect(page.locator("main h2")).toHaveText([
+    "Defaults",
+    "Outside reading sites",
+    "Sites turned off",
+  ]);
+  // Three fields under Defaults, the link generator's format the last of them.
+  const defaults = page.locator("h2", { hasText: "Defaults" });
+  const first = await defaults.boundingBox();
+  const sites = await page.locator("h2", { hasText: "Outside reading sites" }).boundingBox();
+  const fields = [
+    "Where links go",
+    "The translation the passage opens in",
+    "The link generator's format",
+  ];
+  const tops: number[] = [];
+  for (const name of fields) {
+    const box = await page.getByRole("combobox", { name }).boundingBox();
+    expect(box && box.y > (first?.y ?? 0) && box.y < (sites?.y ?? 0)).toBe(true);
+    tops.push(box?.y ?? 0);
+  }
+  expect([...tops].sort((a, b) => a - b)).toEqual(tops);
+  await page
+    .getByRole("combobox", { name: "The link generator's format" })
+    .selectOption({ label: "Markdown" });
+  await expect(page.getByRole("status")).toHaveText("Saved.");
+  // The ScriptureTips address is out of sight until the advanced settings are opened.
+  const address = page.getByRole("textbox", { name: /another ScriptureTips installation/ });
+  await expect(address).toBeHidden();
+  await page.getByText("Advanced settings", { exact: true }).click();
+  await expect(address).toBeVisible();
+  await address.fill("https://satellite.example");
+  await address.blur();
+  await expect(page.getByRole("status")).toHaveText("Saved.");
+  // Set, they open with the page; cleared, they close again.
+  await page.reload();
+  await expect(
+    page.getByRole("textbox", { name: /another ScriptureTips installation/ }),
+  ).toBeVisible();
+  await page.getByRole("textbox", { name: /another ScriptureTips installation/ }).fill("");
+  await page.getByRole("textbox", { name: /another ScriptureTips installation/ }).blur();
+  await expect(page.getByRole("status")).toHaveText("Saved.");
+  await page.reload();
+  await expect(
+    page.getByRole("textbox", { name: /another ScriptureTips installation/ }),
+  ).toBeHidden();
+  await page.screenshot(shot("extension-settings-sections"));
+});

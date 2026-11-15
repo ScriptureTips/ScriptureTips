@@ -318,6 +318,8 @@ async function main() {
   const site = byId<HTMLInputElement>("site");
   site.value = settings.site ?? "";
   site.placeholder = BUILT_IN_SITE;
+  // Out of the way until it is wanted; open if another installation is already set.
+  byId<HTMLDetailsElement>("advanced").open = Boolean(settings.site);
 
   byId<HTMLSelectElement>("destination").addEventListener("change", (e) => {
     void save({

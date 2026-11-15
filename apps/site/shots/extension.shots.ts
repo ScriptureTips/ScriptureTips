@@ -133,7 +133,12 @@ test("the settings page, part by part", async ({ page, extensionId }) => {
   const heading = (name: string) => page.getByRole("heading", { name, exact: true });
 
   await capture(page, image("settings-links"), {
-    around: [heading("Links"), translation, page.locator(".hint").first()],
+    around: [
+      heading("Defaults"),
+      page.locator("#format"),
+      translation,
+      page.locator(".hint").first(),
+    ],
   });
   await capture(page, image("settings-outside-sites"), {
     around: [
@@ -147,8 +152,9 @@ test("the settings page, part by part", async ({ page, extensionId }) => {
   await capture(page, image("settings-sites-off"), {
     around: [heading("Sites turned off"), disabled],
   });
+  await page.getByText("Advanced settings", { exact: true }).click();
   await capture(page, image("settings-address"), {
-    around: [heading("ScriptureTips address"), page.locator("#site")],
+    around: [page.locator("#advanced")],
   });
 });
 

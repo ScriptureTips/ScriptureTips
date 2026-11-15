@@ -484,3 +484,20 @@ input.edit {
 .site-card.dragging .handle {
   cursor: grabbing;
 }
+
+/* The advanced settings: closed until opened, headed like the other sections. */
+details.advanced {
+  margin-top: 1.25rem;
+}
+details.advanced > summary {
+  font-size: 1rem;
+  cursor: pointer;
+}
+details.advanced > summary:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 2px;
+}
+details.advanced h3 {
+  margin: 0.75rem 0 0.2rem;
+  font-size: 0.9375rem;
+}
