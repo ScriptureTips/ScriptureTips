@@ -17,6 +17,7 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ### Added
 - Any number of passage tooltips can be pinned on a page (extension and website plugin): while some are pinned, other references open their own tooltip, and only one tooltip that isn't pinned is ever open.
+- The extension has a round ? beside some fields (where links go and the ScriptureTips address in the settings, and the format in the link generator) that explains them in a dialog.
 - The browser extension's toolbar popup has a footer with magnifying glasses to make the text of the passage tooltips larger or smaller (85% to 200%). The page's own text and the popup itself are unchanged, and the size is kept per browser. Help: "Making the text larger or smaller".
 
 ### Fixed

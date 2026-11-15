@@ -2,6 +2,7 @@ import {
   type AlertOptions,
   type ConfirmOptions,
   type ModalOptions,
+  messagePieces,
   type Resolved,
   resolveAlert,
   resolveConfirm,
@@ -36,6 +37,7 @@ const STYLES = `
   .content { padding: 4px 20px 6px; }
   .body h2 { margin: 0 0 6px; font-size: 17px; font-weight: 600; }
   .body p { margin: 0; color: #5b6672; overflow-wrap: anywhere; white-space: pre-line; }
+  .body p strong { font-weight: 700; color: #1d232a; }
   .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px 18px; }
   .actions button {
     font: inherit; padding: 6px 16px; cursor: pointer; color: #fff; background: #0054a5;
@@ -49,6 +51,7 @@ const STYLES = `
   @media (prefers-color-scheme: dark) {
     dialog { color: #e8edf2; background: #161b21; border-color: #3a434c; }
     .body p { color: #a8b3be; }
+    .body p strong { color: #e8edf2; }
     .actions button { color: #0f1317; background: #7cc4ff; border-color: #7cc4ff; }
     .actions button.cancel { color: #7cc4ff; background: transparent; border-color: #3a434c; }
     .actions button.danger { color: #fff; background: #d93025; border-color: #d93025; }
@@ -83,7 +86,15 @@ function show(what: Resolved, role: "dialog" | "alertdialog"): Promise<boolean> 
     if (what.message) {
       const message = document.createElement("p");
       message.id = `${id}-message`;
-      message.textContent = what.message;
+      // Text only: bold pieces become <strong> elements holding text, never parsed markup.
+      for (const piece of messagePieces(what.message)) {
+        if (!piece.bold) message.append(piece.text);
+        else {
+          const strong = document.createElement("strong");
+          strong.textContent = piece.text;
+          message.append(strong);
+        }
+      }
       dialog.setAttribute("aria-describedby", message.id);
       body.append(message);
     }

@@ -2,7 +2,7 @@
 export interface AlertOptions {
   /** The heading. */
   readonly title: string;
-  /** What it says, as text (never markup). */
+  /** What it says, as text (never markup): only `**bold**` and `<strong>bold</strong>` are shown bold. */
   readonly message?: string;
   /** The button's words ("OK"). */
   readonly okLabel?: string;
@@ -81,4 +81,29 @@ export function resolveModal(options: ModalOptions) {
     stylesheets: options.stylesheets ?? [],
     width: Math.min(MODAL_WIDTH.most, Math.max(MODAL_WIDTH.least, Math.round(width))),
   };
+}
+
+/** A piece of a message, and whether it is shown bold. */
+export interface Piece {
+  readonly text: string;
+  readonly bold: boolean;
+}
+
+/**
+ * Splits a message into plain and bold pieces. The only markup is `**bold**` and
+ * `<strong>bold</strong>`; anything else (any other tag included) stays as the plain text it was
+ * written as, so a message is never markup.
+ */
+export function messagePieces(message: string): Piece[] {
+  const pieces: Piece[] = [];
+  let rest = message;
+  for (;;) {
+    const found = /\*\*(.+?)\*\*|<strong>(.+?)<\/strong>/s.exec(rest);
+    if (!found) break;
+    if (found.index > 0) pieces.push({ text: rest.slice(0, found.index), bold: false });
+    pieces.push({ text: found[1] ?? found[2] ?? "", bold: true });
+    rest = rest.slice(found.index + found[0].length);
+  }
+  if (rest) pieces.push({ text: rest, bold: false });
+  return pieces;
 }

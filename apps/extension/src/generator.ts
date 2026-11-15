@@ -1,3 +1,4 @@
+import { alertDialog } from "@scripturetips/dialogs";
 import { linkText } from "./format.ts";
 import { addressFor, destinationOf, destinations, FORMAT_NAMES, fill } from "./pages.ts";
 import { LINK_FORMATS, type LinkFormat, type Settings } from "./settings.ts";
@@ -15,6 +16,7 @@ export const GENERATOR_HTML = `
   <div class="row">
     <label for="format">Format</label>
     <select id="format"></select>
+    <button type="button" class="help" id="format-help" aria-label="Help: Format" title="What is this?">?</button>
   </div>
   <div class="row">
     <label for="destination">Links go to</label>
@@ -30,6 +32,13 @@ export const GENERATOR_HTML = `
     <button type="button" class="quiet" id="copy">Copy</button>
     <span class="status" id="status" role="status"></span>
   </div>`;
+
+/** What the help icon beside the format says. */
+const FORMAT_HELP = {
+  title: "Format",
+  message:
+    "Websites use different formats for the links they use.\n\n<strong>HTML:</strong> web pages, blogs and email written in HTML.\n\n<strong>BBCode (forums):</strong> most forums, where links look like [url=…]John 3:16[/url].\n\n<strong>Wiki markup:</strong> wikis, where a link is [address John 3:16].\n\n<strong>Markdown:</strong> GitHub, Reddit, notes apps and many blogs, where a link is [John 3:16](address).\n\nYour choice is kept as the default under the settings.\n\nIf the website has a preview button, just try one and then use the undo button if it doesn't look right.",
+};
 
 /**
  * Wires the form in `root` (which holds `GENERATOR_HTML`). The cog calls `openSettings`, where the
@@ -51,6 +60,11 @@ export function mountGenerator(
   const undo = get<HTMLButtonElement>("undo");
   const redo = get<HTMLButtonElement>("redo");
   const status = get<HTMLSpanElement>("status");
+
+  get<HTMLButtonElement>("format-help").addEventListener(
+    "click",
+    () => void alertDialog({ ...FORMAT_HELP, okLabel: "Got it" }),
+  );
 
   fill(
     format,

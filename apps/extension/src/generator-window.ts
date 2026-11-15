@@ -72,6 +72,8 @@ const STYLES = `
   button.quiet { color: #0054a5; background: transparent; border-color: #c9d0d6; }
   button:disabled { opacity: 0.5; cursor: default; }
   button.close { padding: 0; }
+  button.help { flex: none; width: 20px; height: 20px; padding: 0; font-size: 12px; font-weight: 600; line-height: 1; color: #0054a5; background: transparent; border: 1.5px solid #0054a5; border-radius: 50%; }
+  button.help:hover { color: #fff; background: #0054a5; }
   button.icon { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; }
   button.icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linejoin: round; }
   a:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visible, .grip:focus-visible {
@@ -89,6 +91,8 @@ const STYLES = `
     textarea, select { background: #0f1317; border-color: #3a434c; }
     button { color: #0f1317; background: #7cc4ff; border-color: #7cc4ff; }
     button.quiet { color: #7cc4ff; background: transparent; border-color: #3a434c; }
+    button.help { color: #7cc4ff; background: transparent; border-color: #7cc4ff; }
+    button.help:hover { color: #0f1317; background: #7cc4ff; }
   }
   @media print { .win { display: none; } }
 `;

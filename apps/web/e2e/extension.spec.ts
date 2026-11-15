@@ -324,6 +324,23 @@ test("vision §3.6: the link generator links what the reader writes, with undo a
       return same;
     })(),
   );
+  // A help icon after the format selector explains the formats.
+  const help = page.getByRole("button", { name: "Help: Format" });
+  const [menu, icon] = await Promise.all([
+    page.getByRole("combobox", { name: "Format" }).boundingBox(),
+    help.boundingBox(),
+  ]);
+  expect(menu && icon && icon.x >= menu.x + menu.width).toBe(true);
+  await help.click();
+  const explain = page.getByRole("dialog", { name: "Format" });
+  await expect(explain).toContainText("Markdown");
+  // The format names are bold (strong elements), and no tag is shown as text.
+  await expect(explain.locator("strong").first()).toHaveText("HTML:");
+  expect(await explain.locator("strong").count()).toBeGreaterThanOrEqual(4);
+  await expect(explain).not.toContainText("<strong>");
+  await page.screenshot(shot("extension-generator-help"));
+  await explain.getByRole("button", { name: "Got it" }).click();
+  await expect(explain).toHaveCount(0);
   const text = page.getByRole("textbox", { name: "Your text" });
   await text.fill("As Paul says in Romans 5:8.\n[url=x]John 3:16[/url]");
   await page.getByRole("combobox", { name: "Format" }).selectOption({ label: "BBCode (forums)" });
@@ -648,6 +665,12 @@ test("vision §3.6: the popup's Generator opens the link generator as a window o
   expect(Math.round(least.width)).toBe(340);
   expect(Math.round(least.height)).toBe(380);
   await page.screenshot(shot("extension-generator-window"));
+  // The help icon after the format explains it, over the page, in the shared dialog.
+  await win.getByRole("button", { name: "Help: Format" }).click();
+  const formatHelp = page.getByRole("dialog", { name: "Format" });
+  await expect(formatHelp).toContainText("BBCode (forums)");
+  await formatHelp.getByRole("button", { name: "Got it" }).click();
+  await expect(formatHelp).toHaveCount(0);
 
   // The page can't restyle it, and what the reader reads is still the page's own.
   await expect(page.locator("main")).toContainText("As Paul says in Romans 5:8");
@@ -1031,4 +1054,33 @@ test("vision §3.6: the sites turned off are cards, only a heading each, always 
   await page.getByRole("button", { name: "Remove forum.example.net" }).click();
   await ask.getByRole("button", { name: "Remove", exact: true }).click();
   await expect.poll(hosts).toEqual(["aardvark.example.org", "apple.example.com"]);
+});
+
+test("vision §3.6: some settings have a help icon that explains them in a dialog", async ({
+  page,
+  extensionId,
+}) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.goto(`chrome-extension://${extensionId}/options.html`);
+  // Only some of the fields have one.
+  await page.getByText("Advanced settings", { exact: true }).click();
+  await expect(page.locator("button.help")).toHaveCount(2);
+  const cases: [string, RegExp][] = [
+    ["Where links go", /Read more opens that site/],
+    ["To open links in another ScriptureTips installation, give its address", /runs its own/],
+  ];
+  for (const [field, words] of cases) {
+    await page.getByRole("button", { name: `Help: ${field}` }).click();
+    const dialog = page.getByRole("dialog").filter({ hasText: words });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Got it" })).toBeFocused();
+    if (field === "Where links go") await page.screenshot(shot("extension-settings-help"));
+    await dialog.getByRole("button", { name: "Got it" }).click();
+    await expect(dialog).toHaveCount(0);
+  }
+  // Escape closes one too, and the page behind is as it was.
+  await page.getByRole("button", { name: "Help: Where links go" }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Help: Where links go" })).toBeFocused();
 });

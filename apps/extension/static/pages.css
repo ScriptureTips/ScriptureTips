@@ -318,6 +318,9 @@ h1.brand {
 #generator .row label {
   margin: 0;
 }
+#generator .row button.help {
+  margin-top: 0;
+}
 #generator .row select {
   width: auto;
   max-width: 100%;
@@ -514,4 +517,33 @@ details.advanced h3 {
 }
 .select-row button.icon {
   flex: none;
+}
+
+/* A label with its help icon after it; the icon explains the field in a dialog. */
+.label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+button.help {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--deep);
+  background: transparent;
+  border: 1.5px solid var(--deep);
+  border-radius: 50%;
+}
+button.help:hover {
+  color: #fff;
+  background: var(--deep);
+}
+button.help:focus-visible {
+  outline: 2px solid var(--deep);
+  outline-offset: 2px;
 }

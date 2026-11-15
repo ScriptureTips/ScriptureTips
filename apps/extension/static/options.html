@@ -12,7 +12,10 @@
   <p class="status" id="status" role="status"></p>
 
   <h2>Defaults</h2>
-  <label for="destination">Where links go</label>
+  <div class="label-row">
+    <label for="destination">Where links go</label>
+    <button type="button" class="help" data-help="destination" aria-label="Help: Where links go" title="What is this?">?</button>
+  </div>
   <div class="select-row">
     <select id="destination"></select>
     <button type="button" class="quiet icon" id="edit-sites" title="Click to edit the list" aria-label="Edit the list of outside reading sites">
@@ -37,7 +40,10 @@
   <details id="advanced" class="advanced">
     <summary>Advanced settings</summary>
     <h3>ScriptureTips address</h3>
+    <div class="label-row">
     <label for="site">To open links in another ScriptureTips installation, give its address</label>
+    <button type="button" class="help" data-help="site" aria-label="Help: To open links in another ScriptureTips installation, give its address" title="What is this?">?</button>
+  </div>
     <input type="url" id="site" spellcheck="false">
   </details>
 

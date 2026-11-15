@@ -1,4 +1,4 @@
-import { confirmDialog, modalDialog } from "@scripturetips/dialogs";
+import { alertDialog, confirmDialog, modalDialog } from "@scripturetips/dialogs";
 import { DEFAULT_TRANSLATION, type WidgetTranslation } from "@scripturetips/scripture-links";
 import { byId, destinationOf, destinations, FORMAT_NAMES, fill } from "./pages.ts";
 import {
@@ -417,7 +417,26 @@ async function editSites(): Promise<void> {
   sitesList = null;
 }
 
+/** What the help icons say, each by the `data-help` on its button. */
+const HELP: Record<string, { title: string; message: string }> = {
+  destination: {
+    title: "Where links go",
+    message:
+      "Scripture Tips turns the references on a page into links, and the passage's tooltip has a Read more link. This is where both of them take you.\n\n**ScriptureTips** opens the passage in the ScriptureTips reader. Or choose one of your **outside reading sites**, such as BibleGateway.com, and both go there instead: Read more opens that site, with its name beside the link. The pencil beside the list is where you add, change, remove or put those sites in order.\n\nThe passage in the tooltip itself is always shown from ScriptureTips.",
+  },
+  site: {
+    title: "ScriptureTips address",
+    message:
+      "For a church or community that runs its own ScriptureTips installation. Give its address, and the links and Read more open that installation's reader instead of the standard one.\n\nThe passages in the tooltip still come from the standard data server.\n\nLeave it empty to use the standard address.",
+  },
+};
+
 async function main() {
+  for (const button of document.querySelectorAll<HTMLButtonElement>("button.help")) {
+    const text = HELP[button.dataset["help"] ?? ""];
+    if (text)
+      button.addEventListener("click", () => void alertDialog({ ...text, okLabel: "Got it" }));
+  }
   settings = await loadSettings();
   draw();
   fill(
