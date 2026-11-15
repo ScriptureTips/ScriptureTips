@@ -73,6 +73,7 @@ const STYLES = `
   .status { color: var(--st-muted, #5b6672); }
   .attribution { margin-top: 0.5em; font-size: 0.85em; color: var(--st-muted, #5b6672); }
   footer { margin-top: 0.5em; }
+  footer .source { color: var(--st-muted, #5b6672); }
   a { color: var(--st-accent, #0054a5); }
   .pin {
     display: inline-flex; align-items: center; justify-content: center; width: 1.7em; height: 1.7em; padding: 0;
@@ -100,6 +101,12 @@ function isolate(host: HTMLElement, themable: boolean): void {
   if (!themable) for (const property of THEME_PROPERTIES) set(property, "initial");
 }
 
+/** Where *Read more* goes, and the name of the site it is (shown beside it) if not the reader. */
+export interface ReadMore {
+  readonly url: string;
+  readonly source: string | null;
+}
+
 export interface TooltipOptions {
   readonly client: Client;
   readonly strings: Strings;
@@ -107,6 +114,11 @@ export interface TooltipOptions {
   readonly hoverDelayMs: number;
   /** The translation a passage opens in (`translation.ts`). */
   readonly translation: (link: HTMLAnchorElement) => Promise<string>;
+  /**
+   * Where *Read more* goes for a passage: the destination the page's links go to (an outside
+   * reading site, with its name beside the link), or the ScriptureTips reader if left out.
+   */
+  readonly readMore?: ((link: HTMLAnchorElement, passage: WidgetPassage) => ReadMore) | undefined;
   /** The reader chose another for this passage in the tooltip. */
   readonly choose: (link: HTMLAnchorElement, translation: string) => void;
   readonly emit: <K extends LinksEventName>(name: K, detail: LinksEvents[K]) => void;
@@ -144,7 +156,8 @@ const linkFinder =
 /**
  * The passage pop-up. On a mouse it opens when the pointer rests on a link (or the link takes
  * focus), stays while the pointer is over it, and goes with Escape or a press elsewhere, unless
- * the reader pinned it (then it stays, on its passage, until unpinned or closed from inside it); on a
+ * the reader pinned it (then it stays, on its passage, until unpinned or closed from inside it, and
+ * the other links open new tooltips beside it, so any number can be pinned); on a
  * touch screen the first tap on a link opens it instead of following the link, and *Read more* is
  * the way on. It lives in a shadow root, so the page's styles don't reach it and its own don't
  * leak out, and all its text is set as text, never as markup, whatever the API says.
@@ -157,12 +170,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   const root = host.attachShadow({ mode: "open" });
   const style = doc.createElement("style");
   style.textContent = STYLES;
-  const box = doc.createElement("div");
-  box.className = "box";
-  box.setAttribute("role", "dialog");
-  box.setAttribute("aria-label", options.strings.tooltip);
-  box.hidden = true;
-  root.append(style, box);
+  root.append(style);
   doc.body.append(host);
   // The link whose tooltip is open is outlined, so it's clear which copy of a passage is being
   // looked at (the page's own styles can restyle it: `a.st-ref[aria-expanded="true"]`).
@@ -172,12 +180,36 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     'a.st-ref[aria-expanded="true"] { outline: 2px solid var(--st-accent, #0054a5); outline-offset: 2px; border-radius: 2px; }';
   doc.head.append(mark);
 
-  let anchor: HTMLAnchorElement | null = null;
-  // Pinned by the reader: it stays open, on its passage, until they unpin or close it (so they can
-  // read it while they write a reply). Only closing it unpins it.
-  let pinned = false;
-  // Each opening and each reload is numbered, so a late answer to an earlier one is dropped.
-  let latest = 0;
+  /**
+   * One tooltip. Only one is ever *unpinned* (the one the pointer or focus is on, which moves from
+   * link to link); each one the reader pins stays, on its passage, until they unpin or close it (so
+   * they can read it while they write a reply), and the next link then opens a new tooltip beside
+   * it. So any number can be pinned, and never more than one other is open.
+   */
+  interface Panel {
+    readonly box: HTMLDivElement;
+    anchor: HTMLAnchorElement | null;
+    pinned: boolean;
+    // Each opening and each reload is numbered, so a late answer to an earlier one is dropped.
+    latest: number;
+  }
+  const panels: Panel[] = [];
+  const unpinned = (): Panel | undefined => panels.find((p) => !p.pinned);
+  const panelOf = (target: EventTarget | null): Panel | undefined =>
+    target instanceof Node ? panels.find((p) => p.box.contains(target)) : undefined;
+  const panelFor = (link: HTMLAnchorElement | null): Panel | undefined =>
+    link ? panels.find((p) => p.anchor === link) : undefined;
+  const createPanel = (): Panel => {
+    const box = doc.createElement("div");
+    box.className = "box";
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-label", options.strings.tooltip);
+    box.style.visibility = "hidden";
+    root.append(box);
+    const panel: Panel = { box, anchor: null, pinned: false, latest: 0 };
+    panels.push(panel);
+    return panel;
+  };
   let openTimer: number | undefined;
   let leaveTimer: number | undefined;
   let lastPointer = "mouse";
@@ -189,25 +221,30 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   // takes the focus back.
   let refocus = false;
 
-  /** In the tooltip: `contains` doesn't look into a shadow root, so its own root is asked. */
-  const inside = (target: EventTarget | null): boolean =>
-    target instanceof Node &&
-    (target === host || host.contains(target) || target.getRootNode() === root);
+  /** In the unpinned tooltip (the pinned ones don't take part in what moves it). */
+  const inside = (target: EventTarget | null): boolean => {
+    const open = unpinned();
+    return !!open && target instanceof Node && open.box.contains(target);
+  };
 
   /**
-   * Whether the reader is using the tooltip: a control in it has the focus. The choices of a select
+   * Whether the reader is using a tooltip: a control in it has the focus. The choices of a select
    * open outside the tooltip, so the pointer is away from it while it's being used, and it must
    * stay until the reader is done (Escape, a press elsewhere, or the focus moving on).
    */
-  const inUse = (): boolean => root.activeElement !== null;
+  const inUse = (panel: Panel): boolean => {
+    const active = root.activeElement;
+    return active !== null && panel.box.contains(active);
+  };
 
   /**
    * Under the link, or above it, whichever fits and covers fewer of the page's other passage
    * links: two copies of a passage near each other mustn't have the first's tooltip over the
    * second, or the reader can't reach the second (what they do there would change the first).
    */
-  const place = () => {
-    if (!anchor || box.hidden) return;
+  const place = (panel: Panel) => {
+    const { box, anchor, pinned } = panel;
+    if (!anchor) return;
     const view = {
       width: doc.documentElement.clientWidth,
       height: doc.documentElement.clientHeight,
@@ -272,15 +309,16 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   };
 
   const content = (
+    panel: Panel,
     translations: readonly WidgetTranslation[],
     chosen: string,
     passage: WidgetPassage | null,
     body: Node[],
-    link: string | null,
+    link: ReadMore | null,
   ) => {
     const head = doc.createElement("header");
     const h2 = doc.createElement("h2");
-    h2.textContent = passage?.label ?? anchor?.getAttribute("data-st-text") ?? "";
+    h2.textContent = passage?.label ?? panel.anchor?.getAttribute("data-st-text") ?? "";
     const tools = doc.createElement("div");
     tools.className = "tools";
     head.append(h2, tools);
@@ -297,7 +335,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         select.append(o);
       }
       select.addEventListener("change", () => {
-        const link = anchor;
+        const link = panel.anchor;
         if (!link) return;
         // Chosen by the keyboard, the select keeps the focus; chosen by the pointer (the choices
         // open outside the tooltip) the focus is let go, or the tooltip would stay over what's
@@ -313,40 +351,53 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
           reference: link.getAttribute(REF_ATTRIBUTE) ?? "",
           translation: select.value,
         });
-        void show(link);
+        void show(panel, link);
       });
       label.append(select);
       tools.append(label);
     }
-    tools.append(pinButton());
+    tools.append(pinButton(panel));
     const children: Node[] = [head, ...body];
     if (link) {
       const footer = doc.createElement("footer");
       const a = doc.createElement("a");
-      a.href = link;
+      a.href = link.url;
       a.target = "_blank";
       a.rel = "noopener";
       a.textContent = options.strings.readMore;
       footer.append(a);
+      if (link.source) {
+        // The site it goes to, beside the link.
+        const source = doc.createElement("span");
+        source.className = "source";
+        source.textContent = ` ${options.strings.readMoreOn} ${link.source}`;
+        a.setAttribute(
+          "aria-label",
+          `${options.strings.readMore} ${options.strings.readMoreOn} ${link.source}`,
+        );
+        footer.append(source);
+      }
       children.push(footer);
     }
     // The tooltip is rebuilt as the passage arrives or the translation changes: a select that had
     // the focus hands it to the new one, so the reader goes on using it.
-    const keepFocus = refocus || root.activeElement instanceof HTMLSelectElement;
-    const keepPinFocus = root.activeElement?.classList.contains("pin") ?? false;
+    const { box } = panel;
+    const active = box.contains(root.activeElement) ? root.activeElement : null;
+    const keepFocus = refocus || active instanceof HTMLSelectElement;
+    const keepPinFocus = active?.classList.contains("pin") ?? false;
     box.replaceChildren(...children);
     if (keepFocus) box.querySelector("select")?.focus();
     else if (keepPinFocus) box.querySelector<HTMLButtonElement>(".pin")?.focus();
     refocus = false;
   };
 
-  const pinButton = () => {
+  const pinButton = (panel: Panel) => {
     const button = doc.createElement("button");
     button.type = "button";
     button.className = "pin";
     button.setAttribute("aria-label", options.strings.pin);
     button.title = options.strings.pin;
-    button.setAttribute("aria-pressed", String(pinned));
+    button.setAttribute("aria-pressed", String(panel.pinned));
     const svg = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 24 24");
     svg.setAttribute("aria-hidden", "true");
@@ -355,8 +406,19 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     svg.append(path);
     button.append(svg);
     button.addEventListener("click", () => {
-      pinned = !pinned;
-      button.setAttribute("aria-pressed", String(pinned));
+      const pinning = !panel.pinned;
+      if (!pinning) {
+        // Unpinned, it is the one that follows the pointer again, so the one that was is let go.
+        const other = unpinned();
+        if (other && other !== panel) close(other);
+      }
+      panel.pinned = pinning;
+      if (pinning) {
+        // Pinned, it is left where it is: the next link opens a new tooltip.
+        window.clearTimeout(openTimer);
+        window.clearTimeout(leaveTimer);
+      }
+      button.setAttribute("aria-pressed", String(panel.pinned));
       // Pressed with the pointer, the focus is let go, so the tooltip goes when the pointer leaves
       // once it's unpinned; pressed with the keyboard, the button keeps it.
       if (lastDownAt > lastKeyAt) {
@@ -364,7 +426,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         button.blur();
         releasing = false;
       }
-      place();
+      place(panel);
     });
     return button;
   };
@@ -386,14 +448,11 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     return nodes;
   };
 
-  async function show(link: HTMLAnchorElement): Promise<void> {
-    const mine = ++latest;
-    anchor = link;
+  async function show(panel: Panel, link: HTMLAnchorElement): Promise<void> {
+    const mine = ++panel.latest;
+    panel.anchor = link;
     link.setAttribute("aria-expanded", "true");
     const osis = link.getAttribute(REF_ATTRIBUTE) ?? "";
-    // Until it has been placed it would sit where it falls in the page, at the end of it.
-    if (box.hidden) box.style.visibility = "hidden";
-    box.hidden = false;
     let translations: readonly WidgetTranslation[] = [];
     let chosen = "";
     try {
@@ -404,28 +463,33 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     } catch {
       /* The passage's own request says what went wrong. */
     }
-    if (mine !== latest) return;
+    if (mine !== panel.latest) return;
     if (!chosen) chosen = translations[0]?.id ?? "";
-    content(translations, chosen, null, [status(options.strings.loading)], null);
-    place();
+    content(panel, translations, chosen, null, [status(options.strings.loading)], null);
+    place(panel);
     options.emit("tooltip-open", { reference: osis, translation: chosen });
     try {
       const passage = await options.client.passage(chosen, osis);
-      if (mine !== latest) return;
+      if (mine !== panel.latest) return;
       content(
+        panel,
         translations,
         chosen,
         passage,
         verses(passage),
-        readMoreUrl(options.site, passage.translation.id, passage.label),
+        options.readMore?.(link, passage) ?? {
+          url: readMoreUrl(options.site, passage.translation.id, passage.label),
+          source: null,
+        },
       );
-      box.dir = passage.translation.direction;
+      panel.box.dir = passage.translation.direction;
     } catch (error) {
-      if (mine !== latest) return;
+      if (mine !== panel.latest) return;
       const missing =
         error instanceof ClientError &&
         (error.code === "not-in-canon" || error.code === "unknown-translation");
       content(
+        panel,
         translations,
         chosen,
         null,
@@ -433,33 +497,50 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         null,
       );
     }
-    place();
+    place(panel);
   }
 
-  const close = () => {
+  /** Takes a tooltip away, pinned or not; its link is outlined no longer unless another has it. */
+  const close = (panel: Panel) => {
     window.clearTimeout(openTimer);
     window.clearTimeout(leaveTimer);
-    latest++;
-    pinned = false;
-    box.hidden = true;
-    anchor?.removeAttribute("aria-expanded");
-    anchor = null;
+    panel.latest++;
+    panels.splice(panels.indexOf(panel), 1);
+    panel.box.remove();
+    const link = panel.anchor;
+    panel.anchor = null;
+    if (link && !panelFor(link)) link.removeAttribute("aria-expanded");
+  };
+  const closeUnpinned = () => {
+    const open = unpinned();
+    if (open) close(open);
+  };
+  const closeAll = () => {
+    for (const panel of [...panels]) close(panel);
   };
 
   const open = (link: HTMLAnchorElement) => {
     window.clearTimeout(openTimer);
     window.clearTimeout(leaveTimer);
-    if (anchor === link && !box.hidden) return;
-    anchor?.removeAttribute("aria-expanded");
-    void show(link);
+    // Already pinned: it is open, and stays as it is.
+    if (panelFor(link)?.pinned) return;
+    const current = unpinned();
+    if (current?.anchor === link) return;
+    // The unpinned one moves on to this link; with none, a new tooltip opens (pinned ones stay).
+    if (current?.anchor && !panelFor(current.anchor)?.pinned) {
+      current.anchor.removeAttribute("aria-expanded");
+    }
+    void show(current ?? createPanel(), link);
   };
 
   const leave = () => {
     window.clearTimeout(openTimer);
     window.clearTimeout(leaveTimer);
-    if (pinned) return;
+    const current = unpinned();
+    if (!current) return;
     leaveTimer = window.setTimeout(() => {
-      if (!inUse() && !pinned) close();
+      if (current.pinned || inUse(current)) return;
+      if (panels.includes(current)) close(current);
     }, LEAVE_MS);
   };
 
@@ -469,9 +550,9 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       (e) => {
         lastPointer = (e as PointerEvent).pointerType || "mouse";
         lastDownAt = Date.now();
-        // Pinned, it stays while the reader works elsewhere on the page (writing a reply, say).
-        if (pinned) return;
-        if (!linkOf(e.target) && !inside(e.composedPath()[0] ?? e.target)) close();
+        // Pinned, it stays while the reader works elsewhere on the page (writing a reply, say):
+        // only the unpinned one goes with a press elsewhere.
+        if (!linkOf(e.target) && !inside(e.composedPath()[0] ?? e.target)) closeUnpinned();
       },
       true,
     ],
@@ -480,16 +561,15 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       (e) => {
         const path = e.composedPath();
         if (path.some((n) => n === host)) {
-          window.clearTimeout(leaveTimer);
+          // On the unpinned tooltip, it stays; on a pinned one, nothing changes.
+          if (inside(path[0] ?? null)) window.clearTimeout(leaveTimer);
           return;
         }
         const link = linkOf(e.target);
-        if (!link || pinned || (e as PointerEvent).pointerType !== "mouse") return;
+        if (!link || panelFor(link)?.pinned || (e as PointerEvent).pointerType !== "mouse") return;
         window.clearTimeout(leaveTimer);
         window.clearTimeout(openTimer);
-        openTimer = window.setTimeout(() => {
-          if (!pinned) open(link);
-        }, options.hoverDelayMs);
+        openTimer = window.setTimeout(() => open(link), options.hoverDelayMs);
       },
     ],
     [
@@ -498,7 +578,11 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         if ((e as PointerEvent).pointerType !== "mouse") return;
         const from = e.composedPath()[0] ?? null;
         const to = (e as PointerEvent).relatedTarget;
-        const leftLink = linkOf(from) && linkOf(from) !== linkOf(to);
+        const current = unpinned();
+        if (!current) return;
+        // Only the unpinned tooltip and its link are watched: leaving a pinned one changes nothing.
+        const leftLink =
+          linkOf(from) && linkOf(from) === current.anchor && linkOf(from) !== linkOf(to);
         const leftBox = inside(from) && !inside(to);
         if ((leftLink && !inside(to)) || leftBox) leave();
       },
@@ -509,7 +593,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         // A tap focuses the link first and then clicks it: the click is what opens it then.
         if (lastPointer === "touch" && Date.now() - lastDownAt < 600) return;
         const link = linkOf(e.target);
-        if (link && !pinned) open(link);
+        if (link) open(link);
       },
     ],
     [
@@ -517,8 +601,11 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       (e) => {
         if (releasing) return;
         const to = (e as FocusEvent).relatedTarget;
-        // The focus left a link, or the tooltip, for somewhere else.
-        if ((linkOf(e.target) || inside(e.target)) && !inside(to) && !linkOf(to)) leave();
+        // The focus left the unpinned tooltip's link, or the tooltip, for somewhere else.
+        const current = unpinned();
+        const was = linkOf(e.target);
+        if (current && (was === current.anchor || inside(e.target)) && !inside(to) && !linkOf(to))
+          leave();
       },
     ],
     [
@@ -529,8 +616,9 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         if (link && lastPointer === "touch") {
           e.preventDefault();
           // Pinned, it keeps its passage: the pin is the way out.
-          if (pinned) return;
-          if (anchor === link && !box.hidden) close();
+          const shown = panelFor(link);
+          if (shown?.pinned) return;
+          if (shown) close(shown);
           else open(link);
         }
       },
@@ -540,16 +628,20 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       "keydown",
       (e) => {
         lastKeyAt = Date.now();
-        if ((e as KeyboardEvent).key !== "Escape" || box.hidden) return;
-        // Pinned, Escape closes it only from the tooltip or its link, not while the reader is
-        // writing elsewhere on the page.
-        if (pinned && !inside(e.composedPath()[0] ?? e.target) && e.target !== anchor) return;
-        close();
+        if ((e as KeyboardEvent).key !== "Escape" || panels.length === 0) return;
+        // Escape closes the tooltip it is pressed in, or on the link of; pressed elsewhere, only
+        // the unpinned one (a pinned tooltip stays while the reader writes elsewhere on the page).
+        const target = e.composedPath()[0] ?? e.target;
+        const mine = panelOf(target) ?? panelFor(linkOf(target));
+        if (mine) close(mine);
+        else closeUnpinned();
       },
     ],
   ];
   for (const [type, fn, capture] of listeners) doc.addEventListener(type, fn, capture ?? false);
-  const reposition = () => place();
+  const reposition = () => {
+    for (const panel of panels) place(panel);
+  };
   window.addEventListener("resize", reposition);
   window.addEventListener("scroll", reposition, true);
 
@@ -557,16 +649,16 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     // On the tooltip's own host, so it reaches nothing else on the page.
     const valid = Number.isFinite(scale) && scale > 0;
     host.style.setProperty("--st-text-scale", String(valid ? scale : 1), "important");
-    if (!box.hidden) place();
+    reposition();
   };
   setTextScale(options.textScale ?? 1);
 
   return {
     setTextScale,
     open,
-    close,
+    close: closeAll,
     destroy() {
-      close();
+      closeAll();
       for (const [type, fn, capture] of listeners)
         doc.removeEventListener(type, fn, capture ?? false);
       window.removeEventListener("resize", reposition);

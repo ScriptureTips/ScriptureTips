@@ -6,6 +6,7 @@ export const DEFAULT_STRINGS: Strings = {
   failed: "That passage couldn't be loaded.",
   missing: "This translation doesn't have that passage.",
   readMore: "Read more",
+  readMoreOn: "on",
   translation: "Translation",
   more: "…",
   tooltip: "Scripture passage",

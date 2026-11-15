@@ -5,6 +5,8 @@ export interface Strings {
   /** The translation doesn't have the passage (it numbers or includes books differently). */
   readonly missing: string;
   readonly readMore: string;
+  /** Between *Read more* and the name of the site it goes to ("on BibleGateway.com"). */
+  readonly readMoreOn: string;
   readonly translation: string;
   /** The passage goes on past the verses shown. */
   readonly more: string;
@@ -63,6 +65,11 @@ export interface LinksOptions {
    * the tooltip's translation. Not used for the ScriptureTips reader.
    */
   readonly destinationTranslation?: string;
+  /**
+   * The name of an outside destination, shown beside *Read more* ("on BibleGateway.com"). Without
+   * it, the address's own host. Not used for the ScriptureTips reader.
+   */
+  readonly destinationName?: string;
   /**
    * Who makes the links (`data-st-owner`), when it isn't the website plugin: the browser extension
    * gives `extension`. Each tooltip shows only its own links, so a page running both shows one.

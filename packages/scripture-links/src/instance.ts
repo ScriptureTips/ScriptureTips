@@ -1,6 +1,12 @@
 import { createChoices, pageStorage } from "./choices.ts";
 import { createClient } from "./client.ts";
-import { addressTranslation, destinationUrl, SCRIPTURETIPS } from "./destination.ts";
+import {
+  addressTranslation,
+  destinationName,
+  destinationUrl,
+  readMoreUrl,
+  SCRIPTURETIPS,
+} from "./destination.ts";
 import { findInText } from "./find.ts";
 import {
   AUTO_ATTRIBUTE,
@@ -116,6 +122,25 @@ export function createScriptureLinks(options: LinksOptions): ScriptureLinks {
       chosenHere.set(a, translation);
       choices.set(instanceKey(a), translation);
       refreshAddress(a);
+    },
+    // Read more goes where the page's links go: an outside site, named beside it.
+    readMore: (a, passage) => {
+      const reader = {
+        url: readMoreUrl(site, passage.translation.id, passage.label),
+        source: null,
+      };
+      if (destination === SCRIPTURETIPS) return reader;
+      const ref = findInText(a.getAttribute(TEXT_ATTRIBUTE) ?? a.textContent ?? "")[0];
+      if (!ref) return reader;
+      const translation = addressTranslation(
+        destination,
+        options.destinationTranslation,
+        passage.translation.id,
+      );
+      return {
+        url: destinationUrl(destination, site, translation, ref),
+        source: destinationName(destination, options.destinationName),
+      };
     },
     emit,
     owner: options.owner,

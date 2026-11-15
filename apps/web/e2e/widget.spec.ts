@@ -182,9 +182,8 @@ test("vision §3.6: a pinned tooltip stays open, on its passage, while the reade
   await pin.click();
   await expect(pin).toHaveAttribute("aria-pressed", "true");
   await page.screenshot(shot("widget-pinned"));
-  // The pointer leaves, crosses another passage, and the reader goes to write a reply below.
+  // The pointer leaves and the reader goes to write a reply below.
   await page.mouse.move(5, 5);
-  await page.locator("#content a.st-ref", { hasText: "Romans 5:8" }).hover();
   await page.waitForTimeout(600);
   const reply = page.getByRole("textbox", { name: "Reply" });
   await reply.click();
@@ -484,16 +483,27 @@ test("vision §3.6: on a phone, a pinned tooltip stays through taps elsewhere an
   await expect(pin).toHaveAttribute("aria-pressed", "true");
   await page.screenshot({ ...shot("widget-pinned-phone"), fullPage: false });
   await page.getByRole("textbox", { name: "Reply" }).tap();
-  // Another passage isn't opened over it, nor followed: the pin is the way out.
+  // Another passage opens its own tooltip beside it (not followed), and the pinned one stays;
+  // tapping the pinned one's own link doesn't open a second copy of it.
   await page.locator("#content a.st-ref", { hasText: "Romans 5:8" }).tap();
   expect(page.url()).toBe(FIXTURE);
-  await expect(pop.getByRole("heading", { name: "John 3:16" })).toBeVisible();
+  await expect(pop).toHaveCount(2);
+  await expect(pop.filter({ has: page.getByRole("heading", { name: "John 3:16" }) })).toBeVisible();
+  await page.locator("#content a.st-ref", { hasText: "John 3:16" }).tap();
+  expect(page.url()).toBe(FIXTURE);
+  await expect(pop).toHaveCount(2);
+  // A tap elsewhere takes the unpinned one; the pinned stays. Unpinned, it goes with the next tap.
+  await page
+    .locator("#content p")
+    .first()
+    .tap({ position: { x: 5, y: 5 } });
+  await expect(pop).toHaveCount(1);
   await pin.tap();
   await page
     .locator("#content p")
     .first()
     .tap({ position: { x: 5, y: 5 } });
-  await expect(pop).toBeHidden();
+  await expect(pop).toHaveCount(0);
 });
 
 test("vision §3.6: a page's own styles don't change how the plugin's tooltip looks", async ({
@@ -514,4 +524,69 @@ test("vision §3.6: a page's own styles don't change how the plugin's tooltip lo
   expect(hostile).toEqual(plain);
   expect(plain.box?.fontSize).toBe("15px");
   expect(plain.box?.fontFamily).toContain("system-ui");
+});
+
+test("vision §3.6: any number of tooltips can be pinned, and only one other is open at a time", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "A phone has no hover.");
+  await open(page, page$("", "<p>Also Matthew 5:3 and Mark 1:1 here.</p>"));
+  const all = tooltip(page);
+  const link = (text: string) => page.locator("#content a.st-ref", { hasText: text });
+  const pinFor = (heading: string) =>
+    all
+      .filter({ has: page.getByRole("heading", { name: heading }) })
+      .getByRole("button", { name: "Keep open" });
+
+  // Pin the first; the pointer leaves and it stays.
+  await link("John 3:16").hover();
+  await expect(all.getByText("For God so loved the world")).toBeVisible();
+  await pinFor("John 3:16").click();
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(600);
+  await expect(all).toHaveCount(1);
+
+  // Another link opens its own tooltip beside it, and pins too.
+  await link("Romans 5:8").hover();
+  await expect(all).toHaveCount(2);
+  await expect(
+    all.filter({ has: page.getByRole("heading", { name: "Romans 5:8" }) }),
+  ).toBeVisible();
+  await pinFor("Romans 5:8").click();
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(600);
+  await expect(all).toHaveCount(2);
+
+  // A third, not pinned, is the only one that comes and goes; the pinned two stay.
+  await link("Matthew 5:3").hover();
+  await expect(all).toHaveCount(3);
+  await page.screenshot(shot("widget-pinned-several"));
+  await page.mouse.move(5, 5);
+  await expect(all).toHaveCount(2);
+  // Only one unpinned at a time: moving to another link moves it, not adds one.
+  await link("Matthew 5:3").hover();
+  await expect(all).toHaveCount(3);
+  await link("Mark 1:1").hover();
+  await expect(all.filter({ has: page.getByRole("heading", { name: "Mark 1:1" }) })).toBeVisible();
+  await expect(all).toHaveCount(3);
+  // A link that is pinned doesn't open a second copy of its tooltip.
+  await link("John 3:16").hover();
+  await page.waitForTimeout(600);
+  await expect(all.filter({ has: page.getByRole("heading", { name: "John 3:16" }) })).toHaveCount(
+    1,
+  );
+  // Escape elsewhere takes only the unpinned one; a press elsewhere too. The pinned stay.
+  await page.mouse.move(5, 5);
+  await page.keyboard.press("Escape");
+  await expect(all).toHaveCount(2);
+  // Escape in a pinned tooltip closes just that one.
+  await pinFor("Romans 5:8").focus();
+  await page.keyboard.press("Escape");
+  await expect(all).toHaveCount(1);
+  await expect(all.getByRole("heading", { name: "John 3:16" })).toBeVisible();
+  // Unpinning leaves it as the one that goes when the pointer leaves.
+  await pinFor("John 3:16").click();
+  await page.mouse.move(5, 5);
+  await expect(all).toHaveCount(0);
+  await expect(link("John 3:16")).not.toHaveAttribute("aria-expanded", "true");
 });

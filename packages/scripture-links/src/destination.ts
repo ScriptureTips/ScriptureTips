@@ -48,3 +48,18 @@ export const addressTranslation = (
 /** Where *Read more* goes: the passage as the translation numbers it, on the site's reader. */
 export const readMoreUrl = (site: string, translation: string, label: string): string =>
   `${site.replace(/\/$/, "")}/read?${new URLSearchParams({ t: translation, ref: label })}`;
+
+/**
+ * The name shown beside *Read more* for an outside destination: the one given, else the address's
+ * own host without `www.`.
+ */
+export function destinationName(destination: string, given?: string): string | null {
+  if (destination === SCRIPTURETIPS) return null;
+  const name = given?.trim();
+  if (name) return name;
+  try {
+    return new URL(destination.replace(/ST_[A-Z]+/g, "x")).hostname.replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
+}

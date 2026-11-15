@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { addressTranslation, destinationUrl, readMoreUrl, SCRIPTURETIPS } from "./destination.ts";
+import {
+  addressTranslation,
+  destinationName,
+  destinationUrl,
+  readMoreUrl,
+  SCRIPTURETIPS,
+} from "./destination.ts";
 
 const ref = { text: "1 John 3:16", book: "1John", chapter: 3, verse: 16 };
 
@@ -37,5 +43,29 @@ describe("vision §3.6: where a link goes", () => {
     // With no code of its own, the tooltip's translation; the reader always takes the catalog ID.
     expect(addressTranslation(gateway, undefined, "eng-kjv")).toBe("eng-kjv");
     expect(addressTranslation(SCRIPTURETIPS, "TLV", "eng-kjv")).toBe("eng-kjv");
+  });
+});
+
+describe("vision §3.6: the name shown beside Read more", () => {
+  it("has none for the ScriptureTips reader", () => {
+    expect(destinationName(SCRIPTURETIPS, "ScriptureTips")).toBeNull();
+  });
+
+  it("is the name the destination was given", () => {
+    expect(destinationName("https://x.test/?q=ST_REFERENCE", " BibleGateway.com ")).toBe(
+      "BibleGateway.com",
+    );
+  });
+
+  it("else the address's own host, without www.", () => {
+    expect(
+      destinationName(
+        "https://www.biblegateway.com/passage/?search=ST_REFERENCE&version=ST_TRANSLATION",
+      ),
+    ).toBe("biblegateway.com");
+    expect(destinationName("https://blueletterbible.org/search?t=ST_TRANSLATION", "")).toBe(
+      "blueletterbible.org",
+    );
+    expect(destinationName("not an address")).toBeNull();
   });
 });
