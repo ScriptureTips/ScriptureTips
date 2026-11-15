@@ -7,9 +7,11 @@ import {
   LINK_FORMATS,
   type LinkFormat,
   moveOutsideSite,
+  normalizeHost,
   type OutsideSite,
   PRESET_SITES,
   type Settings,
+  sortedHosts,
 } from "./settings.ts";
 import { loadSettings, saveSettings } from "./store.ts";
 
@@ -82,6 +84,8 @@ function editable(options: {
   startEditing?: boolean;
   /** The text box is as wide as what's in it, and grows as it's typed in. */
   grow?: boolean;
+  /** The edit ended with nothing changed (or was given up). */
+  cancel?: () => void;
 }): HTMLElement {
   const holder = document.createElement("div");
   holder.className = options.className;
@@ -121,7 +125,7 @@ function editable(options: {
       if (save && value !== options.value) {
         options.value = value;
         options.commit(value);
-      }
+      } else options.cancel?.();
       if (holder.isConnected) show();
     };
     input.addEventListener("keydown", (event) => {
@@ -314,6 +318,67 @@ function draw(editing = -1): void {
   sitesList?.replaceChildren(
     ...settings.outsideSites.map((site, i) => siteCard(site, i, i === editing)),
   );
+  drawDisabled();
+}
+
+/**
+ * The sites the extension is turned off on, as cards (only a heading each, edited in place, the red
+ * × with its confirm), always in alphabetical order. `adding`: one more card at the end, empty and
+ * ready to type in; it only becomes a site if something is written.
+ */
+function drawDisabled(adding = false): void {
+  const change = (hosts: readonly string[], redraw = true) => {
+    void save({ ...settings, disabledSites: sortedHosts(hosts) }, redraw);
+  };
+  const card = (host: string, fresh: boolean): HTMLLIElement => {
+    const li = document.createElement("li");
+    li.className = "site-card";
+    const main = document.createElement("div");
+    main.className = "site-main";
+    main.append(
+      editable({
+        value: host,
+        placeholder: "example.org",
+        label: "Site",
+        className: "site-title",
+        grow: true,
+        startEditing: fresh,
+        commit: (value) => {
+          const next = normalizeHost(value);
+          if (!next) return drawDisabled();
+          const others = settings.disabledSites.filter((h) => h !== host);
+          change([...others, next]);
+        },
+        cancel: () => {
+          if (fresh) drawDisabled();
+        },
+      }),
+    );
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "remove";
+    remove.setAttribute("aria-label", `Remove ${host || "this site"}`);
+    remove.title = "Remove";
+    remove.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8l8 8M16 8l-8 8"/></svg>';
+    remove.addEventListener("click", async () => {
+      if (fresh) return drawDisabled();
+      const go = await confirmDialog({
+        title: `Remove ${host}?`,
+        message: "Scripture Tips will link references on this site again.",
+        confirmLabel: "Remove",
+        cancelLabel: "Cancel",
+        danger: true,
+      });
+      if (go) change(settings.disabledSites.filter((h) => h !== host));
+    });
+    li.append(main, remove);
+    return li;
+  };
+  byId("disabled").replaceChildren(
+    ...sortedHosts(settings.disabledSites).map((h) => card(h, false)),
+    ...(adding ? [card("", true)] : []),
+  );
 }
 
 /** The outside reading sites, in a modal: the cards, and the buttons to add and restore. */
@@ -360,8 +425,6 @@ async function main() {
     LINK_FORMATS.map((f) => ({ value: f, label: FORMAT_NAMES[f] })),
     settings.format,
   );
-  const disabled = byId<HTMLTextAreaElement>("disabled");
-  disabled.value = settings.disabledSites.join("\n");
   const site = byId<HTMLInputElement>("site");
   site.value = settings.site ?? "";
   site.placeholder = BUILT_IN_SITE;
@@ -377,13 +440,7 @@ async function main() {
   byId<HTMLSelectElement>("format").addEventListener("change", (e) => {
     void save({ ...settings, format: (e.target as HTMLSelectElement).value as LinkFormat });
   });
-  disabled.addEventListener("change", () => {
-    const hosts = disabled.value
-      .split(/\s+/)
-      .map((h) => h.trim().toLowerCase())
-      .filter(Boolean);
-    void save({ ...settings, disabledSites: [...new Set(hosts)] });
-  });
+  byId<HTMLButtonElement>("add-disabled").addEventListener("click", () => drawDisabled(true));
   site.addEventListener("change", () => {
     const value = site.value.trim();
     if (value && !/^https?:\/\/[^/]+/.test(value)) {

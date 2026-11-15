@@ -746,7 +746,10 @@ test("vision §3.6: the outside reading sites are cards, edited where they stand
   await expect(kept.getByRole("combobox")).toHaveValue("ESV");
 
   // A site added opens with its name ready to type; the red x removes a card.
-  await page.getByRole("button", { name: "Add a site" }).click();
+  await page
+    .getByRole("dialog", { name: "Outside reading sites" })
+    .getByRole("button", { name: "Add a site" })
+    .click();
   await expect(page.locator("#sites .site-card")).toHaveCount(4);
   await expect(page.getByRole("textbox", { name: "Name" })).toBeFocused();
   await page.keyboard.type("My site");
@@ -899,4 +902,77 @@ test("vision §3.6: the settings page: Defaults, the sites turned off, and advan
     page.getByRole("textbox", { name: /another ScriptureTips installation/ }),
   ).toBeHidden();
   await page.screenshot(shot("extension-settings-sections"));
+});
+
+test("vision §3.6: the sites turned off are cards, only a heading each, always in alphabetical order", async ({
+  page,
+  extensionId,
+}) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.goto(`chrome-extension://${extensionId}/options.html`);
+  const list = page.locator("#disabled");
+  const hosts = () => list.locator(".site-title").allTextContents();
+  await expect(list.locator(".site-card")).toHaveCount(0);
+  const add = async (text: string) => {
+    await page.locator("#add-disabled").click();
+    await expect(list.getByRole("textbox", { name: "Site" })).toBeFocused();
+    await page.keyboard.type(text);
+    await page.keyboard.press("Enter");
+  };
+  // What's typed is written as in the address bar, and the cards stay alphabetical.
+  await add("Zebra.example.org");
+  await add("https://forum.example.net/some/page");
+  await add("apple.example.com");
+  await expect.poll(hosts).toEqual(["apple.example.com", "forum.example.net", "zebra.example.org"]);
+  await expect(page.getByRole("status")).toHaveText("Saved.");
+  // Cards of the same kind as the outside sites: full width, a heading, a red round x; no handle,
+  // no menu, no labels.
+  const [row, box, title, remove] = await Promise.all([
+    list.locator(".site-card").first().boundingBox(),
+    list.boundingBox(),
+    list.locator(".site-title").first().boundingBox(),
+    list
+      .getByRole("button", { name: /^Remove/ })
+      .first()
+      .boundingBox(),
+  ]);
+  expect(Math.round(row?.width ?? 0)).toBe(Math.round(box?.width ?? 1));
+  expect((remove?.x ?? 0) > (title?.x ?? 0) + (title?.width ?? 0)).toBe(true);
+  await expect(list.getByRole("button", { name: /^Move/ })).toHaveCount(0);
+  await expect(list.getByRole("combobox")).toHaveCount(0);
+  await expect(list.locator("label")).toHaveCount(0);
+  await page.screenshot(shot("extension-settings-sites-off"));
+
+  // Edited in place; a duplicate or nothing doesn't add a card; Escape gives up.
+  await list.getByRole("button", { name: /^Site: zebra/ }).click();
+  await list.getByRole("textbox", { name: "Site" }).fill("Aardvark.example.org");
+  await page.keyboard.press("Enter");
+  await expect
+    .poll(hosts)
+    .toEqual(["aardvark.example.org", "apple.example.com", "forum.example.net"]);
+  await add("apple.example.com");
+  await expect
+    .poll(hosts)
+    .toEqual(["aardvark.example.org", "apple.example.com", "forum.example.net"]);
+  await page.locator("#add-disabled").click();
+  await page.keyboard.press("Escape");
+  await expect(list.locator(".site-card")).toHaveCount(3);
+  await page.locator("#add-disabled").click();
+  await list.getByRole("textbox", { name: "Site" }).blur();
+  await expect(list.locator(".site-card")).toHaveCount(3);
+
+  // It lasts, and the extension honors it.
+  await page.reload();
+  await expect
+    .poll(hosts)
+    .toEqual(["aardvark.example.org", "apple.example.com", "forum.example.net"]);
+
+  // The red x asks first; Remove removes.
+  await page.getByRole("button", { name: "Remove forum.example.net" }).click();
+  const ask = page.getByRole("alertdialog", { name: "Remove forum.example.net?" });
+  await ask.getByRole("button", { name: "Cancel" }).click();
+  await expect(list.locator(".site-card")).toHaveCount(3);
+  await page.getByRole("button", { name: "Remove forum.example.net" }).click();
+  await ask.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect.poll(hosts).toEqual(["aardvark.example.org", "apple.example.com"]);
 });

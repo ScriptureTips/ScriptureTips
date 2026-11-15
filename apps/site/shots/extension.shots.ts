@@ -146,9 +146,16 @@ test("the settings page, part by part", async ({ page, extensionId }) => {
   await capture(page, image("settings-outside-sites"), { around: [sites], pad: 0 });
   await page.getByRole("button", { name: "Done" }).click();
   const disabled = page.locator("#disabled");
-  await disabled.fill("example.org\nforum.example.net");
+  for (const host of ["forum.example.net", "example.org"]) {
+    await page.locator("#add-disabled").click();
+    await page.keyboard.type(host);
+    await page.keyboard.press("Enter");
+  }
+  await expect(disabled.locator(".site-card")).toHaveCount(2);
+  // The pointer away from the cards, so none is shown as hovered.
+  await page.mouse.move(0, 0);
   await capture(page, image("settings-sites-off"), {
-    around: [heading("Sites turned off"), disabled],
+    around: [heading("Sites turned off"), disabled, page.locator("#add-disabled")],
   });
   await page.getByText("Advanced settings", { exact: true }).click();
   await capture(page, image("settings-address"), {

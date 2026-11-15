@@ -226,3 +226,23 @@ export function moveOutsideSite(settings: Settings, from: number, to: number): S
   }
   return { ...settings, outsideSites: sites, destination };
 }
+
+/**
+ * A site written as a reader might: `Example.org`, `https://example.org/some/page`, or with a port
+ * (`localhost:8080`), as the address bar shows it: lower case, no scheme, no path. Empty if it
+ * isn't something that could be a site.
+ */
+export function normalizeHost(input: string): string {
+  const text = input.trim().toLowerCase();
+  if (!text || /\s/.test(text)) return "";
+  try {
+    const host = new URL(/^[a-z][a-z0-9+.-]*:\/\//.test(text) ? text : `https://${text}`).host;
+    return /^[a-z0-9.[\]:-]+$/.test(host) ? host : "";
+  } catch {
+    return "";
+  }
+}
+
+/** The sites the extension is turned off on, each once, in alphabetical order. */
+export const sortedHosts = (hosts: readonly string[]): string[] =>
+  [...new Set(hosts)].sort((a, b) => a.localeCompare(b));

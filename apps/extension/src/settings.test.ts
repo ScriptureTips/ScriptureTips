@@ -6,10 +6,12 @@ import {
   migrate,
   moveOutsideSite,
   normalize,
+  normalizeHost,
   outsideSite,
   PRESET_SITES,
   type Settings,
   siteOf,
+  sortedHosts,
 } from "./settings.ts";
 
 /** What v1.0.3 left in sync storage (its service worker's install defaults, then the reader's). */
@@ -157,5 +159,29 @@ describe("vision §3.6: the outside sites can be put in order", () => {
     expect(moveOutsideSite({ ...base, destination: "scripturetips" }, 0, 2).destination).toBe(
       "scripturetips",
     );
+  });
+});
+
+describe("vision §3.6: the sites turned off are written as in the address bar", () => {
+  it("reduces what is typed to the host", () => {
+    expect(normalizeHost("Example.ORG")).toBe("example.org");
+    expect(normalizeHost("  https://Forum.Example.net/some/page?x=1 ")).toBe("forum.example.net");
+    expect(normalizeHost("localhost:8080")).toBe("localhost:8080");
+    expect(normalizeHost("http://localhost:8080/a")).toBe("localhost:8080");
+  });
+
+  it("gives nothing for what can't be a site", () => {
+    expect(normalizeHost("")).toBe("");
+    expect(normalizeHost("two words")).toBe("");
+    expect(normalizeHost("https://")).toBe("");
+    expect(normalizeHost("a b.org")).toBe("");
+  });
+
+  it("keeps each once, in alphabetical order", () => {
+    expect(sortedHosts(["b.test", "A.test".toLowerCase(), "b.test", "c.test"])).toEqual([
+      "a.test",
+      "b.test",
+      "c.test",
+    ]);
   });
 });
