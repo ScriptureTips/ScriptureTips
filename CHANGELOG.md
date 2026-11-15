@@ -7,6 +7,7 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 ## [Unreleased]
 
 ### Changed
+- A long passage in a tooltip scrolls inside it: the reference, translation menu, pin and *Read more* stay in view (extension and website plugin).
 - *Read more* in a passage's tooltip goes to the chosen outside reading site (not always the ScriptureTips reader), with the site's name beside it.
 - The link generator's page (where it opens in a tab) has the same brand and layout as the settings page: the artwork behind a panel, the logo beside the heading, and the artwork's credits.
 - The extension's settings show the sites it is turned off on as cards (a heading each, edited by clicking it, a red × that asks first), always in alphabetical order, instead of a text box with one site per line. A whole address typed in is cut down to its site.

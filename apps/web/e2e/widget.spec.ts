@@ -566,8 +566,8 @@ test("vision §3.6: any number of tooltips can be pinned, and only one other is 
   // Only one unpinned at a time: moving to another link moves it, not adds one.
   await link("Matthew 5:3").hover();
   await expect(all).toHaveCount(3);
-  await link("Mark 1:1").hover();
-  await expect(all.filter({ has: page.getByRole("heading", { name: "Mark 1:1" }) })).toBeVisible();
+  await link("Joel 2:28").hover();
+  await expect(all.filter({ has: page.getByRole("heading", { name: "Joel 2:28" }) })).toBeVisible();
   await expect(all).toHaveCount(3);
   // A link that is pinned doesn't open a second copy of its tooltip.
   await link("John 3:16").hover();
@@ -589,4 +589,30 @@ test("vision §3.6: any number of tooltips can be pinned, and only one other is 
   await page.mouse.move(5, 5);
   await expect(all).toHaveCount(0);
   await expect(link("John 3:16")).not.toHaveAttribute("aria-expanded", "true");
+});
+
+test("vision §3.6: a long passage scrolls in the tooltip's body; the header and Read more stay in view", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "A phone has no hover.");
+  await open(page, page$("", "<p>Start at Genesis 1:1–12 for the beginning.</p>"));
+  await page.locator("#content a.st-ref", { hasText: "Genesis 1:1" }).hover();
+  const pop = tooltip(page);
+  await expect(pop.getByText("In the beginning")).toBeVisible();
+  const body = pop.locator(".body");
+  // The body is what scrolls; the tooltip itself doesn't.
+  expect(await body.evaluate((e) => e.scrollHeight > e.clientHeight)).toBe(true);
+  expect(await pop.evaluate((e) => e.scrollHeight <= e.clientHeight)).toBe(true);
+  const heading = pop.getByRole("heading", { name: /Genesis 1:1/ });
+  const more = pop.getByRole("link", { name: "Read more" });
+  const before = await heading.boundingBox();
+  await body.hover();
+  await page.mouse.wheel(0, 2000);
+  await expect.poll(() => body.evaluate((e) => e.scrollTop)).toBeGreaterThan(0);
+  const after = await heading.boundingBox();
+  expect(after?.y).toBe(before?.y);
+  await expect(heading).toBeInViewport();
+  await expect(pop.getByRole("button", { name: "Keep open" })).toBeInViewport();
+  await expect(more).toBeInViewport();
+  await page.screenshot(shot("widget-scrolled"));
 });

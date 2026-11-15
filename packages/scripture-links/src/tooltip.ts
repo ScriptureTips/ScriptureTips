@@ -53,8 +53,8 @@ const STYLES = `
   :host { all: initial; }
   .box {
     position: fixed; z-index: 2147483000; box-sizing: border-box;
-    width: min(${WIDTH}px, calc(100vw - 16px)); max-height: min(70vh, calc(420px * var(--st-text-scale, 1))); overflow: auto;
-    padding: 0.75em 0.9em;
+    width: min(${WIDTH}px, calc(100vw - 16px)); max-height: min(70vh, calc(420px * var(--st-text-scale, 1)));
+    display: flex; flex-direction: column; overflow: hidden;
     font-family: var(--st-font, ${FONT}); font-size: calc(${BASE_PX}px * var(--st-text-scale, 1)); line-height: 1.45;
     font-weight: 400; font-style: normal; letter-spacing: normal; word-spacing: normal; text-transform: none;
     text-align: start; text-indent: 0; text-shadow: none; white-space: normal; direction: ltr;
@@ -63,7 +63,8 @@ const STYLES = `
     box-shadow: 0 6px 18px rgb(0 30 60 / 0.2);
   }
   .box[hidden] { display: none; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 0.5em; margin-bottom: 0.4em; }
+  header { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 0.5em; padding: 0.75em 0.9em 0.4em; }
+  .body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 0 0.9em; }
   h2 { margin: 0; font-size: 1.05em; font-weight: 600; }
   .tools { display: inline-flex; align-items: center; gap: 0.4em; margin-inline-start: auto; }
   label { display: inline-flex; align-items: center; gap: 0.3em; font-size: 0.9em; color: var(--st-muted, #5b6672); }
@@ -72,7 +73,8 @@ const STYLES = `
   sup { margin-inline-end: 0.15em; font-size: 0.7em; color: var(--st-muted, #5b6672); }
   .status { color: var(--st-muted, #5b6672); }
   .attribution { margin-top: 0.5em; font-size: 0.85em; color: var(--st-muted, #5b6672); }
-  footer { margin-top: 0.5em; }
+  footer { flex: none; padding: 0.5em 0.9em 0.75em; }
+  .body:last-child { padding-bottom: 0.75em; }
   footer .source { color: var(--st-muted, #5b6672); }
   a { color: var(--st-accent, #0054a5); }
   .pin {
@@ -357,7 +359,10 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       tools.append(label);
     }
     tools.append(pinButton(panel));
-    const children: Node[] = [head, ...body];
+    const scroll = doc.createElement("div");
+    scroll.className = "body";
+    scroll.append(...body);
+    const children: Node[] = [head, scroll];
     if (link) {
       const footer = doc.createElement("footer");
       const a = doc.createElement("a");
