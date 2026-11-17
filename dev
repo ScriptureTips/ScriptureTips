@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Start or stop the local development stack (testing.md §2): ./dev up, ./dev down, ./dev logs,
 # ./dev migrate (applies pending database migrations to the development database), ./dev site
-# (builds the scripture.tips site's pages again, apps/site).
+# (builds the scripture.tips site's pages again, apps/site), ./dev launch [--app=NAME] [--print]
+# (opens one of the sites in the browser) and ./dev config.launchers (lists them as JSON, for
+# LanProjectsControlPanel's launch buttons).
 # The stack is served through Caddy as https://dev.scripturetips.com (the web app) and
 # https://dev.scripture.tips (the data server), whose public DNS records point at this machine's
 # network address. `./dev up --lan` listens on the network (to try it on a phone or tablet);
@@ -58,6 +60,83 @@ site() {
     'pnpm --filter @scripturetips/widget build && pnpm --filter @scripturetips/site build'
 }
 
+# The ways to open the project, one per line: app|title|URL|class (class optional). The first is the default. Each site
+# keeps its real name, so its URL doesn't depend on how the stack was started. Mailpit's address
+# does (127.0.0.1, the --bind address, or every address with --lan), so `mailpit` stands for the
+# address Docker published it on, looked up when it's launched.
+launchers() {
+  cat <<'EOF'
+web|Open dev.scripturetips.com in the browser|https://dev.scripturetips.com/
+data|Open dev.scripture.tips in the browser|https://dev.scripture.tips/
+mail|Open Mailpit (the caught emails) in the browser|mailpit|mail
+EOF
+}
+
+# Mailpit's URL: where its port is published now, or the plain `./dev up` address when it isn't.
+mailpit_url() {
+  local published
+  published="$(docker compose --profile dev port mailpit 8025 2>/dev/null | head -n1 || true)"
+  published="${published/0.0.0.0:/127.0.0.1:}"
+  echo "http://${published:-127.0.0.1:8025}/"
+}
+
+json_str() {
+  local s=${1//\\/\\\\}
+  s=${s//\"/\\\"}
+  printf '"%s"' "$s"
+}
+
+# `./dev config.launchers`: the launchers as a JSON array, and nothing else on stdout.
+config_launchers() {
+  local first=1 app title url class
+  printf '['
+  while IFS='|' read -r app title url class; do
+    [[ -n "$app" ]] || continue
+    ((first)) || printf ','
+    first=0
+    printf '{"app":%s,"title":%s' "$(json_str "$app")" "$(json_str "$title")"
+    [[ -z "$class" ]] || printf ',"class":%s' "$(json_str "$class")"
+    printf '}'
+  done < <(launchers)
+  printf ']\n'
+}
+
+# `./dev launch [--app=NAME] [--print]`: prints the launcher's URL and opens it (not with --print).
+launch() {
+  local want="" print="" app title url class found=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --app=*) want="${1#--app=}"; shift ;;
+      --app) want="${2:?--app needs a name}"; shift 2 ;;
+      --print) print=1; shift ;;
+      *) echo "./dev launch: unknown option $1" >&2; exit 2 ;;
+    esac
+  done
+  while IFS='|' read -r app title url class; do
+    [[ -n "$app" ]] || continue
+    if [[ -z "$want" || "$app" == "$want" ]]; then
+      if [[ "$url" == mailpit ]]; then url="$(mailpit_url)"; fi
+      found="$url"
+      break
+    fi
+  done < <(launchers)
+  if [[ -z "$found" ]]; then
+    echo "./dev launch: unknown app '$want'; choose from: $(launchers | cut -d'|' -f1 | paste -sd' ')" >&2
+    exit 2
+  fi
+  echo "$found"
+  [[ -n "$print" ]] && return 0
+  if ! curl -s -o /dev/null --max-time 5 "$found"; then
+    echo "./dev launch: the stack isn't running (./dev up first)" >&2
+    exit 1
+  fi
+  if command -v xdg-open >/dev/null; then
+    xdg-open "$found" >/dev/null 2>&1 &
+  elif command -v open >/dev/null; then
+    open "$found"
+  fi
+}
+
 case "${1:-}" in
   up)
     shift
@@ -98,8 +177,14 @@ case "${1:-}" in
   logs) exec docker compose --profile dev logs -f "${@:2}" ;;
   migrate) exec ./toolbox pnpm --filter @scripturetips/db migrate ;;
   site) site ;;
+  launch) shift; launch "$@" ;;
+  config.launchers) config_launchers ;;
+  config.*)
+    echo "./dev: unknown config key: ${1#config.}" >&2
+    exit 2
+    ;;
   *)
-    echo "Usage: ./dev up [--lan | --bind=IP] [--local-bind=IP] | down | logs [service] | migrate | site" >&2
+    echo "Usage: ./dev up [--lan | --bind=IP] [--local-bind=IP] | down | logs [service] | migrate | site | launch [--app=NAME] [--print] | config.launchers" >&2
     exit 1
     ;;
 esac
