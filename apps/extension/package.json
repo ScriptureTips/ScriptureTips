@@ -10,7 +10,8 @@
     "build": "node build.ts",
     "build:production": "ST_SITE=https://scripturetips.com ST_DATA=https://scripture.tips node build.ts",
     "lint:firefox": "web-ext lint --source-dir dist/firefox --self-hosted",
-    "package:firefox": "web-ext build --source-dir dist/firefox --artifacts-dir dist/packages --filename scripturetips-{version}-firefox.zip --overwrite-dest"
+    "package:firefox": "web-ext build --source-dir dist/firefox --artifacts-dir dist/packages --filename scripturetips-{version}-firefox.zip --overwrite-dest",
+    "package:chrome": "web-ext build --source-dir dist/chrome --artifacts-dir dist/packages --filename scripturetips-{version}-chrome.zip --overwrite-dest"
   },
   "dependencies": {
     "@scripturetips/dialogs": "workspace:*",

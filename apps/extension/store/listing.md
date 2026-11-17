@@ -74,10 +74,52 @@ Where it keeps its state: the extension's own storage only. The visited site's `
 
 How to test: install it, open any page with references (for example a Bible study blog, or a page that says "Romans 5:8 and John 3:16"), and point at a reference. The toolbar button opens a popup with a switch for the current site, the link generator, and the settings. No account or sign-in is needed.
 
-Build from source: the source is the repository `ScriptureTips`; the upload was built with Docker and Node inside the project's toolbox container (nothing else is needed on the host). From the repository root:
+Build from source. The source is the tag https://github.com/ScriptureTips/ScriptureTips/releases/tag/v1.0.0 (also uploaded here as the source archive, `scripturetips-v1.0.0-source.zip`). The extension is the folder `apps/extension`; the monorepo around it holds the website and API, which are not part of the package.
 
-    ./toolbox pnpm install
-    ./toolbox pnpm --filter @scripturetips/extension build:production
-    ./toolbox pnpm --filter @scripturetips/extension package:firefox
+Environment (the versions the upload was built with):
+- Operating system: Linux. The upload was built in a Debian 12 container (`node:24.22.1-bookworm-slim`, `infra/docker/toolbox/Dockerfile`), which is what pins these versions; the steps below need only Node and pnpm.
+- Node.js 24.22.1 (any 24.x from 24.22.1; `engines` in the root `package.json`).
+- pnpm 12.15.0 (`packageManager` in the root `package.json`). With Node installed: `npm install -g pnpm@12.15.0`.
+- esbuild 0.25.12 and web-ext 10.x are installed by `pnpm install` from `pnpm-lock.yaml`; no other program is needed.
 
-The package is written to `apps/extension/dist/packages/scripturetips-<version>-firefox.zip`. The build uses esbuild only (no other bundlers or code generation), and the extension's own code is in `apps/extension/src`, with the shared packages it uses in `packages/scripture-links` and `packages/dialogs`.
+Steps, from the top folder of the unpacked archive:
+
+1. `pnpm install --frozen-lockfile`
+2. `pnpm --filter @scripturetips/extension build:production` (the build script is `apps/extension/build.ts`; it writes the unpacked add-on to `apps/extension/dist/firefox`)
+3. `pnpm --filter @scripturetips/extension package:firefox` (zips it to `apps/extension/dist/packages/scripturetips-2.0.0-firefox.zip`)
+
+(The project's own way of building runs the same commands inside a Docker container, `./toolbox pnpm …`, so nothing is installed on the developer's computer. Reviewers don't need it: it also starts databases the extension doesn't use.)
+
+4. Compare `apps/extension/dist/firefox` with the uploaded package, file by file (zip timestamps differ).
+
+`build:production` builds for the real addresses: the reader `https://scripturetips.com` and the data server `https://scripture.tips`. The build uses esbuild only (no other bundler or code generator, nothing downloaded at build time besides the packages in `pnpm-lock.yaml`). The extension's own code is `apps/extension/src`; the two shared packages it uses are `packages/scripture-links` and `packages/dialogs`. The extension's version comes from `apps/extension/package.json`; nothing in the build depends on the date or the git history.
+
+# Chrome Web Store (an update of the v1.0.3 listing)
+
+Package: `apps/extension/dist/packages/scripturetips-2.0.0-chrome.zip` (`build:production`, then
+`package:chrome`). Version 2.0.0 is above v1.0.3's; the permissions (`storage`, `activeTab`) are
+no more than v1.0.3 had, so Chrome doesn't switch the update off for existing users.
+
+Short description (the manifest's, 132 characters at most, set in `_locales/en/messages.json`):
+"Recognises scripture references on the pages you read, links them, and shows the passage when you hover or tap."
+
+Promotional images (the existing ones are dark and dated): `store/promo-small-440x280.jpg` (small tile) and `store/promo-marquee-1400x560.jpg` (marquee, optional), made by `apps/site/shots/store.shots.ts`: the logo, the name and a plain line on pale sky blue, no clouds artwork (its CC BY-NC credit wouldn't fit).
+
+The store listing (description, screenshots, categories) is the text above. Screenshots: the four
+in `store/screenshots/` (1280 × 800).
+
+## Privacy practices tab
+
+- **Single purpose:** Finds scripture references on the web pages the user reads, links them, and shows the passage in a tooltip.
+- **`storage` justification:** Keeps the user's settings (where links go, translation, format, sites turned off) and the translation chosen for each link, in the extension's own storage.
+- **`activeTab` justification:** The toolbar popup reads the address of the current tab to show its site name, turn the extension off for that site, and open the link generator on that page.
+- **Host permission (`<all_urls>`, the content script) justification:** Scripture references can appear on any website, so the content script must read the text of any page to find them. It only finds references locally; nothing is sent until the user opens a tooltip, and then only that one reference and translation are requested from `https://scripture.tips`. It leaves out Google's pages and the ScriptureTips sites.
+- **Remote code:** No. All code is in the package; there is no `eval` and nothing is loaded from a server.
+- **Data usage:** check **Website content** (the reference taken from the page, such as "John 3:16", is requested from the data server when a tooltip opens) and **Location** (the data server records each request's IP address, as the privacy policy says). Leave every other category unchecked. Check all three certifications.
+- **Privacy policy URL:** https://scripture.tips/privacy/
+
+## Test instructions (Chrome Web Store, 500 characters at most)
+
+The text is in `store/test-instructions.txt` (about 470 characters). The test page is the demo
+`jonah.html` hosted at https://www.adonai-reigns.life/demo/ (not linked from anywhere; it says it
+is AI generated and carries `noindex`).

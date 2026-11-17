@@ -1,4 +1,4 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type BrowserContext, test as base, chromium, expect, type Page } from "@playwright/test";
 import { DEMO, showPublicHosts } from "./support.ts";
@@ -140,4 +140,60 @@ test("4: the settings, with outside reading sites", async ({ page, extensionId }
   await page.goto(`chrome-extension://${extensionId}/options.html`);
   await expect(page.locator("#translation option")).not.toHaveCount(0);
   await snap(page, "4-settings");
+});
+
+/**
+ * The listing's promotional images (the Chrome Web Store's small tile, 440 × 280, and marquee,
+ * 1400 × 560): the logo, the name and a plain line on a pale sky blue, never the clouds artwork
+ * (its CC BY-NC license wants a credit, which an image this small has no room for), and for the
+ * marquee a crop of the first screenshot's real tooltip, at 1.3 times its size. JPEG, since the store wants no alpha.
+ */
+const STORE = new URL("../../extension/store/", import.meta.url).pathname;
+const dataUri = (path: string, type: string) =>
+  `data:${type};base64,${readFileSync(path).toString("base64")}`;
+
+const PROMO_CSS = `
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Helvetica Neue", Arial, system-ui, sans-serif; color: #0b2e4f;
+    background: linear-gradient(135deg, #f2fafe 0%, #c6e9fa 100%); overflow: hidden; }
+  .name { font-weight: 700; letter-spacing: -0.01em; color: #0054a5; }
+  .line { color: #1f4f78; }
+`;
+
+test("promo images: the small tile and the marquee", async ({ page }) => {
+  const logo = dataUri(join(STORE, "logo-180.png"), "image/png");
+  const shot = dataUri(file("1-passage-tooltip"), "image/png");
+
+  await page.setViewportSize({ width: 440, height: 280 });
+  await page.setContent(`<style>${PROMO_CSS}
+    body { width: 440px; height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 0 28px; }
+    img { width: 120px; height: 120px; mix-blend-mode: multiply; }
+    .name { font-size: 40px; line-height: 1.05; }
+    .line { font-size: 19px; line-height: 1.3; }
+  </style>
+  <img src="${logo}" alt=""><div class="name">Scripture Tips</div><div class="line">The passage, one hover away</div>`);
+  await page.screenshot({
+    path: join(STORE, "promo-small-440x280.jpg"),
+    type: "jpeg",
+    quality: 100,
+  });
+
+  await page.setViewportSize({ width: 1400, height: 560 });
+  await page.setContent(`<style>${PROMO_CSS}
+    body { width: 1400px; height: 560px; position: relative; }
+    .brand { position: absolute; left: 110px; top: 0; bottom: 0; width: 640px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+    .brand img { width: 150px; height: 150px; mix-blend-mode: multiply; }
+    .name { font-size: 84px; line-height: 1; }
+    .line { font-size: 34px; line-height: 1.3; max-width: 560px; }
+    .card { position: absolute; right: 120px; top: 50%; width: 358px; height: 158px; margin-top: -79px;
+      background: url(${shot}) -551px -321px no-repeat; border-radius: 10px; box-shadow: 0 10px 30px rgb(0 30 60 / 0.25); transform: scale(1.3); transform-origin: center; }
+  </style>
+  <div class="brand"><img src="${logo}" alt=""><div class="name">Scripture Tips</div>
+  <div class="line">Hover or tap any scripture reference to read the passage in place.</div></div>
+  <div class="card"></div>`);
+  await page.screenshot({
+    path: join(STORE, "promo-marquee-1400x560.jpg"),
+    type: "jpeg",
+    quality: 100,
+  });
 });
