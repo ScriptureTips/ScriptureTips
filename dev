@@ -6,6 +6,11 @@
 # https://dev.scripture.tips (the data server), whose public DNS records point at this machine's
 # network address. `./dev up --lan` listens on the network (to try it on a phone or tablet);
 # plain `./dev up` listens on 127.0.0.1 only, which needs a hosts-file entry for both names.
+# `./dev up --bind=IP` listens on that one address instead (for example the LAN address the names
+# point at), so other projects can hold the same ports on other addresses (LanProjectsControlPanel
+# runs it this way); `--local-bind=IP` moves the database and API ports (5432, 3001, normally
+# 127.0.0.1) to another loopback address, such as 127.0.0.3, for the same reason. Never give
+# --local-bind a network address: the development database and API would be open to it.
 # The API and database stay on localhost. Runs on the host, since Docker isn't available inside
 # the toolbox.
 #
@@ -19,7 +24,7 @@ cd "$(dirname "$0")"
 
 export HOST_UID="$(id -u)" HOST_GID="$(id -g)"
 
-# cspell:ignore newkey addext keyout
+# cspell:ignore newkey addext keyout elif
 
 SITES=(dev.scripturetips.com dev.scripture.tips)
 
@@ -55,12 +60,33 @@ site() {
 
 case "${1:-}" in
   up)
+    shift
+    lan="" bind="" local_bind=""
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --lan) lan=1 ;;
+        --bind=*) bind="${1#*=}" ;;
+        --bind) bind="${2:?--bind needs an address}"; shift ;;
+        --local-bind=*) local_bind="${1#*=}" ;;
+        --local-bind) local_bind="${2:?--local-bind needs an address}"; shift ;;
+        *) echo "./dev up: unknown option $1" >&2; exit 1 ;;
+      esac
+      shift
+    done
+    if [[ -n "$lan" && -n "$bind" ]]; then
+      echo "./dev up: use --lan or --bind, not both" >&2
+      exit 1
+    fi
+    if [[ -n "$lan" ]]; then export LAN_BIND=0.0.0.0; fi
+    if [[ -n "$bind" ]]; then export LAN_BIND="$bind"; fi
+    if [[ -n "$local_bind" ]]; then export LOCAL_BIND="$local_bind"; fi
     certificate
     site
-    if [[ "${2:-}" == "--lan" ]]; then export LAN_BIND=0.0.0.0; fi
     docker compose --profile dev up -d --wait --force-recreate "${SERVICES[@]}"
     for site in "${SITES[@]}"; do echo "https://$site"; done
-    if [[ -n "${LAN_BIND:-}" ]]; then
+    if [[ -n "$bind" ]]; then
+      echo "Mailpit: http://$bind:8025"
+    elif [[ -n "$lan" ]]; then
       for a in $(hostname -I | tr ' ' '\n' | grep -E '^(192\.168|10)\.' || true); do
         echo "Mailpit: http://$a:8025"
       done
@@ -73,7 +99,7 @@ case "${1:-}" in
   migrate) exec ./toolbox pnpm --filter @scripturetips/db migrate ;;
   site) site ;;
   *)
-    echo "Usage: ./dev up [--lan] | down | logs [service] | migrate | site" >&2
+    echo "Usage: ./dev up [--lan | --bind=IP] [--local-bind=IP] | down | logs [service] | migrate | site" >&2
     exit 1
     ;;
 esac

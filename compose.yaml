@@ -39,7 +39,7 @@ services:
       POSTGRES_PASSWORD: scripturetips
       POSTGRES_DB: scripturetips
     ports:
-      - 127.0.0.1:5432:5432
+      - ${LOCAL_BIND:-127.0.0.1}:5432:5432
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
@@ -86,7 +86,7 @@ services:
         STORAGE_SECRET_KEY: *storage-secret
         STORAGE_BUCKET: scripturetips
     ports:
-      - 127.0.0.1:3001:3001
+      - ${LOCAL_BIND:-127.0.0.1}:3001:3001
     depends_on:
       postgres:
         condition: service_healthy
