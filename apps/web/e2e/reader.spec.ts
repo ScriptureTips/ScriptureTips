@@ -140,23 +140,175 @@ test("the passage's title is edited in place, and the translation is chosen at t
   await page.getByRole("button", { name: "Genesis 2:18–25" }).click();
   const field = page.getByRole("textbox", { name: "Passage" });
   await expect(field).toBeFocused();
+  // The form has the whole bar, whatever the width: the field is wide enough to read.
+  expect((await field.boundingBox())?.width ?? 0).toBeGreaterThan(150);
+  await page.screenshot(shot("passage-title-editing"));
   // Escape puts the title back.
   await page.keyboard.press("Escape");
   await expect(field).toHaveCount(0);
   // Leaving the field puts the title back; at rest it shows a pencil.
   await expect(page.locator(".passage-title-icon")).toBeVisible();
   await page.getByRole("button", { name: "Genesis 2:18–25" }).click();
-  await page.locator("h2, .reading-bar").first().click();
+  await page.mouse.click(2, 2);
   await expect(field).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Genesis 2:18–25" })).toBeVisible();
   await page.getByRole("button", { name: "Genesis 2:18–25" }).click();
   await field.fill("Psalm 23");
   await page.getByRole("button", { name: "Read", exact: true }).click();
   await expect(page).toHaveURL(/\/read\/leb\/psalms\/23$/);
-  // Another translation: the same passage in it.
-  await page.getByRole("combobox", { name: "Translation" }).selectOption("eng-kjv");
-  await expect(page).toHaveURL(/\/read\/eng-kjv\/psalms\/23$/);
+  // Another translation, from the menu: the same passage in it, under the first.
+  const toggle = page.getByRole("button", { name: /^Translation/ });
+  await expect(async () => {
+    if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true", { timeout: 1000 });
+  }).toPass();
+  await page.locator("#reader-menu-translation").getByRole("button", { name: /^KJV:/ }).click();
+  await expect(page).toHaveURL(/\/read\/leb\/psalms\/23\?with=eng-kjv$/);
   await page.screenshot(shot("passage-title"));
+});
+
+test("the reader's horizontal menu: the books by section as dropdowns, one open at a time", async ({
+  page,
+}) => {
+  await page.goto("/read/leb/genesis/2/18-25");
+  const menu = page.getByRole("navigation", { name: "Books" });
+  await expect(menu.getByRole("button")).toHaveText(["Old Testament", "New Testament"]);
+  // The passage is edited in the blue bar, and the Translation dropdown is under it, to the right.
+  const bar = await page.locator(".reading-bar").boundingBox();
+  const translation = await page.getByRole("button", { name: /^Translation/ }).boundingBox();
+  expect(
+    await page.locator(".reading-bar").getByRole("button", { name: "Genesis 2:18–25" }).count(),
+  ).toBe(1);
+  expect(translation?.y ?? 0).toBeGreaterThan((bar?.y ?? 0) + (bar?.height ?? 0));
+  expect((translation?.x ?? 0) + (translation?.width ?? 0)).toBeGreaterThan(
+    (bar?.x ?? 0) + (bar?.width ?? 0) - 40,
+  );
+  // The section of the book being read is marked.
+  await expect(menu.getByRole("button", { name: "Old Testament" })).toHaveClass(/reading/);
+  const panel = (name: string) => page.locator(`#reader-menu-${name}`);
+  await menu.getByRole("button", { name: "Old Testament" }).click();
+  await expect(panel("ot").getByRole("link", { name: "Exodus" })).toBeVisible();
+  await expect(panel("ot").getByRole("link", { name: "Genesis" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await page.screenshot(shot("reader-menu-books"));
+  // Another menu closes the first.
+  await menu.getByRole("button", { name: "New Testament" }).click();
+  await expect(panel("ot")).toHaveCount(0);
+  await expect(panel("nt").getByRole("link", { name: "Romans" })).toBeVisible();
+  // Escape and a press outside close it too.
+  await page.keyboard.press("Escape");
+  await expect(panel("nt")).toHaveCount(0);
+  await menu.getByRole("button", { name: "Old Testament" }).click();
+  // (The corner of the window: the dropdown covers the passage's title.)
+  await page.mouse.click(2, 2);
+  await expect(panel("ot")).toHaveCount(0);
+  // A book opens at its first chapter, and the menu closes.
+  await menu.getByRole("button", { name: "Old Testament" }).click();
+  await panel("ot").getByRole("link", { name: "Exodus" }).click();
+  await expect(page).toHaveURL(/\/read\/leb\/exodus\/1$/);
+  await expect(panel("ot")).toHaveCount(0);
+});
+
+test("the Translation menu shows several translations stacked, and never fewer than one", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await page.goto("/read/leb/genesis/1/1-3");
+  const menu = page.getByRole("navigation", { name: "Books" });
+  const toggle = page.getByRole("button", { name: /^Translation/ });
+  const versions = page.locator(".reader-version");
+  // One translation: no heading over it.
+  await expect(versions).toHaveCount(1);
+  await expect(page.locator(".reader-version-heading")).toHaveCount(0);
+  // (Pressed again until it opens: a press before the page is ready does nothing.)
+  const openMenu = () =>
+    expect(async () => {
+      if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+      await expect(toggle).toHaveAttribute("aria-expanded", "true", { timeout: 1000 });
+    }).toPass();
+  await openMenu();
+  const choice = (abbreviation: string) =>
+    page.locator("#reader-menu-translation").getByRole("button", {
+      name: new RegExp(`^${abbreviation}:`),
+    });
+  await expect(choice("LEB")).toHaveAttribute("aria-pressed", "true");
+  await expect(choice("BSB")).toHaveAttribute("aria-pressed", "false");
+  // A name wider than its column is clipped to one line; hovered, it opens out in full.
+  const long = page.locator(".reader-choice-label", { hasText: /^DRA:/ });
+  if (await page.evaluate(() => matchMedia("(hover: hover) and (min-width: 40.01rem)").matches)) {
+    const height = (await long.boundingBox())?.height ?? 0;
+    await long.hover();
+    await expect(long).toHaveCSS("overflow", "visible");
+    expect((await long.boundingBox())?.height).toBe(height);
+    // A name in the right column spills past the menu's edge: no scrollbar, and nothing clipped.
+    const right = page.locator(".reader-choice-label", { hasText: /^OEBCW:/ });
+    await right.hover();
+    const panel = page.locator("#reader-menu-translation");
+    // (Nothing in the menu scrolls or clips, so there's no scrollbar to show.)
+    await expect(panel).toHaveCSS("overflow", "visible");
+    const spill = await right.evaluate((el) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect().right;
+    });
+    expect(spill).toBeGreaterThan((await panel.boundingBox())?.x ?? 0);
+    await page.screenshot(shot("reader-menu-long-name"));
+  }
+
+  // Another one on: both are shown, the first above, each under its name; the menu stays open.
+  await choice("BSB").click();
+  await expect(page).toHaveURL(/\/read\/leb\/genesis\/1\/1-3\?with=bsb$/);
+  await expect(versions).toHaveCount(2);
+  await expect(page.locator(".reader-version-heading")).toHaveText([/^LEB/, /^BSB/]);
+  await expect(versions.nth(0)).toContainText("In the beginning");
+  await expect(versions.nth(1)).toContainText("In the beginning");
+  await expect(choice("BSB")).toHaveAttribute("aria-pressed", "true");
+  await page.screenshot(shot("reader-menu-translations"));
+
+  // The chapter's arrows keep both.
+  await page.keyboard.press("Escape");
+  await page.goto("/read/leb/genesis/1?with=bsb");
+  // The arrows say, on hover, which chapter they go to.
+  await expect(page.getByRole("link", { name: "Next: Genesis 2" }).first()).toHaveAttribute(
+    "title",
+    "Genesis 2",
+  );
+  await page.getByRole("link", { name: "Next: Genesis 2" }).first().click();
+  await expect(page).toHaveURL(/\/read\/leb\/genesis\/2\?with=bsb$/);
+  await expect(versions).toHaveCount(2);
+
+  // A guest is held to six translations at once: the address can't name more, and the menu
+  // won't turn on a seventh.
+  await page.goto("/read/leb/genesis/1/1?with=bsb,eng-kjv,eng-asv,engwebp,engnet,engmsb");
+  await expect(versions).toHaveCount(6);
+  await openMenu();
+  const off = page.locator("#reader-menu-translation .reader-choice[aria-pressed='false']").first();
+  await expect(off).toHaveAttribute("aria-disabled", "true");
+  await off.click({ force: true });
+  await expect(versions).toHaveCount(6);
+  await page.keyboard.press("Escape");
+  await page.goto("/read/leb/genesis/2?with=bsb");
+  await openMenu();
+  // A guest has no compilations or favourites, so there are no groups to pick: no footer.
+  await openMenu();
+  await expect(page.locator(".reader-menu-footer")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.goto("/read/leb/genesis/2?with=bsb");
+
+  // The first one off: the other takes its place in the address.
+  await openMenu();
+  await choice("LEB").click();
+  await expect(page).toHaveURL(/\/read\/bsb\/genesis\/2$/);
+  await expect(versions).toHaveCount(1);
+  // The last one can't be turned off.
+  await openMenu();
+  await expect(choice("BSB")).toHaveAttribute("aria-disabled", "true");
+  // (Forced: Playwright treats an aria-disabled button as not clickable.)
+  await choice("BSB").click({ force: true });
+  await expect(page).toHaveURL(/\/read\/bsb\/genesis\/2$/);
+  await expect(versions).toHaveCount(1);
 });
 
 test("a part of a chapter has a button for the verses around it, until it's the whole chapter", async ({
@@ -264,20 +416,15 @@ test("vision §3.4: the book list, then chapter by chapter", async ({ page }) =>
   await page.mouse.wheel(0, 1500);
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(500);
   expect((await page.locator(".reading-bar").boundingBox())?.y).toBeLessThan(40);
-  await expect(
-    page.getByRole("tablist", { name: "Books by section" }).getByRole("tab", {
-      name: "Old Testament",
-    }),
-  ).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("link", { name: /^Genesis/ })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  // The passage page has the menu, with the section of the book being read marked.
+  const menu = page.getByRole("navigation", { name: "Books" });
+  await expect(menu.getByRole("button", { name: "Old Testament" })).toHaveClass(/reading/);
+  await menu.getByRole("button", { name: "Old Testament" }).click();
+  const genesis = page.locator("#reader-menu-ot").getByRole("link", { name: /^Genesis/ });
+  await expect(genesis).toHaveAttribute("aria-current", "page");
   // The book being read is highlighted in the list.
-  await expect(page.getByRole("link", { name: /^Genesis/ })).toHaveCSS(
-    "background-color",
-    "rgb(198, 233, 250)",
-  );
+  await expect(genesis).toHaveCSS("background-color", "rgb(198, 233, 250)");
+  await page.keyboard.press("Escape");
   await page.getByRole("link", { name: "Next: Genesis 2" }).click();
   await expect(page).toHaveURL(/\/genesis\/2$/);
   await expect(page.getByRole("link", { name: "Previous: Genesis 1" })).toBeVisible();

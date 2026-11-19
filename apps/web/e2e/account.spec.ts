@@ -215,9 +215,38 @@ test("favourite translations: starred and dragged into order, and only favourite
     .first()
     .click();
   await expect(page).toHaveURL(/\/read\/[^/]+\/genesis\/1$/);
+  // The Translation menu marks the translation shown: the first favourite.
+  await page.getByRole("button", { name: /^Translation/ }).click();
   await expect(
-    page.getByRole("combobox", { name: "Translation" }).locator("option:checked"),
-  ).toHaveText(first ?? "");
+    page.locator("#reader-menu-translation").locator('[aria-pressed="true"]'),
+  ).toHaveText(new RegExp(`^\\s*✓?${(first ?? "").split(":")[0]}:`));
+  // With only favourites in the menus, the other translations are behind a collapsible heading.
+  const otherTranslations = page.getByRole("button", { name: /^Other translations/ });
+  await expect(otherTranslations).toContainText("Click to show");
+  await expect(otherTranslations).toHaveAttribute("aria-expanded", "false");
+  await otherTranslations.click();
+  await expect(otherTranslations).toHaveAttribute("aria-expanded", "true");
+  await expect(otherTranslations).not.toContainText("Click to show");
+  expect(await page.locator(".reader-choice").count()).toBeGreaterThan(2);
+  // However long the list, it never runs on sideways into more columns.
+  const panel = page.locator("#reader-menu-translation");
+  // (On a phone: with room, a hovered long name spills past the edge on purpose.)
+  if ((page.viewportSize()?.width ?? 1280) < 640) {
+    expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  }
+  // The footer's checkboxes select or deselect a whole group (here, the favourites).
+  const footer = page.locator(".reader-menu-footer");
+  await footer.getByRole("checkbox", { name: "Favourites" }).click();
+  await expect(footer.getByRole("checkbox", { name: "Favourites" })).toBeChecked();
+  await expect(page.locator(".reader-version")).not.toHaveCount(1);
+  await footer.getByRole("checkbox", { name: "Favourites" }).click();
+  await expect(page.locator(".reader-version")).toHaveCount(1);
+  // Turned on, then hidden: they're turned off with the heading (the favourite stays).
+  await page.locator(".reader-choice").last().click();
+  await expect(page).toHaveURL(/\?with=/);
+  await otherTranslations.click();
+  await expect(otherTranslations).toHaveAttribute("aria-expanded", "false");
+  await expect(page).not.toHaveURL(/\?with=/);
 
   // A book's translation menu follows it too: the favourites and the book's own source, then
   // everything on request.

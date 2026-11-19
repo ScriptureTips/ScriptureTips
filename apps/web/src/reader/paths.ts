@@ -107,3 +107,10 @@ export function readerTarget(
 /** True if a reader ID is a compilation's, and `handle` (the viewer's) owns it. */
 export const ownsCompilation = (id: string, handle: string | null | undefined): boolean =>
   !id.startsWith("@") || (handle != null && id.startsWith(`@${handle}/`));
+
+/** The address of a passage read in these translations: the first in the path, the rest in `with`. */
+export function readHref(selected: readonly string[], tail: string): string {
+  const [primary, ...rest] = selected;
+  const path = `/read/${primary}${tail ? `/${tail}` : ""}`;
+  return rest.length > 0 ? `${path}?with=${rest.map(encodeURIComponent).join(",")}` : path;
+}

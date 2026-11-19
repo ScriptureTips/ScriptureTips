@@ -19,6 +19,7 @@ export async function ChapterBar({
   next,
   href,
   books,
+  after,
 }: {
   osis: string;
   chapter: number;
@@ -30,6 +31,8 @@ export async function ChapterBar({
   href: (osis: string, chapter: number) => string;
   /** The book tabs, opened from the book's name on a phone, if the page offers them there. */
   books?: ReactNode;
+  /** Beside the book and chapter in the bar (the reader's editable passage). */
+  after?: ReactNode;
 }) {
   const t = await getTranslations("reading");
   const bookName = english.name(osis, "full", "one");
@@ -47,6 +50,7 @@ export async function ChapterBar({
           // Loaded ahead (in a production build), so stepping through chapters is instant.
           prefetch
           aria-label={t("previous", { chapter: chapterLabel(previous) })}
+          title={chapterLabel(previous)}
         >
           ‹
           <LinkPending />
@@ -72,6 +76,7 @@ export async function ChapterBar({
             {chapter}
           </button>
         </h2>
+        {after}
         {books ? (
           <nav id="book-picker" popover="auto" className="book-picker" aria-label={t("books")}>
             {books}
@@ -101,6 +106,7 @@ export async function ChapterBar({
           rel="next"
           prefetch
           aria-label={t("next", { chapter: chapterLabel(next) })}
+          title={chapterLabel(next)}
         >
           ›
           <LinkPending />

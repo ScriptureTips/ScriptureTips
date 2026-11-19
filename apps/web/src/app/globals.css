@@ -1555,22 +1555,246 @@ main:has(> .compilation) {
   margin: 0 0 1rem;
 }
 
-/* The translation, top right of the reader. */
-.reader-translation {
-  display: flex;
-  justify-content: flex-end;
+/*
+ * The reader's horizontal menu: the book menus and Translation, each a dropdown under its button,
+ * in the look of the book tabs. A dropdown is as wide as the menu and opens over the page.
+ */
+.reader-menu {
+  position: relative;
   margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
 }
 
-.reader-translation select {
-  max-width: 16rem;
+.reader-menu > ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reader-menu-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
   font: inherit;
-  font-size: 0.9rem;
-  padding: 0.3rem 0.5rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 0.4rem 0.8rem;
+  cursor: pointer;
+}
+
+/* A small arrow shows it opens downward. */
+.reader-menu-toggle::after {
+  content: "";
+  align-self: center;
+  border: 0.3rem solid transparent;
+  border-top-color: currentcolor;
+  border-bottom-width: 0;
+}
+
+.reader-menu-toggle:hover,
+.reader-menu-toggle:focus-visible {
   color: var(--ink);
-  background: #fff;
-  border: 1px solid #9aa5b1;
-  border-radius: 0.4rem;
+  outline: none;
+}
+
+.reader-menu-toggle:focus-visible {
+  border-bottom-color: var(--deep);
+}
+
+/* The section of the book being read, and the menu that's open. */
+.reader-menu-toggle.reading {
+  color: var(--deep);
+}
+
+.reader-menu-toggle[aria-expanded="true"] {
+  color: var(--deep);
+  border-bottom-color: var(--deep);
+}
+
+.reader-menu-toggle small {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.reader-menu-panel {
+  position: absolute;
+  z-index: 6;
+  top: 100%;
+  right: 0;
+  left: 0;
+  max-height: min(70vh, 34rem);
+  overflow-y: auto;
+  padding: 0.5rem 0.75rem 0.75rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-top: 0;
+  border-radius: 0 0 0.3rem 0.3rem;
+  box-shadow: 0 0.25rem 0.75rem rgb(0 40 80 / 0.15);
+}
+
+.reader-menu-panel section + section {
+  margin-top: 0.5rem;
+}
+
+.reader-menu-panel .book-menu-heading {
+  padding-inline: 0;
+}
+
+.reader-books,
+.reader-choices {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  columns: 10rem;
+  column-gap: 1.5rem;
+}
+
+/* The translations are one list in their column. */
+.reader-choices {
+  columns: auto;
+}
+
+/*
+ * The translation menu is one list in two columns: your compilations, then the translations
+ * beginning right under them, and on into the second column. (One column on a phone.)
+ */
+.reader-menu-flow {
+  columns: 2;
+  column-gap: 1.5rem;
+}
+
+/*
+ * The whole dropdown scrolls, with its footer held at the bottom. The columns' own box has no set
+ * height: in a box of fixed height, columns that overflow it would run on sideways as more columns.
+ */
+.reader-menu-translations {
+  padding-bottom: 0;
+}
+
+/* Which translations the list shows. */
+.reader-menu-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  position: sticky;
+  bottom: 0;
+  margin: 0.5rem -0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+}
+
+.reader-menu-footer label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.reader-menu-flow section + section {
+  margin-top: 0;
+}
+
+/* A heading stays with the first name under it. */
+.reader-menu-flow .book-menu-heading {
+  break-after: avoid;
+}
+
+@media (max-width: 40rem) {
+  .reader-menu-flow {
+    columns: 1;
+  }
+}
+
+.reader-books li,
+.reader-choices li {
+  margin: 0 -0.4rem;
+  break-inside: avoid;
+}
+
+.reader-books a,
+.reader-choice {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  color: inherit;
+  background: none;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+  cursor: pointer;
+}
+
+.reader-books a:hover,
+.reader-books a:focus-visible,
+.reader-choice:hover,
+.reader-choice:focus-visible {
+  border-color: var(--rule);
+  background: rgb(0 84 165 / 0.04);
+  outline: none;
+}
+
+.reader-books a:focus-visible,
+.reader-choice:focus-visible {
+  border-color: var(--deep);
+}
+
+/* The book being read, and the translations shown (with a check). */
+.reader-books a[aria-current="page"],
+.reader-choice[aria-pressed="true"] {
+  color: var(--deep);
+  font-weight: 600;
+  background: var(--pale);
+  border-color: var(--pale);
+}
+
+/*
+ * A translation is a row of two: the check, then its name. The first line starts at the left
+ * with the check, and a name that wraps goes on under its own first letter (a hanging indent,
+ * not an indented first line). The check's place is kept whether or not it shows.
+ */
+.reader-choice {
+  display: grid;
+  grid-template-columns: 1.1em 1fr;
+  align-items: baseline;
+}
+
+/* The one translation shown can't be turned off. */
+.reader-choice[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Translations stacked in the body: each under its own heading. */
+.reader-version + .reader-version {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.reader-version-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  color: var(--deep);
+}
+
+.reader-version-heading small {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 /* The passage's title is edited in place: a field and a Read button once it's pressed. */
@@ -2280,6 +2504,47 @@ a.reading-step:focus-visible {
 .reading-title {
   position: relative;
   justify-self: center;
+  display: flex;
+  align-items: center;
+}
+
+/* The reader's editable passage, beside the chapter in the bar. */
+.reading-title .passage-title {
+  margin: 0;
+  font: inherit;
+  font-size: 1.4rem;
+}
+
+.reading-title .passage-title-button {
+  margin: 0;
+  padding: 0;
+}
+
+.reading-title .passage-title-form {
+  margin: 0;
+}
+
+.reading-title .passage-title-form input[name="ref"] {
+  font-size: 1rem;
+}
+
+/* Editing the passage: the form has the whole bar (the arrows and name are back once it closes). */
+.reading-bar:has(.passage-title-form) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.reading-bar:has(.passage-title-form) .reading-step,
+.reading-bar:has(.passage-title-form) .reading-title h2 {
+  display: none;
+}
+
+.reading-bar:has(.passage-title-form) .reading-title {
+  justify-self: stretch;
+}
+
+.reading-title .passage-title-form {
+  flex: 1;
+  min-width: 0;
 }
 
 .reading-title h2 {
@@ -2501,6 +2766,12 @@ a.reading-step:focus-visible {
 
 .reading:has(.link-pending) {
   cursor: progress;
+}
+
+/* The reader's passage dims too while another chapter or other translations load. */
+.reader:has(.link-pending) .reader-version {
+  opacity: 0.45;
+  transition: opacity 0.2s 0.15s;
 }
 
 .reading-modes a + a {
@@ -3619,4 +3890,112 @@ st-search-input.study-tip-field {
   margin: 0 0 0.2rem;
   max-height: 40dvh;
   overflow: auto;
+}
+
+/* The heading over the other translations opens and closes them, with an arrow to show it. */
+.reader-others-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.reader-others-toggle::after {
+  content: "";
+  align-self: center;
+  border: 0.3rem solid transparent;
+  border-top-color: currentcolor;
+  border-bottom-width: 0;
+}
+
+.reader-others-toggle[aria-expanded="true"]::after {
+  border-top-width: 0;
+  border-bottom-width: 0.3rem;
+  border-bottom-color: currentcolor;
+}
+
+.reader-others-toggle small {
+  font-size: 0.8rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/*
+ * With room (two columns and a pointer), a long name stays on one line, clipped with an ellipsis;
+ * hovered or focused, it opens out to its full length, spilling over the column's right edge.
+ * On a phone there's no hover and one column, so it wraps instead.
+ */
+@media (hover: hover) and (min-width: 40.01rem) {
+  .reader-choice {
+    grid-template-columns: 1.1em minmax(0, 1fr);
+  }
+
+  .reader-choices li {
+    position: relative;
+  }
+
+  /* Nothing scrolls or clips here, so an opened-out name can spill past the menu's edge. */
+  .reader-menu-translations {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .reader-choice-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* The button itself opens out, so its border and shade go round the whole name. */
+  .reader-choice:hover,
+  .reader-choice:focus-visible {
+    position: relative;
+    z-index: 1;
+    width: max-content;
+    min-width: 100%;
+    padding-right: 0.6rem;
+    background: linear-gradient(rgb(0 84 165 / 0.04), rgb(0 84 165 / 0.04)), var(--paper);
+  }
+
+  .reader-choice[aria-pressed="true"]:hover,
+  .reader-choice[aria-pressed="true"]:focus-visible {
+    background: var(--pale);
+  }
+
+  .reader-choice:hover .reader-choice-label,
+  .reader-choice:focus-visible .reader-choice-label {
+    overflow: visible;
+  }
+}
+
+/* The Translation dropdown, under the blue bar and to the right. */
+.reader-translations {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.reader-translations .reader-menu {
+  margin-bottom: 0;
+  border-bottom: 0;
+}
+
+.reader-translations .reader-menu-panel {
+  top: 100%;
+  left: auto;
+  right: 0;
+  width: min(44rem, calc(100vw - 2rem));
+  border-top: 1px solid var(--rule);
+  border-radius: 0.3rem;
+}
+
+/* The panel is as wide as the area under the bar, not the narrow button. */
+.reader-translations .reader-menu {
+  position: static;
 }

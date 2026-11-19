@@ -159,3 +159,24 @@ describe("GET /api/translations/:translation/books", () => {
     expect(res.json()).toMatchObject({ code: "unknown-translation" });
   });
 });
+
+describe("cache headers on the translation reads", () => {
+  it("makes the list, the book lists and passages public and cacheable, and errors not", async () => {
+    expect((await get("/api/translations")).headers["cache-control"]).toBe("public, max-age=300");
+    expect((await get("/api/translations/kjv/books")).headers["cache-control"]).toBe(
+      "public, max-age=300",
+    );
+    expect(
+      (await get(`/api/translations/kjv/passages?ref=${encodeURIComponent("Joel 2:28")}`)).headers[
+        "cache-control"
+      ],
+    ).toBe("public, max-age=3600");
+    // Not cached when it's an error (a typo or an unknown translation).
+    expect((await get("/api/translations/nope/books")).headers["cache-control"]).toBeUndefined();
+    expect(
+      (await get(`/api/translations/kjv/passages?ref=${encodeURIComponent("Nowhere 1")}`)).headers[
+        "cache-control"
+      ],
+    ).toBeUndefined();
+  });
+});

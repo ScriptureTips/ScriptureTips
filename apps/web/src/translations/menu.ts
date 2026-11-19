@@ -10,6 +10,8 @@ export interface TranslationOption {
   readonly id: string;
   readonly label: string;
   readonly more?: true;
+  /** One of the person's favorites (the reader's menu lists them apart). */
+  readonly favorite?: true;
 }
 
 /**
@@ -25,10 +27,11 @@ export function translationOptions<T extends { id: string; abbreviation: string;
   preferences: MenuPreferences | null | undefined,
   keep: readonly string[] = [],
 ): TranslationOption[] {
-  const option = (t: T, more?: true): TranslationOption => ({
+  const option = (t: T, more?: true, favorite?: true): TranslationOption => ({
     id: t.id,
     label: `${t.abbreviation}: ${t.name}`,
     ...(more ? { more } : {}),
+    ...(favorite ? { favorite } : {}),
   });
   if (!preferences) return all.map((t) => option(t));
   const byId = new Map(all.map((t) => [t.id, t]));
@@ -43,7 +46,7 @@ export function translationOptions<T extends { id: string; abbreviation: string;
   const others = [...placed, ...all.filter((t) => !taken.has(t.id))];
   const hide = preferences.favoritesOnly && favorites.length > 0;
   return [
-    ...favorites.map((t) => option(t)),
+    ...favorites.map((t) => option(t, undefined, true)),
     ...others.map((t) => option(t, hide && !keep.includes(t.id) ? true : undefined)),
   ];
 }

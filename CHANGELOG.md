@@ -6,10 +6,17 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-20
+
 ### Changed
+- The reader's books and translations are a horizontal menu: Old Testament, New Testament and Other scriptures, each a dropdown of its books. The passage is edited in the blue chapter bar (the pencil beside the book and chapter), and the Translation dropdown sits under the bar, to the right. The menu fits on one line on a phone.
+- The reader shows several translations at once: the passage is stacked under each one's name, with its own credit. Translation is a list you tick (one always stays on, and the address keeps your choice in `?with=`); signed in you can show up to 40, and a guest up to 6.
+- The Translation list shows your compilations and favorites, and the other translations under a heading that opens and closes (the choice is remembered in the browser; closing it turns those translations off). Checkboxes in its footer select or deselect a whole group. A long name is clipped to one line and opens out when hovered.
 - The home page search always covers every translation: the translation list is gone. A passage opens in your first favorite translation, and a verse found by its words opens in the translation it was found in. The field and button are narrower on a wide screen.
+- The translation list, a translation's books and its passages can be kept by browsers and caches (they were not cacheable before).
 
 ### Added
+- The previous and next chapter arrows in the reader's bar say which chapter they go to when hovered, and a spinner shows (and the text dims) while another chapter or other translations load.
 - Search keeps every word of a "quoted phrase" ("money is the root of all evil"), and leaves out only "the", "a", "of" and "and" from a plain search; small words like "before" count.
 - The search results scroll on without end: the next verses load as you reach the bottom of the list, on the home page and in the study window.
 - Search lists a verse once, not once for every translation that has it, so a limited list reaches more verses.

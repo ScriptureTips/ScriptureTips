@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { currentAccount } from "../../../../account/api.ts";
 import { myCompilation, myCompilations } from "../../../../compilations/api.ts";
-import { books, passage, translations } from "../../../../reader/api.ts";
+import { books, type PassageResponse, passage, translations } from "../../../../reader/api.ts";
 import {
   designations,
   Statement,
@@ -21,16 +21,25 @@ import {
 import { ChapterBar } from "../../../../reader/ChapterBar.tsx";
 import { creditLines } from "../../../../reader/credits.ts";
 import { Passage } from "../../../../reader/Passage.tsx";
-import { PassageTitle, TranslationPicker } from "../../../../reader/PassageEdit.tsx";
+import { PassageTitle } from "../../../../reader/PassageEdit.tsx";
 import { bookSlug, ownsCompilation, readerTarget, referenceFor } from "../../../../reader/paths.ts";
-import { ReaderTabs } from "../../../../reader/ReaderTabs.tsx";
+import { ReaderNav } from "../../../../reader/ReaderNav.tsx";
 import { translationOptions } from "../../../../translations/menu.ts";
 
 /** How many verses each side the context button adds. */
 const CONTEXT = 3;
 
+/**
+ * The most translations shown at once, stacked: each is a fetch and a render, so a guest is held
+ * to a few (a request naming dozens would be a cheap way to load the server).
+ */
+const MOST_TRANSLATIONS = 40;
+const MOST_TRANSLATIONS_GUEST = 6;
+
 interface Props {
   params: Promise<{ translation: string; ref: string[] }>;
+  /** `with`: more translations to show under the first, comma separated (catalog or `@handle/slug`). */
+  searchParams: Promise<{ with?: string }>;
 }
 
 /**
@@ -49,7 +58,15 @@ async function load({ params }: Props) {
   }
   const reference = referenceFor(segments);
   if (!reference) notFound();
-  return { kind: "passage" as const, id, account, reference, result: await passage(id, reference) };
+  return {
+    kind: "passage" as const,
+    id,
+    account,
+    reference,
+    // The path after the translation, to toggle translations on the same passage.
+    tail: segments.join("/"),
+    result: await passage(id, reference),
+  };
 }
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -82,7 +99,7 @@ export default async function Read(props: Props) {
       />
     );
   }
-  const { reference, result } = loaded;
+  const { reference, result, tail } = loaded;
   const t = await getTranslations("errors");
   const tr = await getTranslations("reader");
   const ts = await getTranslations("search");
@@ -92,6 +109,26 @@ export default async function Read(props: Props) {
     (result.code === "unknown-translation" || result.code === "unknown-compilation")
   )
     notFound();
+  // More translations to stack under the first: known ones (a catalog translation, or the
+  // viewer's own compilation), once each, up to a few; the rest are left out.
+  const known = new Set([...catalog.map((c) => c.id), ...mine.map((c) => c.id)]);
+  const extras = [
+    ...new Set(
+      ((await props.searchParams).with ?? "").split(",").filter((e) => e !== id && known.has(e)),
+    ),
+  ].slice(0, (account ? MOST_TRANSLATIONS : MOST_TRANSLATIONS_GUEST) - 1);
+  const shown = [id, ...extras];
+  const others = await Promise.all(extras.map((e) => passage(e, reference)));
+  const results: [string, PassageResponse][] = [
+    [id, result],
+    ...extras.map((e, i): [string, PassageResponse] => [
+      e,
+      others[i] ?? { ok: false, code: "unavailable" },
+    ]),
+  ];
+  // The other translations are kept as the reader moves through the passage's chapters.
+  const keep = extras.length > 0 ? `?with=${extras.map(encodeURIComponent).join(",")}` : "";
+  const readPath = (path: string) => `${path}${keep}`;
   // Previous and next chapters, in the reader's canon order, for a single passage.
   const only = result.ok && result.passages.length === 1 ? result.passages[0] : undefined;
   let around: { previous?: ChapterRef; next?: ChapterRef } = {};
@@ -135,37 +172,101 @@ export default async function Read(props: Props) {
   }
   const chapterLink = (c: ChapterRef, key: "previous" | "next") => (
     <a
-      href={`/read/${id}/${bookSlug(c.osis)}/${c.chapter}`}
+      href={readPath(`/read/${id}/${bookSlug(c.osis)}/${c.chapter}`)}
       rel={key === "previous" ? "prev" : "next"}
     >
       {tr(key, { chapter: `${english.name(c.osis, "full", "one")} ${c.chapter}` })}
     </a>
   );
-  const handle = id.startsWith("@") ? (id.split("/")[0] ?? "").slice(1) : "";
-  const { credit, notices } = result.ok
-    ? await creditLines(result, handle)
-    : { credit: null, notices: [] };
-  // A translation's own attribution (the owner's private compilation reader shows none yet).
-  const attribution = result.ok
-    ? translationAttribution(result.translation.id, result.translation.license)
-    : null;
-  const designationOf = attribution
-    ? designations([attribution], result.ok ? result.translation.id : undefined)
-    : undefined;
+  /** One translation's passages, with its credit and attribution (a heading when several show). */
+  const block = async (blockId: string, res: PassageResponse) => {
+    const handle = blockId.startsWith("@") ? (blockId.split("/")[0] ?? "").slice(1) : "";
+    const { credit, notices } = res.ok
+      ? await creditLines(res, handle)
+      : { credit: null, notices: [] };
+    // A translation's own attribution (the owner's private compilation reader shows none yet).
+    const attribution = res.ok
+      ? translationAttribution(res.translation.id, res.translation.license)
+      : null;
+    const designationOf = attribution
+      ? designations([attribution], res.ok ? res.translation.id : undefined)
+      : undefined;
+    return (
+      <section
+        key={blockId}
+        className="reader-version"
+        aria-label={res.ok ? res.translation.name : blockId}
+      >
+        {shown.length > 1 ? (
+          <h2 className="reader-version-heading">
+            {res.ok ? res.translation.abbreviation : blockId}
+            {res.ok ? <small>{res.translation.name}</small> : null}
+          </h2>
+        ) : null}
+        {res.ok ? (
+          res.passages.map((p, i) => (
+            <Passage
+              key={p.entered}
+              passage={p}
+              index={i}
+              direction={res.translation.direction}
+              canon={canon}
+              sources={res.sources}
+              designationOf={designationOf}
+              showLabel={false}
+            />
+          ))
+        ) : (
+          <p className="error" role="alert">
+            {t.has(res.code) ? t(res.code) : t("unavailable")}
+          </p>
+        )}
+        {credit ? <p className="translation-credit">{credit}</p> : null}
+        {attribution ? <Statement a={attribution} /> : null}
+        {notices.map((n) => (
+          <p key={n.kind} className="translation-credit edit-notice">
+            {n.text}
+          </p>
+        ))}
+      </section>
+    );
+  };
+  const navProps = {
+    selected: shown,
+    tail,
+    books: available,
+    canon,
+    current: reading,
+    compilations: mine.map((c) => ({ id: c.id, label: `${c.abbreviation}: ${c.title}` })),
+    translations: translationOptions(catalog, account, shown),
+    limit: account ? MOST_TRANSLATIONS : MOST_TRANSLATIONS_GUEST,
+  };
+  const fullTitle = result.ok ? result.passages.map((p) => p.label).join("; ") : reference;
+  const passageTitle = (shownAs?: string) => (
+    <PassageTitle
+      translation={id}
+      also={extras}
+      title={fullTitle}
+      {...(shownAs !== undefined ? { shown: shownAs } : {})}
+      direction={result.ok ? result.translation.direction : "ltr"}
+      labels={{ change: tr("changePassage"), field: ts("reference"), read: ts("go") }}
+    />
+  );
+  // In the bar the book and chapter are already named, so the title says only what's more
+  // (":1–3"); for a whole chapter it's just the pencil.
+  const startOfOnly = only ? parseOsisPassage(only.entered).start : undefined;
+  const bookLabel = startOfOnly ? english.name(startOfOnly.book, "full", "one") : "";
+  const afterBook = only?.label.startsWith(bookLabel)
+    ? only.label.slice(bookLabel.length).trim()
+    : "";
+  // ("Genesis 2" in the bar, then ":18–25").
+  const afterChapter =
+    startOfOnly && afterBook.startsWith(`${startOfOnly.chapter}:`)
+      ? afterBook.slice(String(startOfOnly.chapter).length)
+      : "";
   return (
     <div className="reader">
-      <TranslationPicker
-        current={id}
-        reference={reference}
-        compilations={mine.map((c) => ({ id: c.id, label: `${c.abbreviation}: ${c.title}` }))}
-        translations={translationOptions(catalog, account, [id])}
-        labels={{
-          translation: ts("translation"),
-          yours: ts("yourCompilations"),
-          all: ts("translations"),
-        }}
-      />
-      {available ? <ReaderTabs id={id} books={available} canon={canon} current={reading} /> : null}
+      <ReaderNav part="books" {...navProps} />
       {/* Held at the top of the window while the chapter scrolls, as in the editor. */}
       {only && available ? (
         <div className="reader-head">
@@ -178,44 +279,28 @@ export default async function Read(props: Props) {
             }
             previous={around.previous}
             next={around.next}
-            href={(to, n) => `/read/${id}/${bookSlug(to)}/${n}`}
+            href={(to, n) => readPath(`/read/${id}/${bookSlug(to)}/${n}`)}
+            after={passageTitle(afterChapter)}
           />
         </div>
-      ) : null}
-      <PassageTitle
-        translation={id}
-        title={result.ok ? result.passages.map((p) => p.label).join("; ") : reference}
-        direction={result.ok ? result.translation.direction : "ltr"}
-        labels={{ change: tr("changePassage"), field: ts("reference"), read: ts("go") }}
-      />
+      ) : (
+        passageTitle()
+      )}
+      {/* The translations, under the bar and to the right. */}
+      <div className="reader-translations">
+        <ReaderNav part="translation" {...navProps} />
+      </div>
       {chapterPath ? (
         <p className="passage-context">
           {wider && wider !== chapterPath ? (
-            <a href={wider} rel="nofollow">
+            <a href={readPath(wider)} rel="nofollow">
               {tr("context", { count: CONTEXT })}
             </a>
           ) : null}
-          <a href={chapterPath}>{tr("wholeChapter")}</a>
+          <a href={readPath(chapterPath)}>{tr("wholeChapter")}</a>
         </p>
       ) : null}
-      {result.ok ? (
-        result.passages.map((p, i) => (
-          <Passage
-            key={p.entered}
-            passage={p}
-            index={i}
-            direction={result.translation.direction}
-            canon={canon}
-            sources={result.sources}
-            designationOf={designationOf}
-            showLabel={false}
-          />
-        ))
-      ) : (
-        <p className="error" role="alert">
-          {t.has(result.code) ? t(result.code) : t("unavailable")}
-        </p>
-      )}
+      {await Promise.all(results.map(([blockId, res]) => block(blockId, res)))}
       {/* A single chapter has the bar's arrows; other passages link to the books. */}
       {result.ok && !only ? (
         <nav className="chapter-nav" aria-label={tr("chapterNav")}>
@@ -224,13 +309,6 @@ export default async function Read(props: Props) {
           <span>{around.next ? chapterLink(around.next, "next") : null}</span>
         </nav>
       ) : null}
-      {credit ? <p className="translation-credit">{credit}</p> : null}
-      {attribution ? <Statement a={attribution} /> : null}
-      {notices.map((n) => (
-        <p key={n.kind} className="translation-credit edit-notice">
-          {n.text}
-        </p>
-      ))}
     </div>
   );
 }

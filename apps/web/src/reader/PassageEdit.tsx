@@ -2,64 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useHydrated } from "../hydrated.ts";
-import { useMoreTranslations } from "../translations/MoreTranslations.tsx";
-import type { TranslationOption } from "../translations/menu.ts";
-
-/**
- * The reader's translation, as a select at the top of the page. Choosing another opens the same
- * passage in it (the form's GET, like the reader's passage form always was).
- */
-export function TranslationPicker({
-  current,
-  reference,
-  compilations,
-  translations,
-  labels,
-}: {
-  current: string;
-  reference: string;
-  compilations: readonly TranslationOption[];
-  translations: readonly TranslationOption[];
-  labels: { translation: string; yours: string; all: string };
-}) {
-  const hydrated = useHydrated();
-  const list = useMoreTranslations(translations, [current]);
-  return (
-    <form className="reader-translation" action="/read" method="get">
-      <input type="hidden" name="ref" value={reference} />
-      <label>
-        <span className="visually-hidden">{labels.translation}</span>
-        <select
-          name="t"
-          value={current}
-          disabled={!hydrated}
-          onChange={(e) => {
-            if (list.intercept(e.currentTarget.value)) return;
-            e.currentTarget.form?.requestSubmit();
-          }}
-        >
-          {compilations.length > 0 ? (
-            <optgroup label={labels.yours}>
-              {compilations.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </optgroup>
-          ) : null}
-          <optgroup label={labels.all}>
-            {list.shown.map((tr) => (
-              <option key={tr.id} value={tr.id}>
-                {tr.label}
-              </option>
-            ))}
-            {list.moreOption}
-          </optgroup>
-        </select>
-      </label>
-    </form>
-  );
-}
 
 /**
  * The passage's bold title, edited in place: pressing it turns it into a field, with a Read
@@ -68,12 +10,18 @@ export function TranslationPicker({
  */
 export function PassageTitle({
   translation,
+  also = [],
   title,
+  shown,
   direction,
   labels,
 }: {
   translation: string;
+  /** The other translations shown with it, kept when another passage is read. */
+  also?: readonly string[];
   title: string;
+  /** What the button says when it's not the whole title (the bar already names the chapter). */
+  shown?: string;
   direction: "ltr" | "rtl";
   labels: { change: string; field: string; read: string };
 }) {
@@ -92,9 +40,10 @@ export function PassageTitle({
           className="passage-title-button"
           disabled={!hydrated}
           title={labels.change}
+          aria-label={title}
           onClick={() => setEditing(true)}
         >
-          {title}
+          {shown ?? title}
           {/* A pencil, so it's known to be editable. */}
           <svg
             className="passage-title-icon"
@@ -128,6 +77,7 @@ export function PassageTitle({
       }}
     >
       <input type="hidden" name="t" value={translation} />
+      {also.length > 0 ? <input type="hidden" name="with" value={also.join(",")} /> : null}
       <input
         ref={input}
         name="ref"
