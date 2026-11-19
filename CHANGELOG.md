@@ -6,6 +6,9 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ## [Unreleased]
 
+### Added
+- Study mode works in a compilation's Read tab too: the words are marked, and selecting them opens the same tooltip (what they are, dictionary, search, links).
+
 ## [1.0.0] - 2026-11-15
 
 The first production release: the websites (`scripturetips.com` and `scripture.tips`) are live from here on, because the browser extension depends on them.

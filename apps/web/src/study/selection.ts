@@ -29,7 +29,7 @@ export function ignoresClick(): boolean {
 }
 
 /** Where selecting makes sense: the compare table, or a phone's one column. */
-export const SCOPE = ".compare-grid, .compare-list";
+export const SCOPE = ".compare-grid, .compare-list, .reading-columns";
 
 /** Words selected in the compare view: their text, the Strong's numbers marked in them, and where. */
 export interface StudyPick {

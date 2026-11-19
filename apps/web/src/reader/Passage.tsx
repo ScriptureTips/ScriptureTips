@@ -1,8 +1,17 @@
 import { type CanonId, standing } from "@scripturetips/canon";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
+import { STUDY_SOURCES, type StudyWords } from "../study/types.ts";
 import type { PassageResult } from "./api.ts";
-import { type Block, type DesignationOf, layOut, noteBody, type VerseMark } from "./layout.ts";
+import {
+  type Block,
+  type DesignationOf,
+  layOut,
+  noteBody,
+  type Shown,
+  type VerseMark,
+  type VerseUnit,
+} from "./layout.ts";
 import { ShownText } from "./ShownText.tsx";
 
 const HEADINGS: Readonly<Record<string, "h2" | "h3" | "h4" | "p">> = {
@@ -30,13 +39,53 @@ export const VERSE_MARKS: Readonly<Record<VerseMark, string>> = {
   pasted: "*",
 };
 
+/**
+ * Study mode in the reading area's read tab: the words to draw, and the translation a verse's
+ * wording is from where the verse names none (a translation read whole).
+ */
+export interface PassageStudy {
+  words: StudyWords;
+  wordsIn: string;
+}
+
+/**
+ * A verse's text in study mode, in the wrappers `VerseText` gives it in the compare view (see
+ * there), so selecting words and linking them work alike. A verse that runs across paragraphs has
+ * one wrapper in each; study mode reads them together (`study/linkAnchor.ts`). Only the KJV
+ * family's words are marked (`STUDY_SOURCES`).
+ */
+function VerseWords({
+  unit,
+  study,
+  nodes,
+}: {
+  unit: VerseUnit;
+  study: PassageStudy;
+  nodes: Shown[];
+}): ReactNode {
+  const wordsIn = unit.own ? "@compilation" : (unit.source ?? study.wordsIn);
+  return (
+    <span
+      className="verse-unit"
+      data-canonical={unit.canonical.length > 0 ? unit.canonical.join(" ") : undefined}
+      data-words-in={wordsIn}
+    >
+      <span className="verse-words">
+        <ShownText nodes={nodes} study={STUDY_SOURCES.has(wordsIn) ? study.words : null} />
+      </span>
+    </span>
+  );
+}
+
 function BlockView({
   block,
   edited,
+  study,
 }: {
   block: Block;
   /** Words read out after a changed verse's number, for screen readers. */
   edited: Record<VerseMark, string>;
+  study?: PassageStudy | undefined;
 }): ReactNode {
   if (block.kind === "heading") {
     const Element = HEADINGS[block.marker] ?? "p";
@@ -60,6 +109,8 @@ function BlockView({
               </>
             ) : null}
           </sup>
+        ) : p.unit && study ? (
+          <VerseWords key={p.key} unit={p.unit} study={study} nodes={[p.shown]} />
         ) : (
           <ShownText key={p.key} nodes={[p.shown]} />
         ),
@@ -77,9 +128,12 @@ export async function Passage({
   sources,
   designationOf,
   showLabel = true,
+  study,
 }: {
   /** False where the page already names the passage (the compilation editor). */
   showLabel?: boolean;
+  /** Study mode (the compilation editor's read tab): each verse's words are wrapped and marked. */
+  study?: PassageStudy | undefined;
   /** The attribution each verse's text must be followed by (`attributions.ts`). */
   designationOf?: DesignationOf | undefined;
   passage: PassageResult;
@@ -109,6 +163,7 @@ export async function Passage({
           <BlockView
             key={b.key}
             block={b}
+            study={study}
             edited={{
               correction: t("corrected"),
               adaptation: t("adapted"),

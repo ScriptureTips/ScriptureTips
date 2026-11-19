@@ -61,8 +61,8 @@ export default async function CompilationEditor({ params, searchParams }: Props)
   const order = readingOrder(sections);
   const asked = await searchParams;
   const mode = READING_MODES.find((m) => m === asked.mode) ?? "read";
+  const study = asked.study === "1";
   // In read mode, a translation read instead of the compilation: one there is.
-  const study = mode !== "read" && asked.study === "1";
   const read = mode === "read" ? (all.find((x) => x.id === asked.read)?.id ?? null) : null;
   const book =
     (available ?? []).find((b) => b.osis === asked.book) ??

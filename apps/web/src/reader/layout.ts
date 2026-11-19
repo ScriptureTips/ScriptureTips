@@ -15,9 +15,19 @@ export type Shown =
   /** A source's designation after its verses ("(LEB)"), linked where its license asks. */
   | { type: "designation"; text: string; url?: string };
 
-/** `key`: unique in its block, for React. */
+/** The verse a piece of text is from, for study mode's selections and links. */
+export interface VerseUnit {
+  /** The canonical verses it holds (`Gen.4.1`). */
+  canonical: readonly string[];
+  /** In a compilation: the translation the verse was taken from (catalog ID). */
+  source?: string;
+  /** In a compilation: the wording is the compilation's own (corrected, adapted or written). */
+  own: boolean;
+}
+
+/** `key`: unique in its block, for React. `unit`: set on a verse's own text, not on a designation. */
 export type Piece =
-  | { kind: "text"; shown: Shown; key: string }
+  | { kind: "text"; shown: Shown; key: string; unit?: VerseUnit }
   | { kind: "verse"; label: string; id: string; mark?: VerseMark };
 
 /** How a compilation's verse differs from a translation's: shown by its number. */
@@ -118,7 +128,16 @@ export function layOut(
             ...(v.edit || v.rendering ? { mark: v.edit ?? v.rendering } : {}),
           });
       }
-      open?.pieces.push({ kind: "text", shown, key: `t${open.pieces.length}` });
+      open?.pieces.push({
+        kind: "text",
+        shown,
+        key: `t${open.pieces.length}`,
+        unit: {
+          canonical: v.canonical,
+          ...(v.source ? { source: v.source } : {}),
+          own: v.edit !== undefined || v.rendering !== undefined,
+        },
+      });
     };
 
     for (const h of v.headings) {

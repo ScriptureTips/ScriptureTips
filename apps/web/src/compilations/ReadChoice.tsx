@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { type CSSProperties, useCallback, useRef, useState, useTransition } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useMoreTranslations } from "../translations/MoreTranslations.tsx";
 import { usePopupClose } from "./popup.ts";
@@ -16,7 +16,10 @@ import { usePopupClose } from "./popup.ts";
 export function ReadChoice({
   current,
   options,
+  modes,
 }: {
+  /** The read, compare and edit buttons, on a phone while study mode is on (they leave the head). */
+  modes?: React.ReactNode;
   /** The one being read: the compilation's, or a translation's (catalog ID). */
   current: string;
   /** The compilation first, then the translations, each with where it's read. */
@@ -28,6 +31,10 @@ export function ReadChoice({
   const router = useRouter();
   const [loading, startLoading] = useTransition();
   const [open, setOpen] = useState(false);
+  // Choosing another mode in the menu opens the page for it: the menu closes.
+  const mode = useSearchParams().get("mode");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: it closes when the mode changes.
+  useEffect(() => setOpen(false), [mode]);
   const [place, setPlace] = useState<CSSProperties>({});
   const toggle = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -68,10 +75,11 @@ export function ReadChoice({
             <div
               ref={panel}
               role="menu"
-              className="book-menu-popup"
+              className="book-menu-popup compare-choice"
               style={place}
               aria-label={t("readChoiceHeading")}
             >
+              {modes}
               <p className="book-menu-heading">{t("readChoiceHeading")}</p>
               {list.shown.map((o) => (
                 <Link

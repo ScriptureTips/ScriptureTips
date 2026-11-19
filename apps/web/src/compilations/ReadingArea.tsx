@@ -14,6 +14,7 @@ import { StudyMenu } from "../study/StudyMenu.tsx";
 import { StudyPassagePopups } from "../study/StudyPassagePopups.tsx";
 import { StudyProvider } from "../study/StudyProvider.tsx";
 import { StudySelection } from "../study/StudySelection.tsx";
+import type { StudyWords } from "../study/types.ts";
 import { strongsIn } from "../study/units.ts";
 import { type MenuPreferences, translationOptions } from "../translations/menu.ts";
 import { type Compilation, compareView } from "./api.ts";
@@ -41,9 +42,32 @@ export const readingHref = (
     chapter: String(chapter),
     mode,
     ...(mode === "read" && read ? { read } : {}),
-    // Study mode is for comparing and editing.
-    ...(mode !== "read" && study ? { study: "1" } : {}),
+    ...(study ? { study: "1" } : {}),
   })}`;
+
+/** What study mode adds to the text it's given: the words, the selection tooltip, links and pop-ups. */
+function StudyParts({
+  words,
+  slug,
+  base,
+  favorite,
+  children,
+}: {
+  words: StudyWords;
+  slug: string;
+  base: string;
+  favorite: string | undefined;
+  children: React.ReactNode;
+}) {
+  return (
+    <StudyProvider words={words}>
+      {children}
+      <StudySelection slug={slug} base={base} />
+      <StudyLinkMarks slug={slug} />
+      <StudyPassagePopups base={base} {...(favorite ? { favorite } : {})} />
+    </StudyProvider>
+  );
+}
 
 /**
  * The compilation editor's reading area: one chapter of the compilation, chosen from the book
@@ -82,10 +106,11 @@ export async function ReadingArea({
   books?: React.ReactNode;
   /** In read mode, the translation read instead of the compilation (catalog ID), if any. */
   read?: string | null;
-  /** In compare and edit, study mode is on: words with Strong's numbers are drawn as pieces. */
+  /** Study mode is on: words with Strong's numbers are drawn as pieces. */
   study?: boolean;
 }) {
   const picker = mode !== "read" && books;
+  const favorite = preferences?.favoriteTranslations[0];
   const t = await getTranslations("reading");
   const bookName = english.name(osis, "full", "one");
   const ref = `${bookName} ${chapter}`;
@@ -104,7 +129,14 @@ export async function ReadingArea({
   let body: React.ReactNode;
   if (mode === "read") {
     const result = await passage(read ?? c.id, ref);
-    body = result.ok ? (
+    // What each tagged word is, for study mode: one request for the whole chapter.
+    const words =
+      study && result.ok
+        ? await studyWords([
+            ...strongsIn(result.passages.flatMap((p) => p.verses.flatMap((v) => v.content))),
+          ])
+        : null;
+    const text = result.ok ? (
       <div className="reading-columns">
         {result.passages.map((p, i) => (
           <Passage
@@ -115,11 +147,19 @@ export async function ReadingArea({
             canon={canon}
             sources={result.sources}
             showLabel={false}
+            study={words ? { words, wordsIn: result.translation.id } : undefined}
           />
         ))}
       </div>
-    ) : (
+    ) : null;
+    body = !text ? (
       <p className="error">{t("unavailable")}</p>
+    ) : words ? (
+      <StudyParts words={words} slug={c.slug} base={c.base.id} favorite={favorite}>
+        {text}
+      </StudyParts>
+    ) : (
+      text
     );
   } else {
     const view = await compareView(c.slug, ref, columnIds);
@@ -154,17 +194,9 @@ export async function ReadingArea({
     body = !grid ? (
       <p className="error">{t("unavailable")}</p>
     ) : words ? (
-      <StudyProvider words={words}>
+      <StudyParts words={words} slug={c.slug} base={c.base.id} favorite={favorite}>
         {grid}
-        <StudySelection slug={c.slug} base={c.base.id} />
-        <StudyLinkMarks slug={c.slug} />
-        <StudyPassagePopups
-          base={c.base.id}
-          {...(preferences?.favoriteTranslations[0]
-            ? { favorite: preferences.favoriteTranslations[0] }
-            : {})}
-        />
-      </StudyProvider>
+      </StudyParts>
     ) : (
       grid
     );
@@ -191,30 +223,31 @@ export async function ReadingArea({
     <section
       className="reading"
       aria-labelledby="reading-title"
-      data-study={study && mode !== "read" ? "" : undefined}
+      data-study={study ? "" : undefined}
     >
       {/* The modes and the chapter bar stay at the top of the window while it scrolls. */}
       <div className="reading-head">
         <div className="reading-tools">
           {/* Holds the minimized study window's place at the far left of the head (StudyMenu). */}
-          {mode !== "read" ? <span className="study-dock" aria-hidden="true" /> : null}
+          <span className="study-dock" aria-hidden="true" />
           {modeButtons(false)}
-          {mode !== "read" ? (
-            <StudyMenu
-              on={study}
-              href={readingHref(osis, chapter, mode, read, !study)}
-              label={t("studyToggle")}
-              switchLabel={t("studySwitch")}
-              closeLabel={t("studyClose")}
-              expandLabel={t("studyExpand")}
-              searchTranslations={[...new Set([c.base.id, ...columnIds])]}
-            >
-              {/* What the colors mean, beside the switch: grey until word types are shown. */}
-              <StudyLegend />
-            </StudyMenu>
-          ) : null}
+          <StudyMenu
+            on={study}
+            href={readingHref(osis, chapter, mode, read, !study)}
+            label={t("studyToggle")}
+            switchLabel={t("studySwitch")}
+            closeLabel={t("studyClose")}
+            expandLabel={t("studyExpand")}
+            searchTranslations={
+              mode === "read" ? [read ?? c.base.id] : [...new Set([c.base.id, ...columnIds])]
+            }
+          >
+            {/* What the colors mean, beside the switch: grey until word types are shown. */}
+            <StudyLegend />
+          </StudyMenu>
           {mode === "read" ? (
             <ReadChoice
+              modes={study ? modeButtons(true) : undefined}
               current={read ?? c.id}
               options={[
                 {

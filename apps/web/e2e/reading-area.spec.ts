@@ -556,7 +556,7 @@ test("vision §3.2: study mode paints each tagged word by its kind, and moves no
   ).toHaveAttribute("href", /mode=edit&study=1/);
   await expect(
     page.getByRole("navigation", { name: "Reading mode" }).getByRole("link", { name: "Read" }),
-  ).not.toHaveAttribute("href", /study/);
+  ).toHaveAttribute("href", /mode=read&study=1/);
 
   // The checkbox shows and hides the word types only: the words stay marked, study mode stays on.
   await page.goto("/compilations/lexis?book=Gen&chapter=2&mode=compare");
@@ -603,6 +603,41 @@ async function dragAcross(page: Page, target: import("@playwright/test").Locator
   await page.mouse.move(box.x + box.width - 1, y, { steps: 6 });
   await page.mouse.up();
 }
+
+test("vision §3.2: study mode in the read tab marks the words, moves nothing, and selecting opens the tooltip", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await create(page, "Read Study", "Chapter");
+  await page.goto("/compilations/chapter?book=Gen&chapter=4&mode=read");
+  await settled(page);
+  const columns = page.locator(".reading-columns");
+  await expect(columns).toContainText("Adam knew Eve");
+  await expect(columns.locator(".study-word")).toHaveCount(0);
+  const box = () => columns.evaluate((e) => JSON.stringify(e.getBoundingClientRect().toJSON()));
+  const before = await box();
+
+  // The Study button is there in read mode too, and keeps the mode.
+  await page.getByRole("button", { name: "Study", exact: true }).click();
+  await expect(page).toHaveURL(/mode=read&study=1/);
+  await expect(page.locator(".study-toggle.on")).toHaveCount(1);
+  const marked = columns.locator('.study-word[data-strong="H2332"]').first();
+  await expect(marked).toBeVisible();
+  expect(await box()).toEqual(before);
+
+  // Selecting words opens the tooltip, as in the compare table.
+  await dragAcross(page, marked);
+  const tip = page.getByRole("dialog", { name: "The selected words" });
+  await expect(tip).toBeVisible();
+  await expect(tip).toContainText("H2332");
+  await page.screenshot(shot("reading-area-read-study"));
+
+  // Turning study mode off removes the marks.
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Study", exact: true }).click();
+  await expect(page).not.toHaveURL(/study=1/);
+  await expect(columns.locator(".study-word")).toHaveCount(0);
+});
 
 test("vision §3.2: selecting words in study mode opens a tooltip with what they are", async ({
   page,

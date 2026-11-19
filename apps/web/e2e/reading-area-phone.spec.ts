@@ -523,6 +523,32 @@ test("vision §3.2: study mode on a phone paints the verses' tagged words, and m
   await page.screenshot({ ...shot("reading-area-phone-study"), fullPage: false });
 });
 
+test("vision §3.2: on a phone, study mode in the read tab marks the words and keeps the modes in the menu", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await create(page, "Read Phone", "Chapter");
+  await page.goto("/compilations/chapter?book=Gen&chapter=4&mode=read&study=1");
+  await page.waitForLoadState("networkidle");
+  await expect(
+    page.locator('.reading-columns .study-word[data-category="person"]').first(),
+  ).toContainText("Eve");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+  // The modes have left the head for the Read menu, whose ⋮ also lists what to read.
+  const head = page.locator(".reading-head");
+  await expect(head.getByRole("navigation", { name: "Reading mode" })).toBeHidden();
+  await head.getByRole("button", { name: "Translation to read" }).click();
+  const inMenu = page.locator(".compare-choice").getByRole("navigation", { name: "Reading mode" });
+  await expect(inMenu.getByRole("link")).toHaveText(["Read", "Compare", "Edit"]);
+  await inMenu.getByRole("link", { name: "Compare" }).click();
+  await expect(page).toHaveURL(/mode=compare&study=1/);
+  await page.goBack();
+  await toVerses(page);
+  await page.screenshot({ ...shot("reading-area-phone-read-study"), fullPage: false });
+});
+
 test("vision §3.2: on a phone, words can be selected in study mode, and the tooltip opens for a finger's selection", async ({
   page,
 }) => {

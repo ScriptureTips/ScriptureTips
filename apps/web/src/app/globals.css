@@ -3034,12 +3034,12 @@ a.reading-step:focus-visible {
 /* Adjectives, adverbs, pronouns, prepositions and particles share the look of "other". */
 
 /* The word types off: the words stay marked (they can be selected and studied) but unpainted. */
-html[data-study-types="off"] :is(.compare-grid, .compare-list) .study-word {
+html[data-study-types="off"] :is(.compare-grid, .compare-list, .reading-columns) .study-word {
   background: none;
   box-shadow: none;
 }
 
-html[data-study-types="off"] :is(.compare-grid, .compare-list) .c-study-unit {
+html[data-study-types="off"] :is(.compare-grid, .compare-list, .reading-columns) .c-study-unit {
   outline: none;
 }
 
