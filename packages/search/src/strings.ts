@@ -9,6 +9,7 @@ export const DEFAULT_STRINGS: Strings = {
   noResults: "No results.",
   failed: "The search didn't work. Try again.",
   unavailable: "Not searched yet: {kinds}",
+  missing: "No match for: {words}",
   suggestions: "Suggestions",
   results: "Search results",
   kinds: {

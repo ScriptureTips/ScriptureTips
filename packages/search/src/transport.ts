@@ -2,13 +2,14 @@ import type { SearchResponse, SearchScope, Suggestion, Transport } from "./types
 import { passageVerse } from "./verses.ts";
 
 /** The query string for a search: the words, then the scope. */
-export function queryString(query: string, scope: SearchScope): string {
+export function queryString(query: string, scope: SearchScope, offset = 0): string {
   const params = new URLSearchParams({ q: query });
   if (scope.kinds && scope.kinds.length > 0) params.set("kinds", scope.kinds.join(","));
   if (scope.translations && scope.translations.length > 0)
     params.set("translations", scope.translations.join(","));
   if (scope.limit !== undefined) params.set("limit", String(scope.limit));
   if (scope.previewLength !== undefined) params.set("previewLength", String(scope.previewLength));
+  if (offset > 0) params.set("offset", String(offset));
   return params.toString();
 }
 
@@ -27,8 +28,8 @@ export function fetchTransport(
     return (await res.json()) as T;
   };
   return {
-    search: (query, scope, signal) =>
-      get<SearchResponse>(`${endpoint}?${queryString(query, scope)}`, signal),
+    search: (query, scope, signal, offset) =>
+      get<SearchResponse>(`${endpoint}?${queryString(query, scope, offset)}`, signal),
     suggest: async (query, scope, signal) =>
       (
         await get<{ suggestions: Suggestion[] }>(

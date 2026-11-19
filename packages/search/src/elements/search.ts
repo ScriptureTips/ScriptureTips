@@ -32,7 +32,7 @@ export class StSearch extends SearchElement {
       ></st-search-input>
       <st-search-results
         instance=${this.instance}
-        exportparts="results, status, group, heading, list, result, label, source, preview, snippet, hit, word, number, gloss, meta, note"
+        exportparts="results, status, group, heading, list, result, label, source, preview, snippet, hit, word, number, gloss, meta, note, more"
       >
         <slot name="idle" slot="idle"></slot>
       </st-search-results>

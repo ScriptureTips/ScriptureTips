@@ -6,7 +6,15 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ## [Unreleased]
 
+### Changed
+- The home page search always covers every translation: the translation list is gone. A passage opens in your first favorite translation, and a verse found by its words opens in the translation it was found in. The field and button are narrower on a wide screen.
+
 ### Added
+- Search keeps every word of a "quoted phrase" ("money is the root of all evil"), and leaves out only "the", "a", "of" and "and" from a plain search; small words like "before" count.
+- The search results scroll on without end: the next verses load as you reach the bottom of the list, on the home page and in the study window.
+- Search lists a verse once, not once for every translation that has it, so a limited list reaches more verses.
+- Search keeps small words you type ("shoot before") and lists the verses where your words sit closest together first.
+- Search finds a verse by words spread across translations (one translation has one word, another has the other), shows each translation's words, and lists near matches after the full ones, saying which word is missing.
 - Study mode works in a compilation's Read tab too: the words are marked, and selecting them opens the same tooltip (what they are, dictionary, search, links).
 
 ## [1.0.0] - 2026-11-15

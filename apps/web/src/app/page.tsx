@@ -1,11 +1,10 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { currentAccount } from "../account/api.ts";
-import { myCompilations } from "../compilations/api.ts";
 import { instance } from "../instance.ts";
 import { translations } from "../reader/api.ts";
 import { HomeSearch } from "../reader/HomeSearch.tsx";
-import { defaultTranslation, translationOptions } from "../translations/menu.ts";
+import { defaultTranslation } from "../translations/menu.ts";
 
 interface Props {
   searchParams: Promise<{ t?: string; error?: string }>;
@@ -19,7 +18,7 @@ export default async function Home({ searchParams }: Props) {
   const ta = await getTranslations("account");
   const account = await currentAccount();
   const { accountsOpen } = await instance();
-  const [catalog, mine] = await Promise.all([translations().catch(() => []), myCompilations()]);
+  const catalog = await translations().catch(() => []);
   return (
     <section className="landing">
       <div className="landing-art">
@@ -38,17 +37,13 @@ export default async function Home({ searchParams }: Props) {
         </div>
       </div>
       <HomeSearch
-        initial={translation ?? defaultTranslation(catalog, account, "leb")}
-        compilations={mine.map((c) => ({ id: c.id, label: `${c.abbreviation}: ${c.title}` }))}
-        translations={translationOptions(catalog, account, translation ? [translation] : [])}
+        translation={translation ?? defaultTranslation(catalog, account, "leb")}
+        catalog={catalog.map((c) => c.id)}
         labels={{
-          translation: s("translation"),
           field: s("homeField"),
           placeholder: s("homePlaceholder"),
           initial: s("homeInitial"),
           button: s("homeGo"),
-          yours: s("yourCompilations"),
-          all: s("translations"),
         }}
       />
       {error ? (

@@ -41,7 +41,7 @@ test.describe("accounts closed", () => {
 
   test("the reader works with no sign-in anywhere and no cookies", async ({ page, context }) => {
     await page.goto("/");
-    await expect(page.getByRole("combobox", { name: "Translation" })).toBeVisible();
+    await expect(page.getByRole("combobox", { name: "Passage or words" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Sign in" })).toHaveCount(0);
     await page.screenshot(shot("closed-landing"));
 

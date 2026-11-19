@@ -38,6 +38,75 @@ function fake() {
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 
+describe("vision §3.14: endless scroll", () => {
+  /** A transport that answers a page of ids by its offset, `more` while there are ids left. */
+  const paged = (total: number, size: number) => {
+    const asked: { offset: number | undefined; kinds: unknown }[] = [];
+    const transport: Transport = {
+      search: async (query, scope, _signal, offset = 0) => {
+        asked.push({ offset, kinds: scope.kinds });
+        const ids = Array.from({ length: total }, (_, i) => `v${i}`).slice(offset, offset + size);
+        return {
+          query,
+          results: ids.map(verse),
+          unavailable: [],
+          tookMs: 1,
+          ...(offset + size < total ? { more: true } : {}),
+        };
+      },
+      suggest: async () => [],
+    };
+    return { transport, asked };
+  };
+
+  it("adds the next page of verses, asking after the ones shown, until there are no more", async () => {
+    const { transport, asked } = paged(5, 2);
+    const engine = new SearchEngine("t", { transport, scope: { limit: 2 } });
+    await engine.doSearch("love");
+    expect(engine.getState()).toMatchObject({ more: true, loadingMore: false });
+    expect(engine.getState().results).toHaveLength(2);
+
+    await engine.loadMore();
+    expect(engine.getState().results.map((r) => r.id)).toEqual(["v0", "v1", "v2", "v3"]);
+    expect(asked[1]).toEqual({ offset: 2, kinds: ["text"] });
+    expect(engine.getState().more).toBe(true);
+
+    await engine.loadMore();
+    expect(engine.getState().results).toHaveLength(5);
+    expect(engine.getState().more).toBe(false);
+    // Nothing more to ask for.
+    await engine.loadMore();
+    expect(asked).toHaveLength(3);
+  });
+
+  it("asks for one page at a time, and a new search drops a page on its way", async () => {
+    const answers: ((r: SearchResponse) => void)[] = [];
+    const transport: Transport = {
+      search: (query, _scope, signal) =>
+        new Promise((resolve, reject) => {
+          answers.push((r) => resolve({ ...r, query }));
+          signal.addEventListener("abort", () => reject(new Error("aborted")));
+        }),
+      suggest: async () => [],
+    };
+    const engine = new SearchEngine("t", { transport });
+    const first = engine.doSearch("love");
+    answers[0]?.({ query: "", results: [verse("a")], unavailable: [], tookMs: 1, more: true });
+    await first;
+    const page = engine.loadMore();
+    void engine.loadMore();
+    void engine.loadMore();
+    expect(answers).toHaveLength(2);
+    expect(engine.getState().loadingMore).toBe(true);
+    // Another search starts before the page arrives: the page is left out.
+    const second = engine.doSearch("hope");
+    answers[2]?.({ query: "", results: [verse("z")], unavailable: [], tookMs: 1 });
+    await Promise.all([page, second]);
+    expect(engine.getState().results.map((r) => r.id)).toEqual(["z"]);
+    expect(engine.getState().loadingMore).toBe(false);
+  });
+});
+
 describe("vision §3.14: the search engine", () => {
   it("sets the words through the API without searching, and searches when told to", async () => {
     const { transport, asked, answer } = fake();
@@ -515,5 +584,12 @@ describe("the API transport", () => {
       ],
     });
     expect(urls).toEqual(["/api/t/eng-kjv/passages?ref=Genesis%201%3A1%E2%80%933"]);
+  });
+});
+
+describe("vision §3.14: paging in the query string", () => {
+  it("leaves the offset out of the first page, and sends it for the next", () => {
+    expect(queryString("love", { kinds: ["text"] })).not.toContain("offset");
+    expect(queryString("love", { kinds: ["text"] }, 20)).toContain("offset=20");
   });
 });

@@ -16,6 +16,38 @@ import { resultsStyles, tokens } from "./styles.ts";
 export class StSearchResults extends SearchElement {
   static override styles = [tokens, resultsStyles];
 
+  /** Watches the end of the list: when it comes into view, the next page of verses is fetched. */
+  private watcher: IntersectionObserver | null = null;
+  private watching: Element | null = null;
+
+  override disconnectedCallback(): void {
+    this.watcher?.disconnect();
+    this.watcher = null;
+    this.watching = null;
+    super.disconnectedCallback();
+  }
+
+  protected override updated(): void {
+    const end = this.renderRoot.querySelector("[part=more]");
+    if (!end || typeof IntersectionObserver === "undefined") {
+      this.watcher?.disconnect();
+      this.watching = null;
+      return;
+    }
+    this.watcher ??= new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) void this.engine?.loadMore();
+      },
+      // A little before the end reaches the screen, so the next page is there as it does.
+      { rootMargin: "0px 0px 300px 0px" },
+    );
+    // Watched afresh after each change: an observer only speaks when visibility changes, and a
+    // page that's too short to push the end out of view must lead to the next one.
+    if (this.watching) this.watcher.unobserve(this.watching);
+    this.watching = end;
+    this.watcher.observe(end);
+  }
+
   protected override wire(engine: SearchEngine): (() => void)[] {
     return [
       engine.onResults((e) => this.fire("st-results", e)),
@@ -37,7 +69,17 @@ export class StSearchResults extends SearchElement {
         ><span class="source" part="source">${r.translation.abbreviation}</span
         ><span class="snippet" part="snippet"
           >${r.snippet.map((p) => (p.hit ? html`<mark part="hit">${p.t}</mark>` : p.t))}</span
-        >`;
+        >${(r.also ?? []).map(
+          (a) =>
+            html`<span class="snippet" part="snippet"
+              ><span class="source" part="source">${a.translation.abbreviation}</span>
+              ${a.snippet.map((p) => (p.hit ? html`<mark part="hit">${p.t}</mark>` : p.t))}</span
+            >`,
+        )}${
+          r.missing?.length && t
+            ? html`<span class="meta missing" part="note">${fill(t.missing, { words: r.missing.join(", ") })}</span>`
+            : nothing
+        }`;
     } else {
       const hebrew = r.strong.startsWith("H");
       body = html`<span class="word" part="word" lang=${hebrew ? "he" : "grc"} dir=${hebrew ? "rtl" : "ltr"}
@@ -102,6 +144,11 @@ export class StSearchResults extends SearchElement {
           </ul>
         </section>`,
       )}
+      ${
+        state.more
+          ? html`<div class="more" part="more">${state.loadingMore ? html`<p class="status" part="status">${t.searching}</p>` : nothing}</div>`
+          : nothing
+      }
       ${
         state.unavailable.length > 0
           ? html`<p class="note" part="note">${fill(t.unavailable, { kinds: state.unavailable.map((k) => t.kinds[k] ?? k).join(", ") })}</p>`

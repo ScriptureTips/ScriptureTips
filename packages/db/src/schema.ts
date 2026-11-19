@@ -123,8 +123,15 @@ export const verseText = pgTable(
      * and by `tools/scripture-import`'s `index` for text loaded before it existed.
      */
     plain: text("plain"),
-    /** `plain` for full-text search (English stemming: "forgiving" finds "forgiven"). */
-    search: tsvector("search").generatedAlwaysAs(sql`to_tsvector('english', coalesce(plain, ''))`),
+    /**
+     * `plain` for full-text search: English stemming ("forgiving" finds "forgiven") with every
+     * word kept, none left out as a stop word, so a quoted phrase matches word for word. The
+     * `scripture` configuration is made in migration 0021; the words a plain query leaves out are
+     * ScriptureTips's own (`apps/api/src/search/stop-words.ts`).
+     */
+    search: tsvector("search").generatedAlwaysAs(
+      sql`to_tsvector('scripture', coalesce(plain, ''))`,
+    ),
   },
   (t) => [
     unique().on(t.translationId, t.book, t.chapter, t.verse),

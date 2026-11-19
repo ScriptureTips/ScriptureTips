@@ -165,10 +165,6 @@ test("favourite translations: starred and dragged into order, and only favourite
   // A new account starts with LEB, NET, GNV, KJV and YLT, in that order.
   const defaults = favourites.locator(".favorite-name");
   await expect(defaults).toHaveText([/^LEB:/, /^NET:/, /^GNV:/, /^KJV:/, /^YLT:/]);
-  const names = [
-    ...(await defaults.allTextContents()),
-    ...(await others.locator(".favorite-name").allTextContents()),
-  ];
   const [first, second, ...dropped] = await defaults.allTextContents();
   // Take the last three out, then drag the second above the first.
   for (const name of dropped)
@@ -204,23 +200,24 @@ test("favourite translations: starred and dragged into order, and only favourite
   await expect(favourites.locator(".favorite-name")).toHaveText([first ?? "", second ?? ""]);
   await expect(page.getByRole("checkbox", { name: /Show only favourites in menus/ })).toBeChecked();
 
-  // The home page starts from the first favourite, and lists only the favourites, until asked.
+  // The home page has no translation list; a passage typed there opens in the first favourite.
   await page.goto("/");
   await page.waitForLoadState("networkidle");
-  const picker = page.getByRole("combobox", { name: "Translation" });
-  await expect(picker).toHaveValue(/.+/);
-  const labels = () => picker.locator("option").allTextContents();
-  expect(await labels()).toEqual([first, second, "Show all translations…"]);
-  expect(await picker.locator("option:checked").textContent()).toBe(first);
-  // Chosen again until the list grows: a choice before the page's scripts have run is lost.
-  await expect(async () => {
-    await picker.selectOption({ label: "Show all translations…" });
-    await expect
-      .poll(async () => (await labels()).length, { timeout: 1_000 })
-      .toBeGreaterThanOrEqual(names.length);
-  }).toPass();
-  expect((await labels()).slice(0, 2)).toEqual([first, second]);
-  await page.screenshot(shot("home-all-translations"));
+  await expect(page.getByRole("combobox", { name: "Translation" })).toHaveCount(0);
+  const field = page.getByRole("combobox", { name: "Passage or words" });
+  await field.fill("Genesis 1");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  // The page's example (John 3:16) is replaced by the passage typed: pick that one.
+  await page
+    .locator("st-search-results")
+    .getByRole("listitem")
+    .filter({ hasText: "Genesis 1" })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/read\/[^/]+\/genesis\/1$/);
+  await expect(
+    page.getByRole("combobox", { name: "Translation" }).locator("option:checked"),
+  ).toHaveText(first ?? "");
 
   // A book's translation menu follows it too: the favourites and the book's own source, then
   // everything on request.

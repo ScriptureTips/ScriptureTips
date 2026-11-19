@@ -73,6 +73,11 @@ beforeAll(async () => {
       verse(kjv.id, 3, 16, "For God so loved the world, that he gave his only begotten Son"),
       verse(kjv.id, 3, 17, "For God sent not his Son into the world to condemn the world"),
       verse(web.id, 3, 16, "For God so loved the world, that he gave his one and only Son"),
+      verse(kjv.id, 1, 14, "And the Word was made flesh, and dwelt among us"),
+      verse(web.id, 1, 14, "The Word became flesh and lived among us"),
+      verse(kjv.id, 6, 1, "The shoot grew up, and he went on a long way before the rest"),
+      verse(kjv.id, 6, 2, "A shoot before him grew up in the field"),
+      verse(kjv.id, 6, 3, "Another shoot came up beside the field"),
       verse(kjv.id, 13, 34, "A new commandment I give unto you, That ye love one another"),
     ]);
   // The Greek and Hebrew words: love (agape), God (Elohim).
@@ -144,16 +149,12 @@ const find = (query: string) =>
 
 describe("vision §3.14: scripture text search", () => {
   it("finds verses by their words, with each word's other forms, flagging what matched", async () => {
-    const { status, body } = await find("q=love&kinds=text");
+    const { status, body } = await find("q=love&kinds=text&translations=kjv,web");
     expect(status).toBe(200);
-    const labels = body.results.map(
-      (r: { label: string; translation: { id: string } }) => `${r.translation.id} ${r.label}`,
-    );
+    const labels = body.results.map((r: { label: string }) => r.label);
     // "love" finds "loved" (John 3:16) and "love" (John 13:34).
-    expect(labels).toEqual(
-      expect.arrayContaining(["kjv John 3:16", "web John 3:16", "kjv John 13:34"]),
-    );
-    expect(labels).not.toContain("kjv John 3:17");
+    expect(labels).toEqual(expect.arrayContaining(["John 3:16", "John 13:34"]));
+    expect(labels).not.toContain("John 3:17");
     const first = body.results.find((r: { id: string }) => r.id === "text:kjv:John.3.16");
     expect(first.snippet.some((p: { t: string; hit?: boolean }) => p.hit && p.t === "loved")).toBe(
       true,
@@ -163,9 +164,27 @@ describe("vision §3.14: scripture text search", () => {
     );
   });
 
+  it("lists a verse once, from the first translation asked for, so the limit counts verses", async () => {
+    // John 3:16 is in both translations; it takes one place, in the one listed first.
+    const web = await find("q=world&kinds=text&translations=web,kjv");
+    const labels = web.body.results.map((r: { label: string }) => r.label);
+    expect(labels).toEqual(expect.arrayContaining(["John 3:16", "John 3:17"]));
+    expect(labels.filter((l: string) => l === "John 3:16")).toHaveLength(1);
+    expect(web.body.results.find((r: { label: string }) => r.label === "John 3:16").id).toBe(
+      "text:web:John.3.16",
+    );
+    const kjv = await find("q=world&kinds=text&translations=kjv,web");
+    expect(kjv.body.results.find((r: { label: string }) => r.label === "John 3:16").id).toBe(
+      "text:kjv:John.3.16",
+    );
+    // Two places, two verses: not John 3:16 twice.
+    const two = await find("q=world&kinds=text&limit=2");
+    expect(new Set(two.body.results.map((r: { label: string }) => r.label)).size).toBe(2);
+  });
+
   it("keeps a quoted phrase together, and in order", async () => {
     // (A stop word inside the phrase is skipped, as the database does; one at its start is ignored.)
-    expect((await find('q="loved the world"&kinds=text')).body.results.length).toBe(2);
+    expect((await find('q="loved the world"&kinds=text')).body.results.length).toBe(1);
     expect((await find('q="world loved"&kinds=text')).body.results.length).toBe(0);
   });
 
@@ -175,6 +194,67 @@ describe("vision §3.14: scripture text search", () => {
       "web",
     ]);
     expect((await find("q=world&kinds=text&translations=nobody")).body.results).toEqual([]);
+  });
+
+  it("finds a verse whose words are split between translations, saying which has which", async () => {
+    // KJV has "dwelt", WEB has "became": neither has both.
+    const { body } = await find("q=dwelt+became&kinds=text");
+    expect(body.results).toHaveLength(1);
+    const [hit] = body.results;
+    expect(hit.label).toBe("John 1:14");
+    expect(hit.missing).toBeUndefined();
+    const parts = [hit, ...hit.also].map(
+      (r: { translation: { id: string }; snippet: { t: string; hit?: boolean }[] }) =>
+        `${r.translation.id}:${r.snippet.filter((p) => p.hit).map((p) => p.t)}`,
+    );
+    expect(parts.sort()).toEqual(["kjv:dwelt", "web:became"]);
+  });
+
+  it("lists a verse holding most of the words after the full matches, naming the missing one", async () => {
+    const { body } = await find("q=dwelt+became+zebedee&kinds=text");
+    expect(body.results.map((r: { label: string }) => r.label)).toEqual(["John 1:14"]);
+    expect(body.results[0].missing).toEqual(["zebedee"]);
+    // A verse holding every word in one translation stays a plain result, first.
+    const mixed = await find("q=love&kinds=text");
+    expect(mixed.body.results.every((r: { also?: unknown }) => r.also === undefined)).toBe(true);
+  });
+
+  it("indexes every word: 'before' is an ordinary word, and the words closest together come first", async () => {
+    const { body } = await find("q=shoot+before&kinds=text");
+    expect(body.results.map((r: { label: string }) => r.label)).toEqual(["John 6:2", "John 6:1"]);
+    // Both words are flagged in the snippet.
+    const marked = body.results[0].snippet
+      .filter((p: { hit?: boolean }) => p.hit)
+      .map((p: { t: string }) => p.t.toLowerCase());
+    expect(marked.sort()).toEqual(["before", "shoot"]);
+    // A word no verse has leaves no verse with all the words.
+    expect((await find("q=dwelt+before&kinds=text")).body.results).toEqual([]);
+    // A near match across translations names the word it lacks.
+    const near = (await find("q=dwelt+became+before&kinds=text")).body.results;
+    expect(near.map((r: { label: string }) => r.label)).toEqual(["John 1:14"]);
+    expect(near[0].missing).toEqual(["before"]);
+  });
+
+  it("leaves out only its own stop words (the, a, of, and) from a plain query", async () => {
+    // John 13:34 has no "the": it's found when a typed "the" is left out.
+    const plain = (await find("q=the+love+commandment&kinds=text")).body.results;
+    expect(plain.map((r: { label: string }) => r.label)).toContain("John 13:34");
+    // Only stop words: nothing to look for.
+    expect((await find("q=the+of+and+a&kinds=text")).body.results).toEqual([]);
+  });
+
+  it("keeps every word of a quoted phrase, stop words too, in order", async () => {
+    expect((await find('q="that he gave"&kinds=text')).body.results.length).toBe(1);
+    // "she" would be skipped as a stop word by the database's English list; here it's a word.
+    expect((await find('q="that she gave"&kinds=text')).body.results).toEqual([]);
+    // "the" between the words is part of the phrase: "love world" isn't "loved the world".
+    expect((await find('q="loved world"&kinds=text')).body.results).toEqual([]);
+    expect((await find('q="the love"&kinds=text')).body.results).toEqual([]);
+  });
+
+  it("doesn't loosen a quoted phrase, or a query of one word", async () => {
+    expect((await find('q="dwelt became"&kinds=text')).body.results).toEqual([]);
+    expect((await find("q=zebedee&kinds=text")).body.results).toEqual([]);
   });
 
   it("gives words that are only stop words no results, not an error", async () => {

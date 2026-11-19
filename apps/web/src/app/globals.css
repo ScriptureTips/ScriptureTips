@@ -1055,7 +1055,15 @@ main:has(> .compilation) {
 
 /* The home page's search: the translation and the field in a row, the results under them. */
 .home-search .search {
-  margin-bottom: 1rem;
+  /* The field and its button take 60% of the width, centered; the whole width on a phone. */
+  width: 60%;
+  margin: 0 auto 1rem;
+}
+
+@media (max-width: 48rem) {
+  .home-search .search {
+    width: 100%;
+  }
 }
 
 /* The search component's field is the panel's cream by default; on the home page it's white, like

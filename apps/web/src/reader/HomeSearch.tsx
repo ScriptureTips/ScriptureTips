@@ -3,45 +3,35 @@
 import { getSearch } from "@scripturetips/search";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { useMoreTranslations } from "../translations/MoreTranslations.tsx";
-import type { TranslationOption } from "../translations/menu.ts";
 
 /** The home page's search: its own instance of the core search, which an integration can address. */
 export const HOME_SEARCH = "home";
 
-export type HomeOption = TranslationOption;
-
 /**
- * The home page's search: a translation, and the core search field (a passage, words or a
- * Strong's number), with its results underneath. Picking a passage or a verse opens it in the
- * reader, in the translation chosen. The translation narrows the search when it's one of the
- * catalog's; a compilation searches them all.
+ * The home page's search: the core search field (a passage, words or a Strong's number), with its
+ * results underneath. It always searches every translation. Picking a passage opens it in the
+ * reader in `translation` (the visitor's first favorite, else the default); picking a verse found
+ * by its words opens it in the translation it was found in.
  */
 export function HomeSearch({
-  compilations,
-  translations,
-  initial,
+  translation,
+  catalog,
   labels,
 }: {
-  compilations: readonly HomeOption[];
-  translations: readonly HomeOption[];
-  initial: string;
+  /** Where a passage opens: the account's first favorite, else the default (catalog ID). */
+  translation: string;
+  /** Every translation's catalog ID, to be searched. */
+  catalog: readonly string[];
   labels: {
-    translation: string;
     field: string;
     placeholder: string;
-    /** What the field starts with (and the first search is for). */
+    /** What the page is already searched for, so its results show what to expect. */
     initial: string;
     button: string;
-    yours: string;
-    all: string;
   };
 }) {
   const router = useRouter();
   const id = useId();
-  const [translation, setTranslation] = useState(initial);
-  const catalog = translations.some((t) => t.id === translation);
-  const list = useMoreTranslations(translations, [translation]);
 
   // Why there are two fields: <st-search-input> is a web component, so it only exists once the
   // page's scripts have loaded, and the field would pop in late. A plain field, written into the
@@ -56,10 +46,18 @@ export function HomeSearch({
       .then(() => {
         const typed = fallback.current?.value ?? "";
         const focused = document.activeElement === fallback.current;
-        // The page opens with its example already searched, so the results show what to expect;
-        // anything else typed before the component was ready is kept, and left for the visitor.
-        if (typed)
-          getSearch(HOME_SEARCH).setQuery(typed, typed === labels.initial ? { search: true } : {});
+        const engine = getSearch(HOME_SEARCH);
+        if (typed) {
+          // Whatever was typed before the component was ready is kept, and left for the visitor.
+          engine.setQuery(typed);
+        } else {
+          // The page opens with its example already searched, so the results show what to expect,
+          // and the field itself stays empty, with its placeholder: the words are taken as the
+          // search starts, so the field is cleared before it's drawn.
+          const searching = engine.doSearch(labels.initial);
+          engine.setQuery("");
+          void searching;
+        }
         setReady(true);
         if (focused)
           requestAnimationFrame(() =>
@@ -71,12 +69,15 @@ export function HomeSearch({
       });
   }, [labels.initial]);
 
-  // The search's scope follows the translation.
+  // The search covers every translation, `translation` first: a passage the visitor types is
+  // looked up in the first one searched.
   useEffect(() => {
     getSearch(HOME_SEARCH, {
       scope: {
         kinds: ["reference", "text", "original"],
-        translations: catalog ? [translation] : [],
+        translations: catalog.includes(translation)
+          ? [translation, ...catalog.filter((c) => c !== translation)]
+          : [...catalog],
         limit: 10,
         // The example verse shows whole, not cut after a few lines.
         previewLength: 600,
@@ -92,8 +93,11 @@ export function HomeSearch({
     getSearch(HOME_SEARCH, {
       onSelect: ({ result }) => {
         if (result.kind === "original") return;
+        // A verse found by its words opens in the translation it matched in; a passage typed, in
+        // the visitor's own.
+        const opensIn = result.kind === "text" ? result.translation.id : translation;
         router.push(
-          `/read?t=${encodeURIComponent(translation)}&ref=${encodeURIComponent(result.label)}`,
+          `/read?t=${encodeURIComponent(opensIn)}&ref=${encodeURIComponent(result.label)}`,
         );
       },
     });
@@ -105,47 +109,15 @@ export function HomeSearch({
   return (
     <div className="home-search">
       <div className="search">
-        <label>
-          <span>{labels.translation}</span>
-          <select
-            id={id}
-            // Named and tied to the stand-in form below, so a submit without scripts carries it.
-            name="t"
-            form={`${id}-fallback`}
-            value={translation}
-            onChange={(e) => {
-              if (!list.intercept(e.target.value)) setTranslation(e.target.value);
-            }}
-          >
-            {compilations.length > 0 ? (
-              <optgroup label={labels.yours}>
-                {compilations.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-            <optgroup label={labels.all}>
-              {list.shown.map((tr) => (
-                <option key={tr.id} value={tr.id}>
-                  {tr.label}
-                </option>
-              ))}
-              {list.moreOption}
-            </optgroup>
-          </select>
-        </label>
         <div className="search-ref">
-          <span className="search-label">{labels.field}</span>
           {/* The stand-in field (see above): the same look as the component, gone once it's ready. */}
           {ready ? null : (
             <form id={`${id}-fallback`} className="home-fallback" action="/read" method="get">
+              <input type="hidden" name="t" value={translation} />
               <input
                 ref={fallback}
                 name="ref"
                 aria-label={labels.field}
-                defaultValue={labels.initial}
                 placeholder={labels.placeholder}
                 maxLength={200}
                 required

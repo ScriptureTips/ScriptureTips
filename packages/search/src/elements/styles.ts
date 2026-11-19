@@ -223,6 +223,11 @@ export const resultsStyles = css`
     color: var(--_muted);
   }
 
+  /* The end of the list, watched for endless scroll: it needs a box to be seen. */
+  .more {
+    min-height: 1px;
+  }
+
   .snippet,
   .preview,
   .gloss {

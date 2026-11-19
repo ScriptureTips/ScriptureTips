@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { fold, snippetOf, strongOf } from "./query.ts";
+import { fold, snippetOf, strongOf, wordsNeeded, wordsOf } from "./query.ts";
+import { isStopWord, withoutStopWords } from "./stop-words.ts";
 
 describe("vision §3.14: what a search query is", () => {
   it("reads a Strong's number however it's typed", () => {
@@ -35,5 +36,38 @@ describe("vision §3.14: what a search query is", () => {
     ]);
     expect(snippetOf("plain")).toEqual([{ t: "plain" }]);
     expect(snippetOf("")).toEqual([]);
+  });
+});
+
+describe("vision §3.14: the words of a query, for matching across translations", () => {
+  it("splits plain words, once each, without punctuation", () => {
+    expect(wordsOf("Dwelt, became; dwelt")).toEqual(["dwelt", "became"]);
+    expect(wordsOf("  ")).toEqual([]);
+  });
+
+  it("leaves a query that says more than words to be searched as written", () => {
+    expect(wordsOf('"loved the world"')).toBeNull();
+    expect(wordsOf("love -hate")).toBeNull();
+    expect(wordsOf("love or hate")).toBeNull();
+  });
+
+  it("wants every word of one or two, and all but about a third of more", () => {
+    expect([1, 2, 3, 4, 5, 6].map(wordsNeeded)).toEqual([1, 2, 2, 3, 4, 4]);
+  });
+});
+
+describe("vision §3.14: the words a plain query leaves out", () => {
+  it("are ScriptureTips's own short list, in any case", () => {
+    expect(["the", "The", "a", "of", "and"].every(isStopWord)).toBe(true);
+    expect(["before", "is", "in", "lord"].some(isStopWord)).toBe(false);
+  });
+
+  it("are dropped outside quotes and kept inside them", () => {
+    expect(withoutStopWords("the love of God")).toBe("love God");
+    expect(withoutStopWords('"money is the root of all evil"')).toBe(
+      '"money is the root of all evil"',
+    );
+    expect(withoutStopWords('the "root of all" and evil -the')).toBe('"root of all" evil');
+    expect(withoutStopWords("The and a")).toBe("");
   });
 });

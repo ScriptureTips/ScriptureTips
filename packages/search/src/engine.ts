@@ -27,6 +27,8 @@ const EMPTY: SearchState = {
   selected: null,
   error: null,
   passage: null,
+  more: false,
+  loadingMore: false,
 };
 
 /**
@@ -58,6 +60,7 @@ export class SearchEngine {
   private running: AbortController | null = null;
   private suggesting: AbortController | null = null;
   private pause: ReturnType<typeof setTimeout> | null = null;
+  private paging: AbortController | null = null;
   /** Each search and suggestion has a number, so a late answer to an old one is ignored. */
   private latest = { search: 0, suggest: 0 };
 
@@ -193,6 +196,7 @@ export class SearchEngine {
     // Searching as the user types keeps the suggestions beside the results.
     if (!this.searchOnType) this.suggesting?.abort();
     this.running?.abort();
+    this.paging?.abort();
     if (text === "") {
       this.update({ ...EMPTY, query: this.state.query });
       return this.state;
@@ -207,6 +211,8 @@ export class SearchEngine {
       suggestions: this.searchOnType ? this.state.suggestions : [],
       error: null,
       selected: null,
+      more: false,
+      loadingMore: false,
     });
     this.emit("search", { query: text, scope: this.scope });
     try {
@@ -217,6 +223,7 @@ export class SearchEngine {
         results: found.results,
         unavailable: found.unavailable,
         error: null,
+        more: found.more === true,
       });
       this.emit("results", {
         query: text,
@@ -231,6 +238,52 @@ export class SearchEngine {
       this.emit("error", { query: text, error: failure });
     }
     return this.state;
+  }
+
+  /**
+   * Adds the next page of verses to the results, when more matched than were listed (`state.more`).
+   * The elements call this as the end of the list scrolls into view (endless scroll); an
+   * integration can call it from a "more" button. Does nothing while a page is on its way.
+   */
+  async loadMore(): Promise<void> {
+    const state = this.state;
+    if (state.status !== "done" || !state.more || state.loadingMore) return;
+    const mine = this.latest.search;
+    const shown = state.results.filter((r) => r.kind === "text").length;
+    const controller = new AbortController();
+    this.paging = controller;
+    this.update({ loadingMore: true });
+    try {
+      const found = await this.transport.search(
+        state.searched,
+        { ...this.scope, kinds: ["text"] },
+        controller.signal,
+        shown,
+      );
+      if (mine !== this.latest.search || controller.signal.aborted) return;
+      const have = new Set(this.state.results.map((r) => r.id));
+      const added = found.results.filter((r) => !have.has(r.id));
+      this.update({
+        results: [...this.state.results, ...added],
+        more: found.more === true && added.length > 0,
+        loadingMore: false,
+      });
+      this.emit("results", {
+        query: state.searched,
+        results: this.state.results,
+        unavailable: this.state.unavailable,
+        tookMs: found.tookMs,
+      });
+    } catch (error) {
+      if (mine !== this.latest.search || controller.signal.aborted) return;
+      // A page that fails ends the scrolling (it would only be asked for again as fast); a new
+      // search starts it over.
+      this.update({ more: false, loadingMore: false });
+      this.emit("error", {
+        query: state.searched,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
   }
 
   /** Asks for suggestions for the given words (or what's in the field). */

@@ -132,7 +132,15 @@ export class StSearchInput extends SearchElement {
           ? r.preview
             ? html`<span class="preview" part="preview">${r.preview}</span>`
             : nothing
-          : html`<span class="preview" part="snippet">${r.snippet.map((p) => (p.hit ? html`<mark part="hit">${p.t}</mark>` : p.t))}</span>`
+          : html`<span class="preview" part="snippet">${r.snippet.map((p) => (p.hit ? html`<mark part="hit">${p.t}</mark>` : p.t))}</span>${(
+              r.also ?? []
+            ).map(
+              (a) =>
+                html`<span class="preview" part="snippet"
+                  ><small part="source">${a.translation.abbreviation}</small>
+                  ${a.snippet.map((p) => (p.hit ? html`<mark part="hit">${p.t}</mark>` : p.t))}</span
+                >`,
+            )}`
       }`;
   }
 

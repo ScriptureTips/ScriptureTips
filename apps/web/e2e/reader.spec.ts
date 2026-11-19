@@ -1,15 +1,15 @@
 import { expect, test } from "@playwright/test";
 import { shot, signUp } from "./support.ts";
 
-test("the landing page offers translations and a passage box", async ({ page }) => {
+test("the landing page has a search box and no translation filter", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("combobox", { name: "Translation" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Passage or words" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Translation" })).toHaveCount(0);
   await page.screenshot(shot("landing"));
 });
 
 test("the home search finds a passage, and picking it opens the reader", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("combobox", { name: "Translation" }).selectOption("leb");
   const field = page.getByRole("combobox", { name: "Passage or words" });
   await field.fill("gen 2 18-25");
   await page.getByRole("button", { name: "Search", exact: true }).click();
@@ -29,7 +29,6 @@ test("the home search reads Jude 1 as the whole book, and Jude 1:1 as its first 
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("combobox", { name: "Translation" }).selectOption("leb");
   const field = page.getByRole("combobox", { name: "Passage or words" });
   const first = page.getByRole("listitem").filter({ hasText: "Jude" }).first();
 
@@ -41,7 +40,6 @@ test("the home search reads Jude 1 as the whole book, and Jude 1:1 as its first 
   await expect(page.getByRole("heading", { level: 1, name: "Jude" })).toBeVisible();
 
   await page.goto("/");
-  await page.getByRole("combobox", { name: "Translation" }).selectOption("leb");
   await field.fill("Jude 1:1");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(first.locator("[part=label]")).toHaveText("Jude 1:1");
@@ -72,26 +70,65 @@ test("signed in, the home page has no header links; the book opens the account p
   await expect(page).toHaveURL(/\/account$/);
 });
 
-test("the home search opens with John 3:16 in the field, already searched", async ({ page }) => {
+test("the home search opens with an empty field, and John 3:16 already searched", async ({
+  page,
+}) => {
   await page.goto("/");
-  await expect(page.getByRole("combobox", { name: "Passage or words" })).toHaveValue("John 3:16");
+  const field = page.getByRole("combobox", { name: "Passage or words" });
+  await expect(field).toHaveValue("");
+  await expect(field).toHaveAttribute("placeholder", "Passage or words");
+  // The words aren't a label above the field any more.
+  await expect(page.locator(".home-search .search-label")).toHaveCount(0);
   await expect(page.locator("st-search-results")).toContainText("John 3:16");
   // The verse shows whole, not cut after a few lines (the search is asked for a longer preview).
   await expect(page.locator("st-search-results")).toContainText("will have eternal life");
 });
 
-test("the home search lists verses with the words, narrowed to the translation chosen", async ({
+test("the home search covers every translation: words find a verse in the one that holds them", async ({
   page,
 }) => {
   await page.goto("/");
-  // The search component has taken over from the stand-in field, and its scope follows the choice.
-  await expect(page.getByRole("combobox", { name: "Passage or words" })).toBeVisible();
-  await page.getByRole("combobox", { name: "Translation" }).selectOption("eng-kjv");
-  await page.getByRole("combobox", { name: "Passage or words" }).fill("Cain");
+  // The search component has taken over from the stand-in field.
+  const field = page.getByRole("combobox", { name: "Passage or words" });
+  await expect(field).toBeVisible();
+  // "before" is a small word the index leaves out; it still has to be in the verse. The LEB has
+  // Isaiah 53:2 as "like a shoot before him": picking it opens it in the LEB, where it matched.
+  await field.fill("shoot before");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   const results = page.locator("st-search-results");
-  await expect(results).toContainText("Genesis 4");
-  await expect(results).not.toContainText("LEB");
+  const hit = results.getByRole("listitem").filter({ hasText: "Isaiah 53:2" }).first();
+  await expect(hit).toContainText("LEB");
+  await expect(hit.locator("mark")).toHaveText(["shoot", "before"]);
+  await hit.click();
+  await expect(page).toHaveURL(/\/read\/leb\/isaiah\/53\/2$/);
+});
+
+test("the home search goes on as the list is scrolled: the next verses load at its end", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const field = page.getByRole("combobox", { name: "Passage or words" });
+  await expect(field).toBeVisible();
+  // "shoot" is in far more verses than the ten a page holds.
+  await field.fill("shoot");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const items = page.locator("st-search-results").getByRole("listitem");
+  await expect(items.first()).toBeVisible();
+  await expect(items.filter({ hasText: "Isaiah 53:2" })).toHaveCount(0);
+  const first = await items.count();
+  // Scrolling to the end of the list loads the next page, and the end moves on.
+  await expect(async () => {
+    await items.last().scrollIntoViewIfNeeded();
+    await page.mouse.wheel(0, 2000);
+    expect(await items.count()).toBeGreaterThan(first);
+  }).toPass({ timeout: 15_000 });
+  const second = await items.count();
+  await expect(async () => {
+    await items.last().scrollIntoViewIfNeeded();
+    await page.mouse.wheel(0, 2000);
+    expect(await items.count()).toBeGreaterThan(second);
+  }).toPass({ timeout: 15_000 });
+  await page.screenshot(shot("home-search-more"));
 });
 
 test("the passage's title is edited in place, and the translation is chosen at the top", async ({

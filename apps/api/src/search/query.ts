@@ -25,6 +25,28 @@ export const fold = (text: string): string =>
 /** A search phrase as a regular expression's literal text (for matching a gloss's whole words). */
 export const escapeRegex = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+/**
+ * The separate words of a plain query ("dwelt became"), for matching them across translations and
+ * allowing a near match; null for a query that says more than words (a "quoted phrase", `-word`,
+ * `or`), which is searched exactly as written. Each word once, lower case, no stray punctuation.
+ */
+export function wordsOf(query: string): string[] | null {
+  if (/["\u201c\u201d]/.test(query)) return null;
+  const words: string[] = [];
+  for (const raw of query.split(/\s+/)) {
+    if (raw.startsWith("-")) return null;
+    const word = raw.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").toLowerCase();
+    if (word === "") continue;
+    if (word === "or") return null;
+    if (!words.includes(word)) words.push(word);
+  }
+  return words;
+}
+
+/** How many of a query's words a verse (or a verse across translations) must hold to be listed. */
+export const wordsNeeded = (count: number): number =>
+  count <= 2 ? count : Math.ceil((count * 2) / 3);
+
 /** What `ts_headline` marks a matched word with (see `search.service.ts`). */
 export const HIT_OPEN = "⟦";
 export const HIT_CLOSE = "⟧";

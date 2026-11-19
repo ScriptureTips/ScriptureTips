@@ -45,6 +45,13 @@ export interface TextResult {
   readonly reference: string;
   readonly translation: { readonly id: string; readonly abbreviation: string };
   readonly snippet: readonly SnippetPart[];
+  /** The verse in other translations that hold words of the query this one lacks. */
+  readonly also?: readonly {
+    readonly translation: { readonly id: string; readonly abbreviation: string };
+    readonly snippet: readonly SnippetPart[];
+  }[];
+  /** Words of the query that no translation of this verse holds: a near match. */
+  readonly missing?: readonly string[];
 }
 
 /** A Hebrew or Greek word. */
@@ -72,6 +79,8 @@ export interface SearchResponse {
   /** Kinds asked for that the server doesn't search (yet). */
   readonly unavailable: readonly string[];
   readonly tookMs: number;
+  /** True when more verses match than came: ask again for the next page (`Transport.search`'s offset). */
+  readonly more?: boolean;
 }
 
 export interface Suggestion {
@@ -104,7 +113,13 @@ export interface ShownPassage {
 
 /** Where searching happens. The default asks the ScriptureTips API; tests and other backends can swap it. */
 export interface Transport {
-  search(query: string, scope: SearchScope, signal: AbortSignal): Promise<SearchResponse>;
+  /** `offset`: the verses already shown, for the next page of verses (only verses page). */
+  search(
+    query: string,
+    scope: SearchScope,
+    signal: AbortSignal,
+    offset?: number,
+  ): Promise<SearchResponse>;
   suggest(query: string, scope: SearchScope, signal: AbortSignal): Promise<readonly Suggestion[]>;
   /** A passage's text in a translation (by the reference as it reads there); optional. */
   passage?(translation: string, reference: string, signal: AbortSignal): Promise<PassageText>;
@@ -120,6 +135,8 @@ export interface Strings {
   readonly failed: string;
   /** "Not searched yet: {kinds}". */
   readonly unavailable: string;
+  /** "No match for: {words}", on a near match. */
+  readonly missing: string;
   readonly suggestions: string;
   readonly results: string;
   readonly kinds: Readonly<Record<string, string>>;
@@ -175,6 +192,10 @@ export interface SearchState {
   readonly error: string | null;
   /** The passage shown in place of the results, once one was picked; null otherwise. */
   readonly passage: ShownPassage | null;
+  /** More verses match than are listed: `loadMore()` adds the next page (the list scrolls on). */
+  readonly more: boolean;
+  /** The next page of verses is being fetched. */
+  readonly loadingMore: boolean;
 }
 
 /** The events a subscriber can listen for, with what each carries. */
