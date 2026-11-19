@@ -9,6 +9,7 @@ const config: NextConfig = {
   // Production images (infra/docker/web) run the standalone server, traced from the repository
   // root so workspace packages are included.
   output: "standalone",
+  experimental: { agentUpgrade: "security" },
   outputFileTracingRoot: fileURLToPath(new URL("../..", import.meta.url)),
   // Workspace packages are TypeScript source.
   // The floating dev-tools badge covers controls at the bottom of small screens (and shows in
