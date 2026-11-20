@@ -216,7 +216,7 @@ test("favourite translations: starred and dragged into order, and only favourite
     .click();
   await expect(page).toHaveURL(/\/read\/[^/]+\/genesis\/1$/);
   // The Translation menu marks the translation shown: the first favourite.
-  await page.getByRole("button", { name: /^Translation/ }).click();
+  await page.locator(".reader-menu-toggle").click();
   await expect(
     page.locator("#reader-menu-translation").locator('[aria-pressed="true"]'),
   ).toHaveText(new RegExp(`^\\s*✓?${(first ?? "").split(":")[0]}:`));

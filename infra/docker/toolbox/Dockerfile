@@ -12,10 +12,10 @@ RUN apt-get update \
   && chown -R node:node /home/node /workspace \
   && git config --system --add safe.directory /workspace
 
-# Playwright's Chromium and the system libraries it needs, for screenshots and end-to-end
+# Playwright's Chromium (and Firefox, the Gecko engine, for the checks that differ by engine) and the system libraries it needs, for screenshots and end-to-end
 # tests (testing.md §3). Keep the version equal to @playwright/test in package.json.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN npx -y playwright@1.64.0 install --with-deps chromium \
+RUN npx -y playwright@1.64.0 install --with-deps chromium firefox \
   && chmod -R a+rX /ms-playwright \
   && rm -rf /var/lib/apt/lists/* /root/.npm
 

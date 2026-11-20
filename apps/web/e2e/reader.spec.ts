@@ -146,8 +146,9 @@ test("the passage's title is edited in place, and the translation is chosen at t
   // Escape puts the title back.
   await page.keyboard.press("Escape");
   await expect(field).toHaveCount(0);
-  // Leaving the field puts the title back; at rest it shows a pencil.
-  await expect(page.locator(".passage-title-icon")).toBeVisible();
+  // Leaving the field puts the title back, as plain text in the bar: no pencil, nothing that looks
+  // like a button.
+  await expect(page.locator(".passage-title-icon")).toHaveCount(0);
   await page.getByRole("button", { name: "Genesis 2:18–25" }).click();
   await page.mouse.click(2, 2);
   await expect(field).toHaveCount(0);
@@ -157,7 +158,7 @@ test("the passage's title is edited in place, and the translation is chosen at t
   await page.getByRole("button", { name: "Read", exact: true }).click();
   await expect(page).toHaveURL(/\/read\/leb\/psalms\/23$/);
   // Another translation, from the menu: the same passage in it, under the first.
-  const toggle = page.getByRole("button", { name: /^Translation/ });
+  const toggle = page.locator(".reader-menu-toggle");
   await expect(async () => {
     if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
     await expect(toggle).toHaveAttribute("aria-expanded", "true", { timeout: 1000 });
@@ -167,15 +168,17 @@ test("the passage's title is edited in place, and the translation is chosen at t
   await page.screenshot(shot("passage-title"));
 });
 
-test("the reader's horizontal menu: the books by section as dropdowns, one open at a time", async ({
+test("the book's name in the chapter bar opens the books by section as a dropdown", async ({
   page,
 }) => {
   await page.goto("/read/leb/genesis/2/18-25");
-  const menu = page.getByRole("navigation", { name: "Books" });
-  await expect(menu.getByRole("button")).toHaveText(["Old Testament", "New Testament"]);
+  // No tabs on the page: the books are in the dropdown, under the bar.
+  await expect(page.getByRole("tablist", { name: "Books by section" })).toHaveCount(0);
+  const button = page.locator(".reading-bar .book-dropdown-button");
+  await expect(button).toHaveText("Genesis");
   // The passage is edited in the blue bar, and the Translation dropdown is under it, to the right.
   const bar = await page.locator(".reading-bar").boundingBox();
-  const translation = await page.getByRole("button", { name: /^Translation/ }).boundingBox();
+  const translation = await page.locator(".reader-menu-toggle").boundingBox();
   expect(
     await page.locator(".reading-bar").getByRole("button", { name: "Genesis 2:18–25" }).count(),
   ).toBe(1);
@@ -183,32 +186,38 @@ test("the reader's horizontal menu: the books by section as dropdowns, one open 
   expect((translation?.x ?? 0) + (translation?.width ?? 0)).toBeGreaterThan(
     (bar?.x ?? 0) + (bar?.width ?? 0) - 40,
   );
-  // The section of the book being read is marked.
-  await expect(menu.getByRole("button", { name: "Old Testament" })).toHaveClass(/reading/);
-  const panel = (name: string) => page.locator(`#reader-menu-${name}`);
-  await menu.getByRole("button", { name: "Old Testament" }).click();
-  await expect(panel("ot").getByRole("link", { name: "Exodus" })).toBeVisible();
-  await expect(panel("ot").getByRole("link", { name: "Genesis" })).toHaveAttribute(
+  // It opens on the section of the book being read.
+  const panel = page.locator("#book-dropdown-panel");
+  // (Pressed again until it opens: a press before the page is ready does nothing.)
+  await expect(async () => {
+    if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+    await expect(panel).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  await expect(panel.getByRole("tab", { name: "Old Testament" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(panel.getByRole("link", { name: "Exodus" })).toBeVisible();
+  await expect(panel.getByRole("link", { name: /^Genesis/ })).toHaveAttribute(
     "aria-current",
     "page",
   );
   await page.screenshot(shot("reader-menu-books"));
-  // Another menu closes the first.
-  await menu.getByRole("button", { name: "New Testament" }).click();
-  await expect(panel("ot")).toHaveCount(0);
-  await expect(panel("nt").getByRole("link", { name: "Romans" })).toBeVisible();
-  // Escape and a press outside close it too.
+  // The other sections are its tabs.
+  await panel.getByRole("tab", { name: "New Testament" }).click();
+  await expect(panel.getByRole("link", { name: /^Romans/ })).toBeVisible();
+  // Escape and a press outside close it.
   await page.keyboard.press("Escape");
-  await expect(panel("nt")).toHaveCount(0);
-  await menu.getByRole("button", { name: "Old Testament" }).click();
+  await expect(panel).toHaveCount(0);
+  await button.click();
   // (The corner of the window: the dropdown covers the passage's title.)
   await page.mouse.click(2, 2);
-  await expect(panel("ot")).toHaveCount(0);
-  // A book opens at its first chapter, and the menu closes.
-  await menu.getByRole("button", { name: "Old Testament" }).click();
-  await panel("ot").getByRole("link", { name: "Exodus" }).click();
+  await expect(panel).toHaveCount(0);
+  // A book opens at its first chapter, and the dropdown closes.
+  await button.click();
+  await panel.getByRole("link", { name: /^Exodus/ }).click();
   await expect(page).toHaveURL(/\/read\/leb\/exodus\/1$/);
-  await expect(panel("ot")).toHaveCount(0);
+  await expect(panel).toHaveCount(0);
 });
 
 test("the Translation menu shows several translations stacked, and never fewer than one", async ({
@@ -216,8 +225,7 @@ test("the Translation menu shows several translations stacked, and never fewer t
 }) => {
   test.setTimeout(60_000);
   await page.goto("/read/leb/genesis/1/1-3");
-  const menu = page.getByRole("navigation", { name: "Books" });
-  const toggle = page.getByRole("button", { name: /^Translation/ });
+  const toggle = page.locator(".reader-menu-toggle");
   const versions = page.locator(".reader-version");
   // One translation: no heading over it.
   await expect(versions).toHaveCount(1);
@@ -311,27 +319,31 @@ test("the Translation menu shows several translations stacked, and never fewer t
   await expect(versions).toHaveCount(1);
 });
 
-test("a part of a chapter has a button for the verses around it, until it's the whole chapter", async ({
+test("a part of a chapter has links under it to read in context, until it's the whole chapter", async ({
   page,
 }) => {
   await page.goto("/read/leb/genesis/2/18-19");
-  const more = page.getByRole("link", { name: "Show 3 more verses before and after" });
-  await more.click();
+  const context = page.getByRole("link", { name: "Read in context" });
+  await context.click();
   await expect(page).toHaveURL(/\/read\/leb\/genesis\/2\/15-22$/);
   await expect(page.locator(".verse", { hasText: "15" })).toBeVisible();
   // Each step adds three verses each side, until the chapter's start and end are reached.
-  await more.click();
+  await context.click();
   await expect(page).toHaveURL(/\/read\/leb\/genesis\/2\/12-25$/);
-  await more.click();
+  await context.click();
   await expect(page).toHaveURL(/\/read\/leb\/genesis\/2\/9-25$/);
-  // The whole chapter in one press, from any part of it.
+  // The whole chapter in one press, from any part of it: the link is under the passage, above
+  // the notes.
   await page.goto("/read/leb/genesis/2/18-19");
-  await page.getByRole("link", { name: "Read the whole chapter" }).click();
+  const whole = page.getByRole("link", { name: "Read the whole chapter" });
+  const notes = await page.locator(".notes").first().boundingBox();
+  if (notes) expect((await whole.boundingBox())?.y ?? 0).toBeLessThan(notes.y);
+  await whole.click();
   await expect(page).toHaveURL(/\/read\/leb\/genesis\/2$/);
-  await expect(more).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Read the whole chapter" })).toHaveCount(0);
+  await expect(context).toHaveCount(0);
+  await expect(whole).toHaveCount(0);
   await page.goto("/read/leb/genesis/1");
-  await expect(more).toHaveCount(0);
+  await expect(context).toHaveCount(0);
 });
 
 test("LEB Genesis 2: idiom brackets, verse numbers and the translator's notes", async ({
@@ -375,8 +387,12 @@ test("a note mark shows its note as a tooltip, and the list keeps it", async ({ 
   await expect(tip).toBeHidden();
   const text = ((await tip.textContent()) ?? "").trim();
   expect(text.length).toBeGreaterThan(0);
-  await mark.locator("a").hover();
-  await expect(tip).toBeVisible();
+  // (Hovered again until it opens: the tooltip is bound once the page is ready.)
+  await expect(async () => {
+    await page.mouse.move(2, 2);
+    await mark.locator("a").hover();
+    await expect(tip).toBeVisible({ timeout: 1000 });
+  }).toPass();
   await expect(tip).toHaveAttribute("role", "tooltip");
   await page.screenshot(shot("note-tooltip"));
   // The pointer can cross the gap between the mark and the tip, and rest on the tip past the
@@ -409,6 +425,8 @@ test("on a touch screen, the first tap on a note mark shows the note and a secon
 }, info) => {
   test.skip(info.project.name !== "phone", "touch only");
   await page.goto("/read/leb/genesis/2/18-25");
+  // (A tap before the page is ready follows the link.)
+  await page.waitForLoadState("networkidle");
   const mark = page.locator(".note-mark").first();
   const tip = mark.locator(".note-tip");
   await expect(async () => {
@@ -426,6 +444,82 @@ test("on a touch screen, the first tap on a note mark shows the note and a secon
   await page.locator(".note-mark").nth(1).locator("a").tap();
   await page.getByRole("heading", { name: "Translator's notes" }).tap();
   await expect(tip).toBeHidden();
+});
+
+test("the reader's search field grows over Translation, and a suggestion opens in the reader", async ({
+  page,
+}) => {
+  await page.goto("/read/leb/genesis/2/18-25");
+  const field = page.locator("st-search-input input");
+  const translation = page.locator(".reader-menu-toggle");
+  // Collapsed: a plain field left of Translation, no placeholder, no button.
+  await expect(field).toBeVisible();
+  await expect(field).toHaveAttribute("placeholder", "");
+  await expect(translation).toBeVisible();
+  const searchButton = page.locator("st-search-input").getByRole("button", { name: "Search" });
+  await expect(searchButton).toBeHidden();
+  // A wide screen has it a fixed width (34rem), with no animation; a phone grows it to the row on
+  // focus.
+  const wideScreen = (page.viewportSize()?.width ?? 0) >= 600;
+  const widthNow = async () => Math.round((await field.boundingBox())?.width ?? 0);
+  // (Polled: the field is measured once the widget's own styles have applied.)
+  if (wideScreen) await expect.poll(widthNow).toBe(544);
+  else await expect.poll(widthNow).toBeLessThan(250);
+  const narrow = await widthNow();
+  await field.click();
+  if (wideScreen) expect(await widthNow()).toBe(narrow);
+  else
+    await expect
+      .poll(async () => (await field.boundingBox())?.width ?? 0)
+      .toBeGreaterThan(narrow + 40);
+  await expect(searchButton).toBeHidden();
+  const wide = (await field.boundingBox())?.width ?? 0;
+  // At the row's left edge, level with the bar.
+  const bar = await page.locator(".reading-bar").boundingBox();
+  expect(Math.abs(((await field.boundingBox())?.x ?? 0) - (bar?.x ?? 0))).toBeLessThan(12);
+  await page.screenshot(shot("reader-search-focused"));
+  // A suggestion's clipped line slides left while the mouse is on it (a phone has no hover).
+  if (!page.viewportSize() || page.viewportSize()!.width >= 700) {
+    await field.fill("in the beginning");
+    const row = page
+      .getByRole("option")
+      .filter({ has: page.locator(".preview") })
+      .first();
+    await row.hover();
+    const line = row.locator(".preview").first();
+    const clipped = await line.evaluate((e) => e.scrollWidth > e.clientWidth);
+    if (clipped) await expect.poll(() => line.evaluate((e) => e.scrollLeft)).toBeGreaterThan(0);
+    await page.mouse.move(0, 0);
+    if (clipped) await expect.poll(() => line.evaluate((e) => e.scrollLeft)).toBe(0);
+  }
+  // A suggestion goes to the reader.
+  await field.fill("john 3");
+  // Leaving the field closes the list; coming back shows it again for the same text.
+  await expect(page.getByRole("option").first()).toBeVisible();
+  await field.blur();
+  await expect(page.getByRole("option")).toHaveCount(0);
+  await field.focus();
+  await expect(page.getByRole("option").first()).toBeVisible();
+  // The suggestions are as wide as the row, not the field.
+  const list = await page.locator("st-search-input").getByRole("listbox").boundingBox();
+  const row = await page.locator(".reader-translations").boundingBox();
+  expect(list?.width ?? 0).toBeGreaterThan(Math.min(row?.width ?? 0, 460) - 2);
+  if ((page.viewportSize()?.width ?? 0) >= 700) expect(list?.width ?? 0).toBeGreaterThan(wide + 20);
+  await page
+    .getByRole("option", { name: /John 3/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/read\/leb\/john\/3$/);
+});
+
+test("a long passage name stays inside the chapter bar on a narrow phone", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/read/leb/1-corinthians/1/3-18");
+  const bar = await page.locator(".reading-bar").boundingBox();
+  const title = await page.locator(".reading-title").boundingBox();
+  expect(title!.y).toBeGreaterThanOrEqual(bar!.y - 1);
+  expect(title!.y + title!.height).toBeLessThanOrEqual(bar!.y + bar!.height + 1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });
 
 test("KJV Psalm 23: poetry lines and a Psalm title", async ({ page }) => {
@@ -470,17 +564,16 @@ test("vision §3.4: the book list, then chapter by chapter", async ({ page }) =>
   await page.screenshot(shot("books"));
   await page.getByRole("link", { name: /^Genesis/ }).click();
   await expect(page).toHaveURL(/\/read\/eng-web\/genesis\/1$/);
-  // The passage page has the same tabs, on the book being read, and the chapter bar over the text.
+  // The passage page has the chapter bar over the text.
   await expect(page.locator(".reading-bar .chapter-button")).toHaveText("1");
   // The bar stays at the top of the window while the chapter scrolls.
   await page.mouse.wheel(0, 1500);
   await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(500);
   expect((await page.locator(".reading-bar").boundingBox())?.y).toBeLessThan(40);
-  // The passage page has the menu, with the section of the book being read marked.
-  const menu = page.getByRole("navigation", { name: "Books" });
-  await expect(menu.getByRole("button", { name: "Old Testament" })).toHaveClass(/reading/);
-  await menu.getByRole("button", { name: "Old Testament" }).click();
-  const genesis = page.locator("#reader-menu-ot").getByRole("link", { name: /^Genesis/ });
+  // The passage page has the books in the dropdown from the book's name, on the section of the
+  // book being read.
+  await page.locator(".reading-bar .book-dropdown-button").click();
+  const genesis = page.locator("#book-dropdown-panel").getByRole("link", { name: /^Genesis/ });
   await expect(genesis).toHaveAttribute("aria-current", "page");
   // The book being read is highlighted in the list.
   await expect(genesis).toHaveCSS("background-color", "rgb(198, 233, 250)");
@@ -534,4 +627,53 @@ test("stepping to the next or previous chapter starts it at its first verse", as
   await page.getByRole("link", { name: "Previous: John 4" }).click();
   await expect(page).toHaveURL(/\/read\/leb\/john\/4$/);
   await expect.poll(atFirstVerse).toBe(true);
+});
+
+test("the passage in the chapter bar reads as one line of plain text", async ({ page }) => {
+  await page.goto("/read/leb/1-corinthians/1/3-18");
+  const bar = page.locator(".reading-bar");
+  await expect(bar.locator(".book-dropdown-button")).toHaveCSS("border-top-width", "0px");
+  await expect(bar.locator(".book-dropdown-button")).toHaveCSS("cursor", "pointer");
+  await expect(bar.locator(".chapter-button")).toHaveCSS("border-top-width", "0px");
+  // The book, chapter and verses sit on one line, the verses straight after the chapter.
+  const chapter = await bar.locator(".chapter-button").boundingBox();
+  const verses = await bar.getByRole("button", { name: "1 Corinthians 1:3–18" }).boundingBox();
+  const middle = (b: { y: number; height: number } | null) => (b?.y ?? 0) + (b?.height ?? 0) / 2;
+  expect(Math.abs(middle(verses) - middle(chapter))).toBeLessThan(4);
+  expect((verses?.x ?? 0) - ((chapter?.x ?? 0) + (chapter?.width ?? 0))).toBeLessThan(8);
+  // All of it the same size and weight.
+  const look = (name: string) =>
+    bar.locator(name).evaluate((e) => {
+      const c = getComputedStyle(e);
+      return `${c.fontSize} ${c.fontWeight}`;
+    });
+  expect(await look(".passage-title-button")).toBe(await look(".chapter-button"));
+  expect(await look(".book-dropdown-button")).toBe(await look(".chapter-button"));
+  expect((await look(".chapter-button")).endsWith(" 700")).toBe(true);
+  // A whole chapter has no title button to click, but the page keeps its heading.
+  await page.goto("/read/leb/genesis/2");
+  await expect(page.locator(".reading-bar .passage-title-button")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Genesis 2" })).toHaveCount(1);
+});
+
+test("the chapter list stays open while the pointer moves from the chapter number onto it", async ({
+  page,
+}, info) => {
+  test.skip(info.project.name === "phone", "needs a pointer");
+  await page.goto("/read/leb/genesis/2");
+  await page.waitForLoadState("networkidle");
+  const button = page.locator(".reading-bar .chapter-button");
+  const list = page.locator(".chapter-list");
+  await button.hover();
+  await expect(list).toBeVisible();
+  const from = await button.boundingBox();
+  const to = await list.getByRole("link").first().boundingBox();
+  if (!from || !to) throw new Error("no boxes");
+  // Straight down, a few pixels at a time, as a hand moves.
+  const x = from.x + from.width / 2;
+  const top = from.y + from.height / 2;
+  const bottom = to.y + to.height / 2;
+  for (let y = top; y <= bottom; y += 3) await page.mouse.move(x, y);
+  await expect(list).toBeVisible();
+  await expect(list.getByRole("link").first()).toBeVisible();
 });

@@ -2,6 +2,7 @@ import { english } from "@scripturetips/reference";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { LinkPending } from "../compilations/LinkPending.tsx";
+import { BookMenu } from "./BookMenu.tsx";
 import type { ChapterRef } from "./books.ts";
 import { ChapterStart } from "./ChapterStart.tsx";
 import { StepLink } from "./StepLink.tsx";
@@ -20,6 +21,7 @@ export async function ChapterBar({
   href,
   books,
   after,
+  menu,
 }: {
   osis: string;
   chapter: number;
@@ -33,6 +35,8 @@ export async function ChapterBar({
   books?: ReactNode;
   /** Beside the book and chapter in the bar (the reader's editable passage). */
   after?: ReactNode;
+  /** The book's name opens this dropdown, on any screen (the reader's books by section). */
+  menu?: ReactNode;
 }) {
   const t = await getTranslations("reading");
   const bookName = english.name(osis, "full", "one");
@@ -61,7 +65,9 @@ export async function ChapterBar({
       {/* A new chapter's title is a new element, so the list it was picked from closes. */}
       <div className="reading-title" key={`${osis}.${chapter}`}>
         <h2 id="reading-title">
-          {books ? (
+          {menu ? (
+            <BookMenu label={bookName}>{menu}</BookMenu>
+          ) : books ? (
             <>
               {/* On a phone the name opens the books, as a popover (closed by a tap outside). */}
               <span className="book-name">{bookName}</span>

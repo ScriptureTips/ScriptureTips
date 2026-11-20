@@ -24,6 +24,8 @@ import { Passage } from "../../../../reader/Passage.tsx";
 import { PassageTitle } from "../../../../reader/PassageEdit.tsx";
 import { bookSlug, ownsCompilation, readerTarget, referenceFor } from "../../../../reader/paths.ts";
 import { ReaderNav } from "../../../../reader/ReaderNav.tsx";
+import { ReaderSearch } from "../../../../reader/ReaderSearch.tsx";
+import { ReaderTabs } from "../../../../reader/ReaderTabs.tsx";
 import { translationOptions } from "../../../../translations/menu.ts";
 
 /** How many verses each side the context button adds. */
@@ -214,6 +216,18 @@ export default async function Read(props: Props) {
               sources={res.sources}
               designationOf={designationOf}
               showLabel={false}
+              below={
+                chapterPath ? (
+                  <p className="passage-context">
+                    {wider && wider !== chapterPath ? (
+                      <a href={readPath(wider)} rel="nofollow">
+                        {tr("context")}
+                      </a>
+                    ) : null}
+                    <a href={readPath(chapterPath)}>{tr("wholeChapter")}</a>
+                  </p>
+                ) : undefined
+              }
             />
           ))
         ) : (
@@ -231,12 +245,15 @@ export default async function Read(props: Props) {
       </section>
     );
   };
+  // The Translation button says the abbreviation of the translation read (and how many more).
+  const abbreviationOf = (e: string) =>
+    catalog.find((c) => c.id === e)?.abbreviation ??
+    mine.find((c) => c.id === e)?.abbreviation ??
+    e;
   const navProps = {
     selected: shown,
     tail,
-    books: available,
-    canon,
-    current: reading,
+    abbreviation: `${abbreviationOf(id)}${shown.length > 1 ? ` +${shown.length - 1}` : ""}`,
     compilations: mine.map((c) => ({ id: c.id, label: `${c.abbreviation}: ${c.title}` })),
     translations: translationOptions(catalog, account, shown),
     limit: account ? MOST_TRANSLATIONS : MOST_TRANSLATIONS_GUEST,
@@ -266,7 +283,6 @@ export default async function Read(props: Props) {
       : "";
   return (
     <div className="reader">
-      <ReaderNav part="books" {...navProps} />
       {/* Held at the top of the window while the chapter scrolls, as in the editor. */}
       {only && available ? (
         <div className="reader-head">
@@ -281,6 +297,7 @@ export default async function Read(props: Props) {
             next={around.next}
             href={(to, n) => readPath(`/read/${id}/${bookSlug(to)}/${n}`)}
             after={passageTitle(afterChapter)}
+            menu={<ReaderTabs id={id} books={available} canon={canon} current={reading} />}
           />
         </div>
       ) : (
@@ -288,18 +305,13 @@ export default async function Read(props: Props) {
       )}
       {/* The translations, under the bar and to the right. */}
       <div className="reader-translations">
-        <ReaderNav part="translation" {...navProps} />
+        <ReaderSearch
+          translation={id}
+          catalog={catalog.map((c) => c.id)}
+          labels={{ field: ts("homeField"), button: ts("homeGo") }}
+        />
+        <ReaderNav {...navProps} />
       </div>
-      {chapterPath ? (
-        <p className="passage-context">
-          {wider && wider !== chapterPath ? (
-            <a href={readPath(wider)} rel="nofollow">
-              {tr("context", { count: CONTEXT })}
-            </a>
-          ) : null}
-          <a href={readPath(chapterPath)}>{tr("wholeChapter")}</a>
-        </p>
-      ) : null}
       {await Promise.all(results.map(([blockId, res]) => block(blockId, res)))}
       {/* A single chapter has the bar's arrows; other passages link to the books. */}
       {result.ok && !only ? (

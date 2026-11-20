@@ -309,7 +309,7 @@ test("domain-model §2.3: reword a translation's note, editing its verse, and ad
   await expect(notes).toContainText("Or the heavens. Note added in this compilation.");
   await expect(page.locator(".scripture")).toContainText(
     // Each note's letter is marked where it belongs: after "God" and after "heavens".
-    /In the beginning, God\s*a created the heavens\s*b and the earth\./,
+    /In the beginning, God\s*a.*? created the heavens\s*b.*? and the earth\./s,
   );
   await page.screenshot(shot("compilation-reader-notes"));
 

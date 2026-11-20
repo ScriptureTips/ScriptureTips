@@ -1,28 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { type CSSProperties, useEffect, useRef, useState, useTransition } from "react";
 import type { TranslationOption } from "../translations/menu.ts";
 import { readHref } from "./paths.ts";
-
-/** A book in a section's menu: where it opens, and whether it's the one being read. */
-export interface MenuBook {
-  osis: string;
-  name: string;
-  href: string;
-  current: boolean;
-}
-
-/** One of the book menus: Old Testament, New Testament, other scriptures. */
-export interface MenuSection {
-  id: string;
-  label: string;
-  /** Books in groups, each with a small heading when a menu holds more than one. */
-  groups: { id: string; heading?: string; books: MenuBook[] }[];
-  /** The book being read is in it. */
-  current: boolean;
-}
 
 const EXPANDED_KEY = "reader-translations-expanded";
 
@@ -49,32 +30,26 @@ function saveExpanded(expanded: boolean): void {
 }
 
 /**
- * The reader's horizontal menu: the book menus (Old Testament, New Testament, other scriptures
- * where there are any) and Translation, each a dropdown under its button. A book is a link.
+ * The reader's Translation menu: a dropdown under a button labeled with the translation's
+ * abbreviation, under the chapter bar.
  *
- * Translation lists your compilations and your favourites always, and the other translations once
+ * It lists your compilations and your favourites always, and the other translations once
  * you've opened their collapsible heading (kept in this browser). Each is a toggle, several at a time: the passage is shown in each, stacked, and the
  * last one on can't be turned off, so one is always shown. The footer's checkboxes select or
  * deselect a whole group at once (your compilations, your favourites, the other translations).
  *
- * Only one dropdown is open at a time; Escape or a press outside closes it, and so does going to
- * a book.
+ * Escape or a press outside closes it, and so does going to another page.
  */
 export function ReaderMenu({
-  part,
   limit,
-  sections,
   selected,
   tail,
   compilations,
   translations,
   labels,
 }: {
-  /** The book menus' bar, or the Translation dropdown (which sits under the chapter bar). */
-  part: "books" | "translation";
   /** The most translations shown at once. */
   limit: number;
-  sections: readonly MenuSection[];
   /** The translations shown, in order: the first is the path's. */
   selected: readonly string[];
   /** The path after the translation (`genesis/1`), kept as translations are toggled. */
@@ -83,8 +58,8 @@ export function ReaderMenu({
   /** Favourites first (marked `favorite`), then the rest. */
   translations: readonly TranslationOption[];
   labels: {
-    nav: string;
     translationNav: string;
+    /** On the button: the abbreviation of the translation shown. */
     translation: string;
     yours: string;
     all: string;
@@ -102,7 +77,7 @@ export function ReaderMenu({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const [loading, startLoading] = useTransition();
   const bar = useRef<HTMLElement>(null);
 
@@ -119,16 +94,16 @@ export function ReaderMenu({
 
   // Going to a book (a new page) closes the menu; toggling a translation keeps it open.
   // biome-ignore lint/correctness/useExhaustiveDependencies: it closes when the path changes.
-  useEffect(() => setOpen(null), [pathname]);
+  useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
     if (!open) return;
     const outside = (e: PointerEvent) => {
-      if (!bar.current?.contains(e.target as Node)) setOpen(null);
+      if (!bar.current?.contains(e.target as Node)) setOpen(false);
     };
     const onEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      setOpen(null);
-      bar.current?.querySelector<HTMLElement>(`[aria-expanded="true"]`)?.focus();
+      setOpen(false);
+      bar.current?.querySelector<HTMLElement>("button")?.focus();
     };
     document.addEventListener("pointerdown", outside);
     document.addEventListener("keydown", onEscape);
@@ -138,20 +113,17 @@ export function ReaderMenu({
     };
   }, [open]);
 
-  const toggleButton = (id: string, label: string, extra?: string, current?: boolean) => (
+  const toggleButton = (label: string) => (
     <button
       type="button"
-      className={`reader-menu-toggle${current ? " reading" : ""}`}
-      aria-expanded={open === id}
-      aria-controls={`reader-menu-${id}`}
-      onClick={() => setOpen(open === id ? null : id)}
+      className="reader-menu-toggle"
+      aria-expanded={open}
+      aria-controls="reader-menu-translation"
+      onClick={() => setOpen(!open)}
     >
       {label}
-      {extra ? <small>{extra}</small> : null}
       {/* The passage is loading in the translations just chosen. */}
-      {id === "translation" && loading ? (
-        <span className="spinner link-pending" aria-hidden="true" />
-      ) : null}
+      {loading ? <span className="spinner link-pending" aria-hidden="true" /> : null}
     </button>
   );
 
@@ -234,43 +206,14 @@ export function ReaderMenu({
   return (
     <nav
       ref={bar}
-      className={`reader-menu${part === "translation" ? " reader-menu-translation" : ""}`}
-      aria-label={part === "books" ? labels.nav : labels.translationNav}
+      className="reader-menu reader-menu-translation"
+      aria-label={labels.translationNav}
       style={{ "--pending": loading ? 1 : 0 } as CSSProperties}
     >
       <ul>
-        {part === "books"
-          ? sections.map((s) => (
-              <li key={s.id}>{toggleButton(s.id, s.label, undefined, s.current)}</li>
-            ))
-          : null}
-        {part === "translation" ? <li>{toggleButton("translation", labels.translation)}</li> : null}
+        <li>{toggleButton(labels.translation)}</li>
       </ul>
-      {(part === "books" ? sections : []).map((s) =>
-        open === s.id ? (
-          <div key={s.id} id={`reader-menu-${s.id}`} className="reader-menu-panel">
-            {s.groups.map((g) => (
-              <section key={g.id}>
-                {g.heading ? <h2 className="book-menu-heading">{g.heading}</h2> : null}
-                <ul className="reader-books">
-                  {g.books.map((b) => (
-                    <li key={b.osis}>
-                      <Link
-                        href={b.href}
-                        aria-current={b.current ? "page" : undefined}
-                        onClick={() => setOpen(null)}
-                      >
-                        {b.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-        ) : null,
-      )}
-      {part === "translation" && open === "translation" ? (
+      {open ? (
         <div id="reader-menu-translation" className="reader-menu-panel reader-menu-translations">
           {/* One list in two columns: your compilations, your favourites, then (once asked for)
               the other translations, each group beginning under the one before. */}

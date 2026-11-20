@@ -32,6 +32,14 @@ export function PassageTitle({
     if (editing) input.current?.select();
   }, [editing]);
 
+  // A whole chapter has nothing after the book and chapter to click (the search field reads any
+  // passage); the page keeps its heading for screen readers.
+  if (!editing && shown === "")
+    return (
+      <h1 className="visually-hidden" dir={direction}>
+        {title}
+      </h1>
+    );
   if (!editing)
     return (
       <h1 className="passage-label passage-title" dir={direction}>
@@ -44,22 +52,6 @@ export function PassageTitle({
           onClick={() => setEditing(true)}
         >
           {shown ?? title}
-          {/* A pencil, so it's known to be editable. */}
-          <svg
-            className="passage-title-icon"
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-          </svg>
         </button>
       </h1>
     );

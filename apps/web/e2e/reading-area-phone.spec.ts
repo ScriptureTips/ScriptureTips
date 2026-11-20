@@ -658,7 +658,7 @@ test("domain-model §3.1: on a phone, the tooltip's Link adds a link, and a tap 
   const label = links.getByRole("link", { name: "Genesis 4:25" });
   await label.tap();
   const passagePop = page.getByRole("dialog", { name: "Scripture passage" });
-  await expect(passagePop).toContainText("Adam knew his wife again");
+  await expect(passagePop).toContainText(/Adam knew.*his wife again/s);
   await expect(tip).toBeVisible();
   await page.screenshot({ ...shot("reading-area-phone-study-link-passage"), fullPage: false });
   await label.tap();

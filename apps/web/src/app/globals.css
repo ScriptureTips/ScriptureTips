@@ -1561,8 +1561,6 @@ main:has(> .compilation) {
  */
 .reader-menu {
   position: relative;
-  margin-bottom: 0.75rem;
-  border-bottom: 1px solid var(--rule);
 }
 
 .reader-menu > ul {
@@ -1798,11 +1796,13 @@ main:has(> .compilation) {
 }
 
 /* The passage's title is edited in place: a field and a Read button once it's pressed. */
+/* Under the passage, before its notes: more of the chapter. */
 .passage-context {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.5rem;
-  margin: -0.5rem 0 1rem;
+  margin: 1rem 0 0;
 }
 
 .passage-context a {
@@ -1830,25 +1830,7 @@ main:has(> .compilation) {
   border-radius: 0.3rem;
   padding: 0 0.25rem;
   margin: -1px calc(-0.25rem - 1px);
-  cursor: text;
-}
-
-.passage-title-icon {
-  margin-inline-start: 0.5rem;
-  vertical-align: -0.1em;
-  color: var(--muted);
-}
-
-.passage-title-button:hover .passage-title-icon,
-.passage-title-button:focus-visible .passage-title-icon {
-  color: var(--deep);
-}
-
-.passage-title-button:hover,
-.passage-title-button:focus-visible {
-  border-bottom-style: dashed;
-  border-bottom-color: var(--deep);
-  border-radius: 0;
+  cursor: pointer;
 }
 
 .passage-title-form {
@@ -2488,8 +2470,7 @@ button.secondary {
 .reading {
   /* The sticky head's height, which the comparison table's sticky headings sit under. */
   --reading-head: 6.75rem;
-  border-top: 1px solid var(--rule);
-  padding-top: 0.5rem;
+  border-bottom: 3px solid var(--deep);
 }
 
 /* The mode buttons and the chapter bar, held at the top of the window. Fixed heights, so the
@@ -2561,6 +2542,11 @@ a.reading-step:focus-visible {
   margin: 0;
   font: inherit;
   font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.reading-title .passage-title-button {
+  font-weight: inherit;
 }
 
 .reading-title .passage-title-button {
@@ -2601,21 +2587,68 @@ a.reading-step:focus-visible {
   text-align: center;
 }
 
-.chapter-button {
+/* The book's name opens the books, in a dropdown centered under the bar (the reader). */
+.book-dropdown-button {
   font: inherit;
   color: inherit;
-  padding: 0 0.3rem;
+  padding: 0;
   background: none;
-  border: 1px solid transparent;
-  border-radius: 4px;
+  border: 0;
   cursor: pointer;
 }
 
-.chapter-button:hover,
-.chapter-button:focus-visible,
-.reading-title:has(.chapter-list:hover, .chapter-list:focus-within) .chapter-button {
-  background: rgb(255 255 255 / 55%);
-  border-color: rgb(29 35 42 / 25%);
+.book-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 50%;
+  z-index: 6;
+  width: min(44rem, calc(100vw - 2rem));
+  transform: translateX(-50%);
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 0 0.75rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  text-align: start;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 15%);
+}
+
+/* A narrow phone: a long passage (1 Corinthians 1:3–18) wraps in two lines, the book and chapter
+   together and the verses after them, and the bar grows to hold them. */
+@media (max-width: 420px) {
+  .reading-bar {
+    grid-template-columns: 2rem minmax(0, 1fr) 2rem;
+    height: auto;
+    min-height: 3rem;
+    padding: 0.25rem 0.25rem;
+  }
+
+  .reading-title {
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .reading-title h2,
+  .reading-title .passage-title {
+    font-size: 1.15rem;
+    white-space: nowrap;
+  }
+}
+
+.chapter-button {
+  font: inherit;
+  color: inherit;
+
+  /* Taller than its text, down to the list under the bar's title: the pointer crosses no gap. */
+  padding: 0.6rem 0.15rem;
+  margin: -0.6rem 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
 }
 
 .chapter-list {
@@ -4026,7 +4059,98 @@ st-search-input.study-tip-field {
   position: relative;
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* The search field, left of Translation: a plain field with a magnifying glass inside its right
+   end. While it has the focus it takes the whole row, over Translation, and its Search button
+   shows beside it. */
+.reader-search {
+  position: absolute;
+  inset: 0 0 auto;
+
+  /* Spans the row (the suggestions are as wide as it); only the field and the list take clicks. */
+  pointer-events: none;
+  --st-search-background: #fff;
+}
+
+/* The field, at the left edge of the row, Translation at the right: a fixed 34rem on a wide
+   screen; on a narrow one it's short and grows to the whole row on focus (below). */
+.reader-search st-search-input,
+.reader-search-fallback {
+  margin: initial;
+  display: block;
+  width: 34rem;
+  max-width: 100%;
+  pointer-events: auto;
+}
+
+/* The list is positioned against the row, not the field. */
+.reader-search st-search-input::part(form) {
+  position: static;
+}
+
+.reader-search st-search-input::part(suggestions) {
+  pointer-events: auto;
+}
+
+.reader-search-fallback {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.reader-search-fallback input[name="ref"],
+.reader-search st-search-input::part(input) {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.35rem 0.6rem 0.35rem 2rem;
+  border: 1px solid var(--rule);
+  border-radius: 0.3rem;
+  background:
+    #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235b6672' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5 21 21'/%3E%3C/svg%3E")
+    no-repeat left 0.5rem center / 1rem;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+}
+
+.reader-search st-search-input::part(form),
+.reader-search-fallback {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* No Search button: suggestions come as you type, and Enter still submits. */
+.reader-search st-search-input::part(button),
+.reader-search-fallback button {
+  display: none;
+}
+
+@media (max-width: 599px) {
+  .reader-search st-search-input,
+  .reader-search-fallback {
+    margin: initial;
+    width: 11rem;
+    transition: width 240ms ease;
+  }
+
+  .reader-translations:has(.reader-search:focus-within) st-search-input,
+  .reader-translations:has(.reader-search:focus-within) .reader-search-fallback {
+    width: 100%;
+  }
+}
+
+@media (max-width: 599px) and (prefers-reduced-motion: reduce) {
+  .reader-search st-search-input,
+  .reader-search-fallback {
+    transition: none;
+  }
+}
+
+.reader-translations:has(.reader-search:focus-within) .reader-menu-translation {
+  /* display: none; */
 }
 
 .reader-translations .reader-menu {

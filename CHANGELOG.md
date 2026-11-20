@@ -7,13 +7,14 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 ## [Unreleased]
 
 ### Added
+- The reader has a search field beside Translation: a plain field with a magnifying glass. It grows over the Translation menu when you click it, with a Search button, and its suggestions (passages, and verses found by their words) open in the reader.
 - A note mark in the verse text shows the note in a tooltip when you hover or focus it (on a phone, tap it). The list of notes under the passage stays.
 - The passage tooltip of the website plugin and the browser extension marks translator's notes too: a note's mark in the verse shows the note on hover, focus or tap, and you can move onto it to select its text.
 
 ## [1.1.0] - 2026-11-20
 
 ### Changed
-- The reader's books and translations are a horizontal menu: Old Testament, New Testament and Other scriptures, each a dropdown of its books. The passage is edited in the blue chapter bar (the pencil beside the book and chapter), and the Translation dropdown sits under the bar, to the right. The menu fits on one line on a phone.
+- The reader's books are a dropdown from the book's name in the blue chapter bar (the sections as tabs inside it). The passage is edited in the bar (the pencil beside the book and chapter), and the Translation dropdown sits under the bar, to the right, named by the translation's abbreviation. A part of a chapter has "Read in context" and "Read the whole chapter" links under it.
 - The reader shows several translations at once: the passage is stacked under each one's name, with its own credit. Translation is a list you tick (one always stays on, and the address keeps your choice in `?with=`); signed in you can show up to 40, and a guest up to 6.
 - The Translation list shows your compilations and favorites, and the other translations under a heading that opens and closes (the choice is remembered in the browser; closing it turns those translations off). Checkboxes in its footer select or deselect a whole group. A long name is clipped to one line and opens out when hovered.
 - The home page search always covers every translation: the translation list is gone. A passage opens in your first favorite translation, and a verse found by its words opens in the translation it was found in. The field and button are narrower on a wide screen.

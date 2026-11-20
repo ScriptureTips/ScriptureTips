@@ -129,7 +129,10 @@ export async function Passage({
   designationOf,
   showLabel = true,
   study,
+  below,
 }: {
+  /** Shown under the text, before the notes: the reader's links to more of the chapter. */
+  below?: ReactNode;
   /** False where the page already names the passage (the compilation editor). */
   showLabel?: boolean;
   /** Study mode (the compilation editor's read tab): each verse's words are wrapped and marked. */
@@ -173,6 +176,7 @@ export async function Passage({
           />
         ))}
       </div>
+      {below}
       {notes.length > 0 ? (
         <section className="notes" aria-label={t("notes")}>
           <h2>{t("notes")}</h2>

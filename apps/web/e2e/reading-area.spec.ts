@@ -863,7 +863,7 @@ test("domain-model §3.1: the tooltip's Link adds a link from the selected words
   // tooltip, on our own page), and using that pop-up doesn't close the study tooltip.
   const passagePop = page.getByRole("dialog", { name: "Scripture passage" });
   await links.getByRole("link", { name: "Genesis 4:25" }).hover();
-  await expect(passagePop).toContainText("Adam knew his wife again");
+  await expect(passagePop).toContainText(/Adam knew.*his wife again/s);
   // The pointer goes into the pop-up to use its select, as a person's would.
   const translation = passagePop.getByRole("combobox", { name: "Translation" });
   await translation.hover();

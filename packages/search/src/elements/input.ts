@@ -15,6 +15,61 @@ import { inputStyles, tokens } from "./styles.ts";
  *
  * It passes on the instance's events as DOM events: `st-type`, `st-suggest`, `st-search`.
  */
+/** Pixels per second the clipped text of a hovered row slides. */
+const MARQUEE_SPEED = 85;
+const sliding = new WeakMap<Element, number>();
+
+/** Slides a hovered row's clipped line to the left, slowly, so all of it can be read. */
+function marquee(e: Event): void {
+  slide(e.currentTarget as HTMLElement);
+}
+
+/** Rows a long press has slid: the lift of the finger that follows isn't a choice. */
+const held = new WeakSet<Element>();
+const holds = new WeakMap<Element, number>();
+
+/** A long press (touch has no hover) starts the slide. */
+function pressStart(e: PointerEvent): void {
+  if (e.pointerType === "mouse") return;
+  const row = e.currentTarget as HTMLElement;
+  held.delete(row);
+  holds.set(
+    row,
+    window.setTimeout(() => {
+      held.add(row);
+      slide(row);
+    }, 450),
+  );
+}
+
+function pressEnd(e: Event): void {
+  clearTimeout(holds.get(e.currentTarget as Element));
+}
+
+function slide(row: HTMLElement): void {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  for (const line of row.querySelectorAll<HTMLElement>(".preview")) {
+    const hidden = line.scrollWidth - line.clientWidth;
+    if (hidden <= 0) continue;
+    let start = 0;
+    const step = (now: number) => {
+      // A short pause first, then the slide, which stops at the end of the text.
+      start ||= now;
+      const moved = (Math.max(0, now - start - 400) / 1000) * MARQUEE_SPEED;
+      line.scrollLeft = Math.min(hidden, moved);
+      if (moved < hidden) sliding.set(line, requestAnimationFrame(step));
+    };
+    sliding.set(line, requestAnimationFrame(step));
+  }
+}
+
+function stopMarquee(e: Event): void {
+  for (const line of (e.currentTarget as HTMLElement).querySelectorAll<HTMLElement>(".preview")) {
+    cancelAnimationFrame(sliding.get(line) ?? 0);
+    line.scrollLeft = 0;
+  }
+}
+
 /** A line of the list: a suggestion, or a result of the search. */
 type Row = { readonly suggestion: Suggestion } | { readonly result: SearchResult };
 
@@ -181,6 +236,13 @@ export class StSearchInput extends SearchElement {
             engine.type((e.target as HTMLInputElement).value);
           }}
           @keydown=${(e: KeyboardEvent) => this.onKey(e)}
+          @focus=${(e: Event) => {
+            // Back in the field with text still in it: its suggestions show again, as it was left.
+            const typed = (e.target as HTMLInputElement).value;
+            if (!typed) return;
+            this.open = true;
+            if (this.rows(engine).length === 0) engine.type(typed);
+          }}
           @blur=${() => {
             this.open = false;
           }}
@@ -196,7 +258,18 @@ export class StSearchInput extends SearchElement {
                     role="option"
                     aria-selected=${i === this.active ? "true" : "false"}
                     @mousedown=${(e: Event) => e.preventDefault()}
-                    @click=${() => this.choose(o)}
+                    @mouseenter=${marquee}
+                    @mouseleave=${stopMarquee}
+                    @pointerdown=${pressStart}
+                    @pointerup=${pressEnd}
+                    @pointercancel=${pressEnd}
+                    @pointermove=${pressEnd}
+                    @contextmenu=${(e: Event) => e.preventDefault()}
+                    @click=${(e: Event) => {
+                      // The lift after a long press only ended the slide's start.
+                      if (held.delete(e.currentTarget as Element)) return;
+                      this.choose(o);
+                    }}
                   >
                     ${
                       "result" in o
