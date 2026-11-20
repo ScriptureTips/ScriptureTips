@@ -1,0 +1,28 @@
+<p>The script declares one global, <code>ScriptureTips</code>.</p>
+
+<h2>run(selector, options?)</h2>
+<p>Links the references in what the selector matches, and in what is added there later. The <a href="topic:options">options</a> are read the first time it is called; later calls add areas.</p>
+
+<h2>rescan(element?)</h2>
+<p>Looks again now: at one element, or at every area. Content added to a linked area is picked up by itself, so this is only needed when text changes in place.</p>
+<pre><code>ScriptureTips.rescan(document.querySelector("#preview"));</code></pre>
+
+<h2>setPreferences({ translation })</h2>
+<p>Tells the plugin the translation this visitor prefers, for a site that knows (from an account, say). It is used after the visitor's own choice for a link and after a translation the text names, and before your site's default. It may be called before <code>run</code>.</p>
+<pre><code>ScriptureTips.setPreferences({ translation: "leb" });</code></pre>
+
+<h2>on(event, handler)</h2>
+<p>Listens for an event, and returns a function that stops listening. It may be called before <code>run</code>.</p>
+<table>
+<thead><tr><th>Event</th><th>When</th><th>The handler receives</th></tr></thead>
+<tbody>
+<tr><td><code>tooltip-open</code></td><td>A tooltip opened</td><td><code>{ reference, translation }</code></td></tr>
+<tr><td><code>translation-change</code></td><td>A visitor chose another translation in a tooltip</td><td><code>{ reference, translation }</code></td></tr>
+<tr><td><code>scan</code></td><td>References were found and linked</td><td><code>{ linked }</code>, how many</td></tr>
+</tbody>
+</table>
+<pre><code>const stop = ScriptureTips.on("tooltip-open", (e) =&gt; {
+  console.log(e.reference, e.translation); // "John.3.16", "eng-kjv"
+});
+stop();</code></pre>
+<p><code>reference</code> is the passage in OSIS form (<code>John.3.16</code>, <code>Rom.5.8-Rom.5.10</code>).</p>

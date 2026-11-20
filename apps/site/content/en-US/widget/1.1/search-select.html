@@ -1,0 +1,13 @@
+<h2>What picking a result does</h2>
+<p>By default, picking a passage opens the <a href="topic:search-reader">reader</a> where the results were. To do something else, such as opening your own page for reading, give <code>onSelect</code>:</p>
+<pre><code>ScriptureTips.search({
+  element: "#find",
+  onSelect({ result }) {
+    location.href = "/read/" + result.translation.id + "/" + result.reference;
+  },
+});</code></pre>
+<p>It is given <code>{ query, result }</code>. The result's <code>label</code> is the passage as it reads in its translation (<em>John 3:16</em>), <code>reference</code> is the same in OSIS (<em>John.3.16</em>), and <code>translation</code> is its <code>id</code> and <code>abbreviation</code>. A word in the original language has a <code>strong</code> number instead. A function that does nothing turns the reader off.</p>
+
+<h2>Listening without taking over</h2>
+<p>Every search also sends events your page can listen to: <code>st-select</code>, <code>st-results</code>, <code>st-error</code> on its elements.</p>
+<pre><code>document.addEventListener("st-select", (e) =&gt; console.log(e.detail));</code></pre>

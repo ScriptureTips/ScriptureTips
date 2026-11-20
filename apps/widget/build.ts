@@ -15,9 +15,15 @@ import { build } from "esbuild";
  */
 const SITE = process.env["ST_SITE"] ?? "https://dev.scripturetips.com";
 
+/** The plugin's script, and the search code it loads beside itself when a page wants a search. */
+export const SCRIPTS = ["scripturetips", "scripturetips-search"] as const;
+
 export async function bundle(write: boolean) {
   return build({
-    entryPoints: [join(import.meta.dirname, "src/main.ts")],
+    entryPoints: {
+      scripturetips: join(import.meta.dirname, "src/main.ts"),
+      "scripturetips-search": join(import.meta.dirname, "src/search.ts"),
+    },
     bundle: true,
     minify: true,
     format: "iife",
@@ -25,7 +31,7 @@ export async function bundle(write: boolean) {
     legalComments: "none",
     metafile: true,
     write,
-    outfile: join(import.meta.dirname, "dist/scripturetips.js"),
+    outdir: join(import.meta.dirname, "dist"),
     define: { __ST_SITE__: JSON.stringify(SITE) },
     logLevel: "warning",
   });
@@ -33,10 +39,15 @@ export async function bundle(write: boolean) {
 
 if (process.argv[1] === import.meta.filename) {
   const result = await bundle(true);
-  const out = join(import.meta.dirname, "dist/scripturetips.js");
   const served = join(import.meta.dirname, "../web/public/widget");
   await mkdir(served, { recursive: true });
-  await copyFile(out, join(served, "scripturetips.js"));
-  const bytes = Object.values(result.metafile.outputs).reduce((n, o) => n + o.bytes, 0);
-  console.log(`scripturetips.js: ${(bytes / 1024).toFixed(1)} KB, reader ${SITE}`);
+  for (const name of SCRIPTS) {
+    await copyFile(join(import.meta.dirname, `dist/${name}.js`), join(served, `${name}.js`));
+    const out =
+      result.metafile.outputs[`dist/${name}.js`] ??
+      Object.values(result.metafile.outputs).find((o) =>
+        o.entryPoint?.includes(name === "scripturetips" ? "main" : "search"),
+      );
+    console.log(`${name}.js: ${((out?.bytes ?? 0) / 1024).toFixed(1)} KB, reader ${SITE}`);
+  }
 }

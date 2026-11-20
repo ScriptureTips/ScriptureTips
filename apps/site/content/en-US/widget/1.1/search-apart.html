@@ -1,0 +1,16 @@
+<h2>The field in one place, the results in another</h2>
+<p>A big field at the top of a page with the results in a column below, or beside the article, is the same search drawn in two elements. In markup, give both the same name:</p>
+<pre><code>&lt;div data-st-input="main"&gt;&lt;/div&gt;
+...
+&lt;div data-st-results="main"&gt;&lt;/div&gt;</code></pre>
+<p>The settings (<code>data-translations</code>, <code>data-limit</code> …) go on the field's element. The pair works as a search with no setup does: the results show under the field's name wherever you put the results element, and a picked passage is read there.</p>
+
+<h2>From JavaScript</h2>
+<pre><code>ScriptureTips.search({
+  input: "#field",
+  results: "#results",
+});</code></pre>
+<p><code>input</code> and <code>results</code> are elements or CSS selectors.</p>
+
+<h2>Searches that share a name</h2>
+<p>A search has a name (the <code>name</code> option; one is made up if you give none). Your page can reach it as <code>ScriptureTipsSearch.get(name)</code>, to set the words, search, or listen to it.</p>

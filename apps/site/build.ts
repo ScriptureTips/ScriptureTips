@@ -19,7 +19,8 @@ export const CONTENT = join(here, "content");
 /** The only language published so far. Others get a folder of their own beside it. */
 export const LOCALE = "en-US";
 const BRAND = join(here, "../web/public/brand");
-const WIDGET = join(here, "../widget/dist/scripturetips.js");
+/** The plugin's script, and the search code it loads beside itself. */
+const WIDGET_SCRIPTS = ["scripturetips", "scripturetips-search"] as const;
 
 /** The help search's script, as one small file. */
 export async function searchScript(): Promise<string> {
@@ -61,13 +62,18 @@ async function main() {
   const settings = settingsFrom(process.env);
   const { files } = await site(settings);
   // The website plugin's script (apps/widget), which site owners load from here.
-  try {
-    files.set("widget/scripturetips.js", await readFile(WIDGET));
-  } catch {
-    throw new Error(
-      "apps/widget/dist/scripturetips.js is missing: run `pnpm --filter @scripturetips/widget build` first",
-    );
+  for (const name of WIDGET_SCRIPTS) {
+    try {
+      files.set(`widget/${name}.js`, await readFile(join(here, `../widget/dist/${name}.js`)));
+    } catch {
+      throw new Error(
+        `apps/widget/dist/${name}.js is missing: run \`pnpm --filter @scripturetips/widget build\` first`,
+      );
+    }
   }
+
+  // The help's live demo code (the page's content security policy allows only the site's own files).
+  files.set("widget/demo.js", await readFile(join(here, "../widget/demo/demo.js")));
 
   // Emptied, not removed: the development stack's Caddy has this folder mounted.
   const out = join(here, "dist");

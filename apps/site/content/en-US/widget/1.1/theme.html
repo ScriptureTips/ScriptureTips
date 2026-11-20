@@ -1,0 +1,33 @@
+<p>The tooltip, the search and the reader are kept apart from your page's styles, so your CSS can't break them and their CSS can't touch your page. To make them match your site, set these CSS variables on your page. One set styles all three:</p>
+<table>
+<thead><tr><th>Variable</th><th>Sets</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td><code>--st-accent</code></td><td>Links, the pressed pin, focus outlines; the search button</td><td><code>#0054a5</code></td></tr>
+<tr><td><code>--st-ink</code></td><td>The passage's text</td><td><code>#1d232a</code></td></tr>
+<tr><td><code>--st-muted</code></td><td>Verse numbers, the credit, labels</td><td><code>#5b6672</code></td></tr>
+<tr><td><code>--st-paper</code></td><td>The background</td><td><code>#fff</code></td></tr>
+<tr><td><code>--st-rule</code></td><td>Borders</td><td><code>#dfe3e6</code></td></tr>
+<tr><td><code>--st-radius</code></td><td>How round the corners are</td><td><code>6px</code></td></tr>
+<tr><td><code>--st-font</code></td><td>The font</td><td>The system's interface font (the search and reader take your page's font if this isn't set)</td></tr>
+</tbody>
+</table>
+<p>To style the search alone, use <code>--st-search-accent</code>, <code>--st-search-ink</code>, <code>--st-search-muted</code>, <code>--st-search-rule</code>, <code>--st-search-background</code> and <code>--st-search-radius</code>, which win over the shared ones, <code>--st-search-bar</code> for the reader's bar (sky blue, <code>#44c8f5</code>, by default) and <code>--st-search-hit</code> for the highlight on matched words (a translucent amber by default). Your page's own variables with other names, such as <code>--ink</code>, are never picked up.</p>
+<p>The text of the tooltip is 15 pixels whatever your page's own text size is, and your page's fonts, spacing and other CSS never reach the tooltip: only these variables do.</p>
+<p>For example, a dark tooltip with a serif font:</p>
+<pre><code>:root {
+  --st-paper: #1f2430;
+  --st-ink: #f2efe6;
+  --st-muted: #b8bcc8;
+  --st-rule: #3a4152;
+  --st-accent: #ffcf70;
+  --st-radius: 0;
+  --st-font: Georgia, serif;
+}</code></pre>
+<figure>
+<img src="images/theme.png" alt="The same tooltip with a dark background, light serif text, square corners and gold links.">
+<figcaption>The tooltip with the variables above.</figcaption>
+</figure>
+
+<h2>The links</h2>
+<p>The links themselves are ordinary links in your page, with the class <code>st-ref</code>, so your own CSS styles them:</p>
+<pre><code>a.st-ref { text-decoration-style: dotted; }</code></pre>

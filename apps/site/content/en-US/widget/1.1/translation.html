@@ -1,0 +1,21 @@
+<h2>Your site's translation</h2>
+<p>Set <code>translation</code> to the ID of the translation passages should open in:</p>
+<pre><code>ScriptureTips.run("main", { translation: "bsb" });</code></pre>
+<p>Without it, passages open in the King James Version (<code>eng-kjv</code>). The IDs are listed at <a href="/api/widget/translations"><code>{{data}}/api/widget/translations</code></a>.</p>
+
+<h2>For one passage</h2>
+<p>Write the translation's abbreviation in brackets straight after the reference, as in “John 3:16 (LEB)”, and that passage opens in it. An abbreviation the plugin doesn't have is ignored, and the passage opens as usual.</p>
+
+<h2>Your visitor's choice</h2>
+<p>A visitor can change the translation in the tooltip. That choice belongs to that link and is kept in their browser.</p>
+<p>If your site has accounts and knows which translation a visitor prefers, tell the plugin with <a href="topic:javascript-api"><code>setPreferences</code></a>.</p>
+
+<h2>Which wins</h2>
+<ol>
+<li>What the visitor chose in that link's tooltip.</li>
+<li>The translation a link's own address names (<code>t=</code>), for a link you wrote to the ScriptureTips reader.</li>
+<li>An abbreviation written after the reference.</li>
+<li>The visitor's preference, from <code>setPreferences</code>.</li>
+<li>Your <code>translation</code> option.</li>
+<li>The King James Version.</li>
+</ol>

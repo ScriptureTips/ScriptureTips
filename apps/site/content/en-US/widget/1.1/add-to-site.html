@@ -1,0 +1,26 @@
+<h2>The script</h2>
+<p>Add these lines at the end of your page's <code>&lt;body&gt;</code>:</p>
+<pre><code>&lt;script src="{{data}}/widget/scripturetips.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+  ScriptureTips.run("main");
+&lt;/script&gt;</code></pre>
+<p>That is all. References inside the part of the page you name are linked, including text that is added later, such as comments that load afterwards.</p>
+
+<h2>Choosing the part of the page</h2>
+<p><code>run</code> takes a CSS selector. Name the part that holds your writing, so that menus, footers and forms are left alone:</p>
+<pre><code>ScriptureTips.run("article");
+ScriptureTips.run("#content, .comments");</code></pre>
+<p>Call <code>run</code> again to add another area. To leave out something inside an area, see <a href="topic:what-is-linked">what is linked</a>.</p>
+
+<h2>With options</h2>
+<p>The first call to <code>run</code> can set the plugin up:</p>
+<pre><code>ScriptureTips.run("article", { translation: "bsb" });</code></pre>
+<p><a href="topic:options">All the options</a> lists them.</p>
+
+<h2>Loading it without blocking the page</h2>
+<p>To let the page carry on while the script loads, load it with <code>async</code> and start it when it arrives:</p>
+<pre><code>&lt;script async src="{{data}}/widget/scripturetips.js"
+  onload="ScriptureTips.run('main')"&gt;&lt;/script&gt;</code></pre>
+
+<h2>Content security policy</h2>
+<p>If your site sends a content security policy, allow the script and its passage requests from <code>{{data}}</code> (<code>script-src</code> and <code>connect-src</code>). The tooltip's own styles are inside the tooltip and need <code>style-src 'unsafe-inline'</code>.</p>

@@ -12,7 +12,7 @@ const List = (pattern: RegExp) =>
     .transform((s) => (s ? s.split(",").filter(Boolean) : undefined))
     .pipe(z.array(z.string().regex(pattern)).max(40).optional());
 
-const Params = z.object({
+export const SearchParams = z.object({
   q: z.string().trim().min(1).max(200),
   /** Which kinds of result, comma separated; unknown kinds are reported, not an error. */
   kinds: List(/^[a-z][a-z-]{0,19}$/),
@@ -25,10 +25,13 @@ const Params = z.object({
   previewLength: z.coerce.number().int().min(20).max(2000).default(160),
 });
 
-type Parsed = z.infer<typeof Params>;
+type Parsed = z.infer<typeof SearchParams>;
 
 /** The kinds asked for that this engine searches, and those it doesn't. */
-function kindsOf(asked: string[] | undefined): { known: Set<SearchKind>; unknown: string[] } {
+export function kindsOf(asked: string[] | undefined): {
+  known: Set<SearchKind>;
+  unknown: string[];
+} {
   const wanted = asked ?? [...SEARCH_KINDS];
   const known = new Set(
     wanted.filter((k): k is SearchKind => (SEARCH_KINDS as readonly string[]).includes(k)),
@@ -47,7 +50,7 @@ export class SearchController {
 
   @Get()
   @Header("cache-control", "public, max-age=60")
-  async find(@Query(new ZodPipe(Params)) p: Parsed): Promise<SearchResponse> {
+  async find(@Query(new ZodPipe(SearchParams)) p: Parsed): Promise<SearchResponse> {
     const { known, unknown } = kindsOf(p.kinds);
     const found = await this.search.search({
       q: p.q,
@@ -64,7 +67,7 @@ export class SearchController {
   @Get("suggest")
   @Header("cache-control", "public, max-age=300")
   async suggest(
-    @Query(new ZodPipe(Params)) p: Parsed,
+    @Query(new ZodPipe(SearchParams)) p: Parsed,
   ): Promise<{ query: string; suggestions: Suggestion[] }> {
     const { known } = kindsOf(p.kinds);
     return {

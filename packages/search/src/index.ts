@@ -14,7 +14,7 @@ export {
   searchNames,
 } from "./registry.ts";
 export { DEFAULT_STRINGS, fill } from "./strings.ts";
-export { fetchTransport, queryString } from "./transport.ts";
+export { fetchTransport, queryString, widgetTransport } from "./transport.ts";
 export type {
   OriginalResult,
   PassageText,

@@ -1,5 +1,6 @@
 import { type DynamicModule, Module } from "@nestjs/common";
 import { DatabaseModule } from "./database.ts";
+import { SearchService } from "./search/search.service.ts";
 import { TranslationsService } from "./translations/translations.service.ts";
 import { WidgetController } from "./widget/widget.controller.ts";
 import { WidgetService } from "./widget/widget.service.ts";
@@ -11,7 +12,7 @@ import { WidgetService } from "./widget/widget.service.ts";
  */
 @Module({
   controllers: [WidgetController],
-  providers: [TranslationsService, WidgetService],
+  providers: [TranslationsService, SearchService, WidgetService],
 })
 export class DataModule {
   /** The data server on a database (`DATABASE_URL`, or the URL given). */

@@ -38,6 +38,7 @@ beforeAll(async () => {
     canonicalRange: { start, end: start + 9 },
     headings: [],
     content: ["And ye shall know."],
+    plain: "And ye shall know.",
   });
   // No account or build settings: neither must need Valkey, SMTP or a file store to start.
   data = await createApp({ role: "data", databaseUrl: test.url });
@@ -82,6 +83,53 @@ describe("vision §7.2: the data server", () => {
       verses: [{ number: "27", text: "And ye shall know." }],
     });
     expect(passage.headers["set-cookie"]).toBeUndefined();
+  });
+
+  it("serves the search widget's search, suggestions and passages, open to any origin", async () => {
+    const found = await data.inject({ method: "GET", url: "/api/widget/search?q=know" });
+    expect(found.statusCode).toBe(200);
+    expect(found.json().results[0]).toMatchObject({ kind: "text", reference: "Joel.2.27" });
+    expect(found.headers["access-control-allow-origin"]).toBe("*");
+    expect(found.headers["set-cookie"]).toBeUndefined();
+
+    const ref = await data.inject({ method: "GET", url: "/api/widget/search?q=Joel%202:27" });
+    expect(ref.json().results[0]).toMatchObject({ kind: "reference", reference: "Joel.2.27" });
+
+    const suggest = await data.inject({ method: "GET", url: "/api/widget/suggest?q=Joe" });
+    expect(suggest.statusCode).toBe(200);
+    expect(suggest.headers["access-control-allow-origin"]).toBe("*");
+
+    // A translation that may not be shown is never searched, even when asked for by name.
+    const none = await data.inject({
+      method: "GET",
+      url: "/api/widget/search?q=know&translations=not-shown",
+    });
+    expect(none.json().results).toEqual([]);
+
+    // A search result's reference is in the translation's own numbering.
+    const own = await data.inject({
+      method: "GET",
+      url: "/api/widget/passage?translation=kjv&ref=Joel.2.27&scheme=own",
+    });
+    expect(own.json()).toMatchObject({ verses: [{ text: "And ye shall know." }] });
+
+    // The widget reader's book list and whole chapters.
+    const books = await data.inject({ method: "GET", url: "/api/widget/books?translation=kjv" });
+    expect(books.json()).toEqual({
+      books: [{ osis: "Joel", name: "Joel", chapters: [2], section: "ot" }],
+    });
+    expect(books.headers["access-control-allow-origin"]).toBe("*");
+    const chapter = await data.inject({
+      method: "GET",
+      url: "/api/widget/chapter?translation=kjv&book=Joel&chapter=2",
+    });
+    expect(chapter.json()).toMatchObject({ verses: [{ number: "27" }], more: false });
+    expect(chapter.headers["access-control-allow-origin"]).toBe("*");
+    const missing = await data.inject({
+      method: "GET",
+      url: "/api/widget/chapter?translation=kjv&book=Joel&chapter=9",
+    });
+    expect(missing.statusCode).toBe(404);
   });
 
   it.each([

@@ -343,14 +343,20 @@ export class SearchEngine {
   private pickPassage(result: SearchResult): void {
     if (result.kind === "original" || !isVerseRange(result.reference)) return;
     this.changeQuery(result.label, "api");
-    void this.showPassage({ label: result.label, translation: result.translation });
+    void this.showPassage(
+      { label: result.label, translation: result.translation },
+      result.reference,
+    );
   }
 
   /**
    * Shows a passage's text in place of the results (what picking one does by default); `label` is
    * the reference as it reads in that translation. Searching again, or typing, goes back.
    */
-  async showPassage(passage: Pick<ShownPassage, "label" | "translation">): Promise<void> {
+  async showPassage(
+    passage: Pick<ShownPassage, "label" | "translation">,
+    osis?: string,
+  ): Promise<void> {
     this.showing?.abort();
     const controller = new AbortController();
     this.showing = controller;
@@ -363,6 +369,7 @@ export class SearchEngine {
         passage.translation.id,
         passage.label,
         controller.signal,
+        osis,
       );
       if (controller.signal.aborted) return;
       this.update({

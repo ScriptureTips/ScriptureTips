@@ -12,6 +12,8 @@ export const DEFAULT_STRINGS: Strings = {
   missing: "No match for: {words}",
   suggestions: "Suggestions",
   results: "Search results",
+  poweredBy: "Powered by ScriptureTips",
+  showMore: "Show more",
   kinds: {
     reference: "Passages",
     original: "Hebrew and Greek words",

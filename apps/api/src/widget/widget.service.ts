@@ -1,8 +1,8 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { asc, eq, translation } from "@scripturetips/db";
 import { attributionFor, licenseFor } from "@scripturetips/licenses";
-import { parseOsisPassage, toOrdinalRange } from "@scripturetips/passage";
-import { formatPassage } from "@scripturetips/reference";
+import { bookByOsis, parseOsisPassage, toOrdinalRange } from "@scripturetips/passage";
+import { english, formatPassage } from "@scripturetips/reference";
 import {
   passageFromCanonical,
   passageToCanonical,
@@ -14,6 +14,19 @@ import { TranslationsService } from "../translations/translations.service.ts";
 
 /** The most verses one tooltip shows; a longer passage says there's more. */
 export const MAX_WIDGET_VERSES = 12;
+/** The most verses a whole chapter shows in the widget's reader (Psalm 119 has 176). */
+export const MAX_CHAPTER_VERSES = 200;
+
+/** A book a translation has, for the widget reader's book list. */
+export interface WidgetBook {
+  readonly osis: string;
+  /** The book's name ("1 Corinthians"). */
+  readonly name: string;
+  /** Its chapters, in the translation's numbering. */
+  readonly chapters: readonly number[];
+  /** Where the book is listed: the Old Testament, the New Testament, or other writings. */
+  readonly section: "ot" | "nt" | "other";
+}
 
 export interface WidgetTranslation {
   readonly id: string;
@@ -152,8 +165,11 @@ export class WidgetService {
   async passage(input: {
     translation: string;
     reference: string;
-    scheme: SchemeId;
+    scheme: SchemeId | "own";
+    /** The most verses to give; a tooltip's 12 if left out. */
+    max?: number;
   }): Promise<WidgetPassage> {
+    const max = input.max ?? MAX_WIDGET_VERSES;
     const [row] = await this.db
       .select()
       .from(translation)
@@ -168,13 +184,16 @@ export class WidgetService {
     } catch {
       throw new BadRequestException({ code: "bad-passage" });
     }
-    const canonical = passageToCanonical(input.scheme, entered);
+    const canonical = passageToCanonical(
+      input.scheme === "own" ? (row.scheme as SchemeId) : input.scheme,
+      entered,
+    );
     if (!canonical) throw new NotFoundException({ code: "not-in-canon" });
 
     const found = await this.translations.versesOverlapping(
       row.id,
       toOrdinalRange(canonical),
-      MAX_WIDGET_VERSES + 1,
+      max + 1,
     );
     const counts = await this.translations.verseCounts(row.id);
     const here = passageFromCanonical(row.scheme as SchemeId, canonical) ?? canonical;
@@ -189,7 +208,7 @@ export class WidgetService {
         direction: row.direction as "ltr" | "rtl",
       },
       label: formatPassage(here, { verses: counts }),
-      verses: found.slice(0, MAX_WIDGET_VERSES).map((v): WidgetVerse => {
+      verses: found.slice(0, max).map((v): WidgetVerse => {
         const shown = shownVerse(v.content as Inline[], v.notes as never, lettered);
         return {
           // A psalm's heading is verse 0 and has no number.
@@ -199,7 +218,7 @@ export class WidgetService {
           ...(shown.notes.length > 0 ? { notes: shown.notes } : {}),
         };
       }),
-      more: found.length > MAX_WIDGET_VERSES,
+      more: found.length > max,
       attribution: attribution
         ? {
             designation: attribution.designation,
@@ -208,5 +227,47 @@ export class WidgetService {
           }
         : null,
     };
+  }
+
+  /** The books a translation has text for, with their chapters, for the widget reader. */
+  async books(catalogId: string): Promise<WidgetBook[]> {
+    const row = await this.shown(catalogId);
+    const books = await this.translations.books(row.catalogId);
+    return (books ?? []).map((b) => ({
+      osis: b.osis,
+      name: english.name(b.osis, "full", "one"),
+      chapters: b.chapters,
+      section: ((g) => (g === "ot" || g === "nt" ? g : "other"))(bookByOsis(b.osis)?.group),
+    }));
+  }
+
+  /** A whole chapter, in the translation's own numbering (the widget reader's page). */
+  async chapter(input: {
+    translation: string;
+    book: string;
+    chapter: number;
+  }): Promise<WidgetPassage> {
+    const row = await this.shown(input.translation);
+    const counts = await this.translations.verseCounts(row.id);
+    const verses = counts.verses(input.book, input.chapter);
+    if (!verses) throw new NotFoundException({ code: "not-in-canon" });
+    const first = verses.first;
+    return this.passage({
+      translation: input.translation,
+      reference: `${input.book}.${input.chapter}.${Math.max(first, 1)}-${input.book}.${input.chapter}.${verses.last}`,
+      scheme: "own",
+      max: MAX_CHAPTER_VERSES,
+    });
+  }
+
+  /** A translation that may be shown on other sites (its terms are on record), or 404. */
+  private async shown(catalogId: string) {
+    const [row] = await this.db
+      .select()
+      .from(translation)
+      .where(eq(translation.catalogId, catalogId));
+    if (!row || !licenseFor(row.licenseKey))
+      throw new NotFoundException({ code: "unknown-translation" });
+    return row;
   }
 }

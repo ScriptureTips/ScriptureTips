@@ -1,0 +1,34 @@
+<p>These are real searches, running on this page with the plugin's own script. These two search as you type. Try a passage (<em>John 3:16</em>), some words (<em>so loved the world</em>) or a Strong's number (<em>G26</em>).</p>
+
+<h2>With no setup</h2>
+<pre><code>&lt;div class="st-search" data-search-on-type="true"&gt;&lt;/div&gt;</code></pre>
+<div class="st-search" data-limit="5" data-search-on-type="true"></div>
+
+<h2>Suggestions as you type</h2>
+<p>Every search suggests as you type, once you pause: type <em>Joh</em> or <em>Rom</em> and a list of books and words opens under the field (arrow keys and Enter, or a click, pick one). This one looks only for passages, so its suggestions are the books:</p>
+<pre><code>&lt;div class="st-search" data-kinds="reference"&gt;&lt;/div&gt;</code></pre>
+<div class="st-search" data-kinds="reference" data-limit="5"></div>
+
+<h2>A "Show more" button instead of scrolling</h2>
+<pre><code>&lt;div class="st-search" data-more="button" data-limit="5"&gt;&lt;/div&gt;</code></pre>
+<div class="st-search" data-more="button" data-limit="5" data-search-on-type="true"></div>
+
+<h2>The field and the results apart</h2>
+<pre><code>&lt;div data-st-input="apart" data-search-on-type="true"&gt;&lt;/div&gt;
+&lt;div data-st-results="apart"&gt;&lt;/div&gt;</code></pre>
+<div data-st-input="apart" data-limit="5" data-search-on-type="true"></div>
+<p>The results can sit anywhere else on the page:</p>
+<div data-st-results="apart"></div>
+
+<h2>With your own callback</h2>
+<pre><code>ScriptureTips.search({
+  input: "#field",
+  results: "#results",
+  onSelect({ result }) { /* your code */ },
+});</code></pre>
+<div id="demo-callback-field"></div>
+<div id="demo-callback-results"></div>
+<p id="demo-picked">Nothing picked yet.</p>
+
+<script src="{{data}}/widget/scripturetips.js"></script>
+<script src="{{data}}/widget/demo.js" defer></script>

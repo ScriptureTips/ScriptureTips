@@ -2,22 +2,37 @@ import { css } from "lit";
 
 /**
  * The elements' look. Every color and size is a CSS custom property with a fallback, so a page
- * themes the widget without touching its insides: `--st-search-accent`, `--st-search-ink`,
- * `--st-search-muted`, `--st-search-rule`, `--st-search-background`, `--st-search-hit`,
- * `--st-search-radius`. (A page that already defines `--deep`, `--ink`, `--muted`, `--rule` and
- * `--paper`, as the ScriptureTips app does, needs none.) Inner pieces are `part`s too.
+ * themes the widget without touching its insides. The same variables as the passage tooltip
+ * (`--st-accent`, `--st-ink`, `--st-muted`, `--st-rule`, `--st-paper`, `--st-radius`, `--st-font`)
+ * theme these too, so a site sets its look once; `--st-search-accent`, `--st-search-ink`,
+ * `--st-search-muted`, `--st-search-rule`, `--st-search-background`, `--st-search-radius` and
+ * `--st-search-hit` (the matched words) and `--st-search-bar` (the reader's bar, the sky blue by default) set just the search. ScriptureTips' own apps define
+ * `--deep`, `--ink`, `--muted`, `--rule` and `--paper`, which an element not marked `isolated`
+ * also follows; the widget on another site marks its elements `isolated`, so the host page's own
+ * variables of those names are never picked up by accident. Inner pieces are `part`s too.
  */
 export const tokens = css`
   :host {
-    --_accent: var(--st-search-accent, var(--deep, #0054a5));
-    --_ink: var(--st-search-ink, var(--ink, #1d232a));
-    --_muted: var(--st-search-muted, var(--muted, #5b6672));
-    --_rule: var(--st-search-rule, var(--rule, #dfe3e6));
-    --_background: var(--st-search-background, var(--paper, #fff));
+    --_accent: var(--st-search-accent, var(--st-accent, var(--deep, #0054a5)));
+    --_ink: var(--st-search-ink, var(--st-ink, var(--ink, #1d232a)));
+    --_muted: var(--st-search-muted, var(--st-muted, var(--muted, #5b6672)));
+    --_rule: var(--st-search-rule, var(--st-rule, var(--rule, #dfe3e6)));
+    --_background: var(--st-search-background, var(--st-paper, var(--paper, #fff)));
     --_hit: var(--st-search-hit, rgb(237 161 0 / 0.35));
-    --_radius: var(--st-search-radius, 0.4rem);
+    --_bar: var(--st-search-bar, var(--sky, #44c8f5));
+    --_radius: var(--st-search-radius, var(--st-radius, 0.4rem));
     color: var(--_ink);
     font: inherit;
+    font-family: var(--st-font, inherit);
+  }
+
+  :host([isolated]) {
+    --_accent: var(--st-search-accent, var(--st-accent, #0054a5));
+    --_ink: var(--st-search-ink, var(--st-ink, #1d232a));
+    --_muted: var(--st-search-muted, var(--st-muted, #5b6672));
+    --_rule: var(--st-search-rule, var(--st-rule, #dfe3e6));
+    --_background: var(--st-search-background, var(--st-paper, #fff));
+    --_bar: var(--st-search-bar, #44c8f5);
   }
 
   [hidden] {
@@ -226,6 +241,28 @@ export const resultsStyles = css`
   /* The end of the list, watched for endless scroll: it needs a box to be seen. */
   .more {
     min-height: 1px;
+    text-align: center;
+  }
+
+  /* The same button as the field's Search button, centered under the list. */
+  .more button {
+    margin: 0.8rem 0 0.2rem;
+    padding: 0.5rem 1.6rem;
+    font: inherit;
+    color: #fff;
+    background: var(--_accent);
+    border: 1px solid var(--_accent);
+    border-radius: var(--_radius);
+    cursor: pointer;
+  }
+
+  .more button:hover {
+    filter: brightness(1.1);
+  }
+
+  .more button:focus-visible {
+    outline: 2px solid var(--_accent);
+    outline-offset: 2px;
   }
 
   .snippet,

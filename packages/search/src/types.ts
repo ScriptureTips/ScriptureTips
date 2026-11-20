@@ -122,7 +122,13 @@ export interface Transport {
   ): Promise<SearchResponse>;
   suggest(query: string, scope: SearchScope, signal: AbortSignal): Promise<readonly Suggestion[]>;
   /** A passage's text in a translation (by the reference as it reads there); optional. */
-  passage?(translation: string, reference: string, signal: AbortSignal): Promise<PassageText>;
+  passage?(
+    translation: string,
+    reference: string,
+    signal: AbortSignal,
+    /** The passage in OSIS, in that translation's own numbering (`John.3.16`), where known. */
+    osis?: string,
+  ): Promise<PassageText>;
 }
 
 /** The words the widget shows (en-NZ). Any can be replaced per instance, to translate it. */
@@ -139,6 +145,10 @@ export interface Strings {
   readonly missing: string;
   readonly suggestions: string;
   readonly results: string;
+  /** The credit in the footer of a search on another site. */
+  readonly poweredBy: string;
+  /** The button that adds the next page of results (`more="button"`). */
+  readonly showMore: string;
   readonly kinds: Readonly<Record<string, string>>;
   /** "{count} times in the original". */
   readonly occurrences: string;

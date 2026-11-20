@@ -1,0 +1,34 @@
+<h2>A search with no setup</h2>
+<p>Add the script, then put an empty element with the class <code>st-search</code> where you want the search:</p>
+<pre><code>&lt;script src="{{data}}/widget/scripturetips.js"&gt;&lt;/script&gt;
+
+&lt;div class="st-search"&gt;&lt;/div&gt;</code></pre>
+<p>The plugin builds a search field in it. Your visitors can type a passage (<em>John 3:16</em>), some words (<em>so loved the world</em>) or a Strong's number (<em>G26</em>), and the results appear under the field. Picking a passage opens the <a href="topic:search-reader">reader</a> in that same place, in place of the results; typing again goes back to the results.</p>
+<p>As they type, the field suggests books and words (the <a href="topic:search-demo#suggestions-as-you-type">live demo</a> shows it). Nothing needs configuring and no JavaScript needs writing.</p>
+
+<h2>Settings in the markup</h2>
+<p>Set the search's options as <code>data-</code> attributes on the element:</p>
+<table>
+<thead><tr><th>Attribute</th><th>Sets</th></tr></thead>
+<tbody>
+<tr><td><code>data-translations</code></td><td>Which translations to search, by id, separated by spaces or commas, in order of preference. Every translation that may be shown on other sites if left out.</td></tr>
+<tr><td><code>data-kinds</code></td><td>What to search: <code>reference</code>, <code>text</code>, <code>original</code> (Hebrew and Greek words). All three if left out.</td></tr>
+<tr><td><code>data-limit</code></td><td>How many verses to fetch at a time (1 to 50). More come as the visitor scrolls.</td></tr>
+<tr><td><code>data-more</code></td><td>How a long list goes on: <code>scroll</code> (the default: the next page loads as the visitor nears the end), <code>button</code> (a <em>Show more</em> button) or <code>none</code> (the list stops at <code>data-limit</code>).</td></tr>
+<tr><td><code>data-placeholder</code></td><td>The words in the empty field.</td></tr>
+<tr><td><code>data-search-on-type</code></td><td><code>true</code> to search as the visitor types, once typing pauses, instead of waiting for Enter.</td></tr>
+</tbody>
+</table>
+<pre><code>&lt;div class="st-search" data-translations="eng-kjv eng-web" data-limit="10"&gt;&lt;/div&gt;</code></pre>
+
+<h2>The same from JavaScript</h2>
+<p><code>ScriptureTips.search</code> does the same, and takes more options (<a href="topic:search-options">all the search options</a>):</p>
+<pre><code>ScriptureTips.search({ element: "#find", translations: ["eng-kjv"] });</code></pre>
+<p>It answers with a promise of the search, or <code>null</code> when the page has no such element.</p>
+
+<h2>The credit</h2>
+<p>A search carries one small, muted line at its foot, <em>Powered by ScriptureTips</em>, that links to {{data}}. It is words only and takes the search's muted color. Translate it with the <code>poweredBy</code> string of the <a href="topic:search-options"><code>strings</code> option</a>.</p>
+
+<h2>Only loaded when used</h2>
+<p>The search's code is a separate file, loaded from beside the plugin's script when the page has a search. Pages that only link references don't download it.</p>
+<p>See it working in the <a href="topic:search-demo">live demos</a>.</p>

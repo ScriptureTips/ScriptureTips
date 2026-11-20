@@ -15,6 +15,13 @@ import { resultsStyles, tokens } from "./styles.ts";
  */
 export class StSearchResults extends SearchElement {
   static override styles = [tokens, resultsStyles];
+  static override properties = { ...SearchElement.properties, more: { type: String } };
+
+  /**
+   * How a long list goes on: `scroll` (the default: the next page loads as the end nears the
+   * screen), `button` (a "Show more" button loads it) or `none` (the list stops at `limit`).
+   */
+  declare more: "scroll" | "button" | "none" | undefined;
 
   /** Watches the end of the list: when it comes into view, the next page of verses is fetched. */
   private watcher: IntersectionObserver | null = null;
@@ -29,7 +36,11 @@ export class StSearchResults extends SearchElement {
 
   protected override updated(): void {
     const end = this.renderRoot.querySelector("[part=more]");
-    if (!end || typeof IntersectionObserver === "undefined") {
+    if (
+      !end ||
+      (this.more !== undefined && this.more !== "scroll") ||
+      typeof IntersectionObserver === "undefined"
+    ) {
       this.watcher?.disconnect();
       this.watching = null;
       return;
@@ -145,8 +156,14 @@ export class StSearchResults extends SearchElement {
         </section>`,
       )}
       ${
-        state.more
-          ? html`<div class="more" part="more">${state.loadingMore ? html`<p class="status" part="status">${t.searching}</p>` : nothing}</div>`
+        state.more && this.more !== "none"
+          ? html`<div class="more" part="more">${
+              state.loadingMore
+                ? html`<p class="status" part="status">${t.searching}</p>`
+                : this.more === "button"
+                  ? html`<button type="button" part="more-button" @click=${() => void this.engine?.loadMore()}>${t.showMore}</button>`
+                  : nothing
+            }</div>`
           : nothing
       }
       ${

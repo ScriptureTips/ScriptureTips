@@ -5,6 +5,7 @@ import {
   type LinksOptions,
   type ScriptureLinks,
 } from "@scripturetips/scripture-links";
+import type { EmbedOptions, SearchHandle } from "@scripturetips/search/embed";
 
 /**
  * The website plugin (vision §3.6): one script tag, then `ScriptureTips.run('#content')`.
@@ -18,6 +19,10 @@ import {
  * - `rescan(element?)`: look again now.
  * - `on(event, handler)`: `tooltip-open`, `translation-change`, `scan`. Returns a function that
  *   stops listening.
+ *
+ * - `search(options)`: puts a search on the page (a field with its results, or the two apart). The
+ *   search code is loaded from beside this script only now; `<div class="st-search">` elements
+ *   get one without any call. See `@scripturetips/search/embed` for the options.
  *
  * No cookies, no storage, nothing sent but the passage requests (`credentials: "omit"`).
  */
@@ -46,7 +51,42 @@ function start(options: Partial<LinksOptions>): ScriptureLinks {
   return instance;
 }
 
+interface Embed {
+  mountAll(api: string, selector?: string): SearchHandle[];
+  mountSearch(options: EmbedOptions): SearchHandle | null;
+}
+
+let embed: Promise<Embed> | null = null;
+
+/** The search code, fetched once from where this script came from. */
+function loadEmbed(): Promise<Embed> {
+  embed ??= new Promise<Embed>((resolve, reject) => {
+    const ready = (window as unknown as { ScriptureTipsEmbed?: Embed }).ScriptureTipsEmbed;
+    if (ready) return resolve(ready);
+    const tag = document.createElement("script");
+    tag.src = here
+      ? here.replace(/[^/]*$/, "scripturetips-search.js")
+      : "/widget/scripturetips-search.js";
+    tag.async = true;
+    tag.onload = () =>
+      resolve((window as unknown as { ScriptureTipsEmbed: Embed }).ScriptureTipsEmbed);
+    tag.onerror = () => {
+      embed = null;
+      reject(new Error("The ScriptureTips search could not be loaded."));
+    };
+    document.head.append(tag);
+  });
+  return embed;
+}
+
 const ScriptureTips = {
+  /** A search on the page; resolves to null when the page has no element for it. */
+  async search(
+    options: Omit<EmbedOptions, "api"> & { api?: string },
+  ): Promise<SearchHandle | null> {
+    const { mountSearch } = await loadEmbed();
+    return mountSearch({ ...options, api: options.api ?? `${origin}/api` });
+  },
   run(selector: string, options: Partial<LinksOptions> = {}): void {
     start(options).run(selector);
   },
@@ -67,5 +107,18 @@ const ScriptureTips = {
     };
   },
 };
+
+/** Zero configuration: a page with `<div class="st-search">` gets its searches without a call. */
+function autoSearch(): void {
+  if (
+    !document.querySelector(
+      ".st-search:not([data-st-mounted]), [data-st-input]:not([data-st-mounted])",
+    )
+  )
+    return;
+  void loadEmbed().then((e) => e.mountAll(`${origin}/api`));
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", autoSearch);
+else autoSearch();
 
 (window as unknown as { ScriptureTips: typeof ScriptureTips }).ScriptureTips = ScriptureTips;

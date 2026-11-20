@@ -1,0 +1,36 @@
+<p>Options are the second argument of the first call to <code>run</code>. All are optional.</p>
+<pre><code>ScriptureTips.run("main", {
+  translation: "bsb",
+  ignore: ".byline",
+  hoverDelayMs: 500,
+});</code></pre>
+<table>
+<thead><tr><th>Option</th><th>What it sets</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td><code>translation</code></td><td>The <a href="topic:translation">translation passages open in</a>: a translation's ID.</td><td><code>"eng-kjv"</code></td></tr>
+<tr><td><code>scheme</code></td><td>The <a href="topic:what-is-linked#verse-numbering">verse numbering</a> your pages use: <code>kjv</code>, <code>hebrew</code>, <code>latin</code> or <code>greek</code>.</td><td><code>"kjv"</code></td></tr>
+<tr><td><code>ignore</code></td><td>A CSS selector for <a href="topic:what-is-linked#leaving-more-out">what to leave out</a>.</td><td>None</td></tr>
+<tr><td><code>destination</code></td><td><a href="topic:destination">Where links go</a>: <code>"scripturetips"</code>, or an address pattern.</td><td><code>"scripturetips"</code></td></tr>
+<tr><td><code>destinationTranslation</code></td><td>An outside destination's own code for its translation.</td><td>None</td></tr>
+<tr><td><code>site</code></td><td>The ScriptureTips reader that links open.</td><td><code>{{site}}</code></td></tr>
+<tr><td><code>hoverDelayMs</code></td><td>How long the pointer rests on a link before the tooltip opens, in milliseconds.</td><td><code>300</code></td></tr>
+<tr><td><code>strings</code></td><td>The tooltip's words, to reword or translate them.</td><td>English</td></tr>
+<tr><td><code>storage</code></td><td>Where visitors' translation choices are kept: <code>null</code> keeps them only until the page is closed.</td><td>The page's <code>localStorage</code></td></tr>
+<tr><td><code>api</code></td><td>The ScriptureTips API passages are read from.</td><td><code>{{data}}/api</code></td></tr>
+</tbody>
+</table>
+
+<h2>The tooltip's words</h2>
+<p><code>strings</code> replaces any of these:</p>
+<pre><code>ScriptureTips.run("main", {
+  strings: {
+    loading: "Loading…",
+    failed: "That passage couldn't be loaded.",
+    missing: "This translation doesn't have that passage.",
+    readMore: "Read more",
+    translation: "Translation",
+    more: "…",
+    tooltip: "Scripture passage",
+    pin: "Keep open",
+  },
+});</code></pre>

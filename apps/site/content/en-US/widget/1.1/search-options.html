@@ -1,0 +1,25 @@
+<p>Every option <code>ScriptureTips.search</code> takes. The element options give the search a place on the page: use <code>element</code>, or <code>input</code> and <code>results</code> together.</p>
+<table>
+<thead><tr><th>Option</th><th>Does</th></tr></thead>
+<tbody>
+<tr><td><code>element</code></td><td>The container that gets the field with its results under it.</td></tr>
+<tr><td><code>input</code>, <code>results</code></td><td>The field and the results in two elements.</td></tr>
+<tr><td><code>translations</code></td><td>Translations to search, by id, in order of preference. Only those that may be shown on other sites are searched. <a href="topic:translation">About Widget Translations</a></td></tr>
+<tr><td><code>kinds</code></td><td><code>reference</code>, <code>text</code>, <code>original</code>.</td></tr>
+<tr><td><code>limit</code></td><td>Verses fetched at a time, up to 50.</td></tr>
+<tr><td><code>more</code></td><td><code>scroll</code> (default), <code>button</code> (a <em>Show more</em> button) or <code>none</code>: how a long list of results goes on.</td></tr>
+<tr><td><code>placeholder</code></td><td>Words in the empty field.</td></tr>
+<tr><td><code>suggest</code></td><td>Suggestions as the visitor types. On unless <code>false</code>.</td></tr>
+<tr><td><code>searchOnType</code></td><td>Search as typing pauses, instead of waiting for Enter. Off by default (<code>data-search-on-type="true"</code> in markup).</td></tr>
+<tr><td><code>onSelect</code></td><td>What picking a result does, instead of opening the reader (<a href="topic:search-select">more</a>).</td></tr>
+<tr><td><code>strings</code></td><td>Replace any of the search's words, to translate them.</td></tr>
+<tr><td><code>name</code></td><td>The search's name for <code>ScriptureTipsSearch.get(name)</code>.</td></tr>
+<tr><td><code>api</code></td><td>The data server's API; where the script came from if left out.</td></tr>
+</tbody>
+</table>
+
+<h2>Matching your site's look</h2>
+<p>The search and the reader take the same CSS variables as the passage tooltip (<code>--st-accent</code>, <code>--st-ink</code>, <code>--st-muted</code>, <code>--st-rule</code>, <code>--st-paper</code>, <code>--st-radius</code>, <code>--st-font</code>), and <code>--st-search-hit</code> for matched words. <a href="topic:theme">Matching your site's look</a> has the table and an example.</p>
+
+<h2>What it sends</h2>
+<p>Only the words typed and the passages picked, to the data server, with no cookies and nothing stored in the visitor's browser. Allow the data server in your content security policy's <code>script-src</code> and <code>connect-src</code>.</p>

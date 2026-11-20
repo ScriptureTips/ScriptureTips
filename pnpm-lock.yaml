@@ -357,6 +357,9 @@ importers:
       '@scripturetips/scripture-links':
         specifier: workspace:*
         version: link:../../packages/scripture-links
+      '@scripturetips/search':
+        specifier: workspace:*
+        version: link:../../packages/search
     devDependencies:
       esbuild:
         specifier: 0.25.12

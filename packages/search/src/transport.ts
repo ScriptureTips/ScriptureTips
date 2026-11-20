@@ -52,3 +52,46 @@ export function fetchTransport(
     },
   };
 }
+
+/**
+ * The transport for other sites' pages (the search widget): the public `/api/widget` routes of the
+ * data server, which search only the translations that may be shown there, with no credentials. A
+ * picked passage's text comes from `/api/widget/passage`, by its OSIS reference in the
+ * translation's own numbering.
+ */
+export function widgetTransport(api: string, fetchImpl: typeof fetch = fetch): Transport {
+  const base = api.replace(/\/$/, "");
+  const open: typeof fetch = (input, init) => fetchImpl(input, { ...init, credentials: "omit" });
+  const get = async <T>(url: string, signal: AbortSignal): Promise<T> => {
+    const res = await open(url, { signal, headers: { accept: "application/json" } });
+    if (!res.ok) throw new Error(`The search failed (${res.status}).`);
+    return (await res.json()) as T;
+  };
+  return {
+    search: (query, scope, signal, offset) =>
+      get<SearchResponse>(`${base}/widget/search?${queryString(query, scope, offset)}`, signal),
+    suggest: async (query, scope, signal) =>
+      (
+        await get<{ suggestions: Suggestion[] }>(
+          `${base}/widget/suggest?${queryString(query, scope)}`,
+          signal,
+        )
+      ).suggestions,
+    passage: async (translation, _reference, signal, osis) => {
+      if (!osis) throw new Error("This passage has no reference to fetch.");
+      const res = await open(
+        `${base}/widget/passage?${new URLSearchParams({ translation, ref: osis, scheme: "own" })}`,
+        { signal, headers: { accept: "application/json" } },
+      );
+      if (!res.ok) throw new Error(`The passage failed (${res.status}).`);
+      const body = (await res.json()) as {
+        translation: { direction: "ltr" | "rtl" };
+        verses: { number: string; text: string }[];
+      };
+      return {
+        direction: body.translation.direction,
+        verses: body.verses.map((v) => ({ number: v.number, text: v.text })),
+      };
+    },
+  };
+}

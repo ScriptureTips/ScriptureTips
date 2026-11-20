@@ -1,0 +1,22 @@
+<h2>What is recognized</h2>
+<p>Book names in full or abbreviated, with a chapter, a verse or a range: “Psalm 23”, “Jn 3:16”, “Romans 5:8–10”, “1 Cor 13:4-7”.</p>
+
+<h2>What is always left alone</h2>
+<ul>
+<li>Links you wrote yourself. Nothing is ever linked twice.</li>
+<li><code>code</code>, <code>pre</code>, <code>kbd</code> and <code>samp</code>.</li>
+<li>Form fields and anything editable.</li>
+<li>Scripts and styles.</li>
+</ul>
+<p>A reference that is split across elements, such as <code>John &lt;b&gt;3&lt;/b&gt;:16</code>, isn't found.</p>
+
+<h2>Leaving more out</h2>
+<p>Put the class <code>st-ignore</code> or the attribute <code>data-st-ignore</code> on any element, and nothing inside it is linked:</p>
+<pre><code>&lt;p class="st-ignore"&gt;Our address is 3:16 John Street.&lt;/p&gt;</code></pre>
+<p>Or name what to skip with the <code>ignore</code> option, a CSS selector:</p>
+<pre><code>ScriptureTips.run("main", { ignore: "nav, .byline, h1" });</code></pre>
+
+<h2>Verse numbering</h2>
+<p>References are read in the King James Version's numbering unless you say otherwise. If your writing follows another tradition's numbering (in the Hebrew numbering Joel 2:28 is Joel 3:1, for instance), set <code>scheme</code> and the right verses are shown in every translation:</p>
+<pre><code>ScriptureTips.run("main", { scheme: "hebrew" });</code></pre>
+<p>The schemes are <code>kjv</code>, <code>hebrew</code>, <code>latin</code> and <code>greek</code>.</p>
