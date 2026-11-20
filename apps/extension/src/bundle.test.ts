@@ -5,10 +5,11 @@ import { bundle, demoPath } from "../build.ts";
  * The most the content script may weigh, minified: it runs in every page and frame. It was 50 KB
  * before it held the link generator's window (about 3 KB of script and 2 KB of the formats and
  * settings it needs) and 56 KB before the format's help icon, which brought in the shared dialogs
- * (about 1.5 KB); loading that on demand would need the `scripting` permission, which the
+ * (about 1.5 KB), and 58 KB before the tooltip's translator's notes (the marks, their tips and the
+ * shared hover behavior, about 3 KB); loading that on demand would need the `scripting` permission, which the
  * manifest avoids asking for (src/manifest.ts).
  */
-const CONTENT_BUDGET = 58 * 1024;
+const CONTENT_BUDGET = 62 * 1024;
 
 describe("vision §3.6: the browser extension's scripts", () => {
   it("keep the content script small and the versification tables out", async () => {

@@ -11,7 +11,7 @@ export type Shown =
   | string
   | { type: "char"; marker: string; content: Shown[]; attributes?: Record<string, string> }
   | { type: "span"; span: string; content: Shown[] }
-  | { type: "mark"; letter: string; noteId: string }
+  | { type: "mark"; letter: string; noteId: string; body: Shown[] }
   /** A source's designation after its verses ("(LEB)"), linked where its license asks. */
   | { type: "designation"; text: string; url?: string };
 
@@ -102,7 +102,7 @@ export function layOut(
         note,
         ...(v.source ? { source: v.source } : {}),
       });
-      return { type: "mark", letter: l, noteId: id };
+      return { type: "mark", letter: l, noteId: id, body: noteBody(note.body) };
     };
     const show = (nodes: readonly Inline[]): Shown[] =>
       nodes.flatMap((n): Shown[] => {

@@ -24,12 +24,27 @@ export interface WidgetTranslation {
   readonly direction: "ltr" | "rtl";
 }
 
+/** A translator's note on a verse: where its mark falls in the verse's text, and its words. */
+export interface WidgetNote {
+  /** A character offset in the verse's `text`. */
+  readonly at: number;
+  readonly letter: string;
+  readonly text: string;
+}
+
+export interface WidgetVerse {
+  readonly number: string;
+  readonly text: string;
+  /** In reading order. Missing when the verse has none (and from an older server). */
+  readonly notes?: readonly WidgetNote[];
+}
+
 /** A passage's words (`GET /api/widget/passage`). */
 export interface WidgetPassage {
   readonly translation: WidgetTranslation;
   /** As it reads in the translation's numbering ("Psalm 51:3–5"). */
   readonly label: string;
-  readonly verses: readonly { readonly number: string; readonly text: string }[];
+  readonly verses: readonly WidgetVerse[];
   readonly more: boolean;
   readonly attribution: {
     readonly designation: string;

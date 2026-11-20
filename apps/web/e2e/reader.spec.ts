@@ -368,6 +368,66 @@ test("a note mark links to its note", async ({ page }) => {
   await expect(page.locator(`${target}`)).toBeInViewport();
 });
 
+test("a note mark shows its note as a tooltip, and the list keeps it", async ({ page }) => {
+  await page.goto("/read/leb/genesis/2/18-25");
+  const mark = page.locator(".note-mark").first();
+  const tip = mark.locator(".note-tip");
+  await expect(tip).toBeHidden();
+  const text = ((await tip.textContent()) ?? "").trim();
+  expect(text.length).toBeGreaterThan(0);
+  await mark.locator("a").hover();
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveAttribute("role", "tooltip");
+  await page.screenshot(shot("note-tooltip"));
+  // The pointer can cross the gap between the mark and the tip, and rest on the tip past the
+  // close delay, without it closing (so its text can be selected).
+  if (test.info().project.name !== "phone") {
+    const box = await tip.boundingBox();
+    if (!box) throw new Error("the tip has no box");
+    const x = box.x + box.width / 2;
+    await page.mouse.move(x, box.y + box.height + 3);
+    await page.waitForTimeout(100);
+    await page.mouse.move(x, box.y + box.height / 2);
+    await page.waitForTimeout(600);
+    await expect(tip).toBeVisible();
+    // Pressing on its text (to select it) takes the focus off the mark, and doesn't close it.
+    await page.mouse.down();
+    await page.waitForTimeout(600);
+    await expect(tip).toBeVisible();
+    await page.mouse.up();
+  }
+  await page.mouse.move(2, 2);
+  await expect(tip).toBeHidden();
+  // The list at the bottom of the passage still holds every note.
+  await expect(
+    page.getByRole("region", { name: "Translator's notes" }).locator("li").first(),
+  ).toContainText(text.slice(0, 20));
+});
+
+test("on a touch screen, the first tap on a note mark shows the note and a second follows it", async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== "phone", "touch only");
+  await page.goto("/read/leb/genesis/2/18-25");
+  const mark = page.locator(".note-mark").first();
+  const tip = mark.locator(".note-tip");
+  await expect(async () => {
+    await mark.locator("a").tap();
+    await expect(tip).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  expect(new URL(page.url()).hash).toBe("");
+  // Pressing on the note's text, to select it, keeps it open.
+  await tip.tap();
+  await page.waitForTimeout(600);
+  await expect(tip).toBeVisible();
+  await mark.locator("a").tap();
+  await expect.poll(() => new URL(page.url()).hash).toMatch(/^#p0-n\d+$/);
+  // A tap elsewhere closes it.
+  await page.locator(".note-mark").nth(1).locator("a").tap();
+  await page.getByRole("heading", { name: "Translator's notes" }).tap();
+  await expect(tip).toBeHidden();
+});
+
 test("KJV Psalm 23: poetry lines and a Psalm title", async ({ page }) => {
   await page.goto("/read/eng-kjv/psalms/23");
   await expect(page.locator(".scripture .b-q1, .scripture .b-q2").first()).toBeVisible();

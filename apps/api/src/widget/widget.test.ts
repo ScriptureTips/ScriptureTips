@@ -1,5 +1,13 @@
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
-import { type Database, translation, translationBook, verseText } from "@scripturetips/db";
+import {
+  and,
+  type Database,
+  eq,
+  translation,
+  translationBook,
+  translatorNote,
+  verseText,
+} from "@scripturetips/db";
 import { testDatabase } from "@scripturetips/db/test-support";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../app.ts";
@@ -128,6 +136,44 @@ describe("vision §3.6: what website plugins read", () => {
       more: false,
       attribution: null,
     });
+  });
+
+  it("carries a verse's notes with the place of their marks in its words", async () => {
+    const [t] = await db.select().from(translation).where(eq(translation.catalogId, "kjv"));
+    const [verse] = await db
+      .select()
+      .from(verseText)
+      .where(
+        and(
+          eq(verseText.translationId, t?.id ?? ""),
+          eq(verseText.chapter, 2),
+          eq(verseText.verse, 28),
+        ),
+      );
+    await db.insert(translatorNote).values({
+      verseTextId: verse?.id ?? "",
+      position: 0,
+      kind: "footnote",
+      marker: "f",
+      caller: "+",
+      category: null,
+      span: null,
+      body: [
+        { type: "char", marker: "fr", content: ["2.28 "] },
+        "Or ",
+        { type: "char", marker: "it", content: ["afterward"] },
+      ],
+    });
+    const res = await passage("kjv", "Joel.2.28-Joel.2.29");
+    const [first, second] = res.json().verses;
+    // The mark falls after the verse's words; the note is its words without its reference.
+    expect(first).toEqual({
+      number: "28",
+      text: "KJV 2:28.",
+      notes: [{ at: "KJV 2:28.".length, letter: "a", text: "Or afterward" }],
+    });
+    // A verse with none says nothing of them.
+    expect(second).toEqual({ number: "29", text: "KJV 2:29." });
   });
 
   it("reads a reference in the KJV's numbering out of a translation numbered another way", async () => {

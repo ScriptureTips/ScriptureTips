@@ -2,6 +2,7 @@ export { CHOICES_KEY, type Choices, createChoices, pageStorage } from "./choices
 export { type Client, ClientError, createClient } from "./client.ts";
 export { addressTranslation, destinationUrl, readMoreUrl, SCRIPTURETIPS } from "./destination.ts";
 export { findInText, type ReferenceMatch } from "./find.ts";
+export { bindHoverTip, type HoverTipBinding, type HoverTipOptions } from "./hover-tip.ts";
 export { createScriptureLinks, type ScriptureLinks } from "./instance.ts";
 export {
   AUTO_ATTRIBUTE,

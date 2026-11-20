@@ -7,6 +7,7 @@
 import type { ReactNode } from "react";
 import type { StudyWords } from "../study/types.ts";
 import { groupUnits, tagOf } from "../study/units.ts";
+import { HoverTip } from "../ui/HoverTip.tsx";
 import type { Shown } from "./layout.ts";
 
 /** Lower corner brackets (U+2E24, U+2E25): the LEB's marks around an idiomatic phrase. */
@@ -61,11 +62,19 @@ export function ShownText({
       );
     if (n.type === "mark")
       return (
-        <sup key={key} className="note-mark">
-          <a href={`#${n.noteId}`} id={`${n.noteId}-mark`}>
+        <HoverTip
+          key={key}
+          as="sup"
+          className="note-mark"
+          tipClassName="note-tip"
+          id={`${n.noteId}-tip`}
+          tip={<ShownText nodes={n.body} />}
+        >
+          {/* The note's text is the tip; the list under the passage keeps every note too. */}
+          <a href={`#${n.noteId}`} id={`${n.noteId}-mark`} aria-describedby={`${n.noteId}-tip`}>
             {n.letter}
           </a>
-        </sup>
+        </HoverTip>
       );
     if (n.type === "span")
       return (

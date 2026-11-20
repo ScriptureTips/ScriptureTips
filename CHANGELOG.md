@@ -6,6 +6,10 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ## [Unreleased]
 
+### Added
+- A note mark in the verse text shows the note in a tooltip when you hover or focus it (on a phone, tap it). The list of notes under the passage stays.
+- The passage tooltip of the website plugin and the browser extension marks translator's notes too: a note's mark in the verse shows the note on hover, focus or tap, and you can move onto it to select its text.
+
 ## [1.1.0] - 2026-11-20
 
 ### Changed

@@ -1,5 +1,6 @@
 import { type Client, ClientError } from "./client.ts";
 import { readMoreUrl } from "./destination.ts";
+import { bindHoverTip, type HoverTipBinding } from "./hover-tip.ts";
 import { LINK_CLASS, OWNER_ATTRIBUTE, REF_ATTRIBUTE } from "./scan.ts";
 import type {
   LinksEventName,
@@ -7,6 +8,7 @@ import type {
   Strings,
   WidgetPassage,
   WidgetTranslation,
+  WidgetVerse,
 } from "./types.ts";
 
 /** The tooltip's width, for keeping it in the window (px). */
@@ -71,6 +73,14 @@ const STYLES = `
   select { font: inherit; max-width: 12em; color: inherit; background: var(--st-paper, #fff); border: 1px solid var(--st-rule, #dfe3e6); border-radius: 0.3em; }
   p { margin: 0.35em 0; }
   sup { margin-inline-end: 0.15em; font-size: 0.7em; color: var(--st-muted, #5b6672); }
+  .note-mark { margin: 0; padding: 0 0.15em; font: inherit; font-size: 0.72em; line-height: 1; position: relative; top: -0.45em; color: var(--st-accent, #0054a5); background: transparent; border: 0; cursor: pointer; }
+  .note-mark:focus-visible { outline: 2px solid var(--st-accent, #0054a5); outline-offset: 1px; }
+  .note-tip {
+    display: none; position: fixed; z-index: 1; box-sizing: border-box; width: max-content; max-width: min(260px, calc(100vw - 16px));
+    padding: 0.5em 0.7em; font-size: 0.9em; line-height: 1.4; color: var(--st-ink, #1d232a); background: var(--st-paper, #fff);
+    border: 1px solid var(--st-rule, #dfe3e6); border-radius: var(--st-radius, 6px); box-shadow: 0 3px 12px rgb(0 30 60 / 0.25);
+  }
+  .note[data-open] .note-tip { display: block; }
   .status { color: var(--st-muted, #5b6672); }
   .attribution { margin-top: 0.5em; font-size: 0.85em; color: var(--st-muted, #5b6672); }
   footer { flex: none; padding: 0.5em 0.9em 0.75em; }
@@ -436,6 +446,58 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     return button;
   };
 
+  // The open notes' tips, placed when they open and let go when the page or the tooltip moves.
+  const noteBindings = new Map<HTMLElement, HoverTipBinding>();
+  let noteCount = 0;
+
+  /** A verse's words with a mark for each translator's note, which shows the note as a tip. */
+  const verseText = (v: WidgetVerse, p: HTMLElement): void => {
+    // The tips of passages that have been replaced go.
+    for (const [el, binding] of noteBindings)
+      if (!el.isConnected) {
+        binding.destroy();
+        noteBindings.delete(el);
+      }
+    let from = 0;
+    for (const n of v.notes ?? []) {
+      const at = Math.min(Math.max(n.at, from), v.text.length);
+      p.append(v.text.slice(from, at));
+      from = at;
+      const id = `st-note-${noteCount++}`;
+      const wrapper = doc.createElement("span");
+      wrapper.className = "note";
+      const mark = doc.createElement("button");
+      mark.type = "button";
+      mark.className = "note-mark";
+      mark.textContent = n.letter;
+      mark.setAttribute("aria-describedby", id);
+      const tip = doc.createElement("span");
+      tip.className = "note-tip";
+      tip.id = id;
+      tip.setAttribute("role", "tooltip");
+      tip.textContent = n.text;
+      wrapper.append(mark, tip);
+      p.append(wrapper);
+      const binding = bindHoverTip(wrapper, {
+        onChange: (open) => {
+          if (!open) return;
+          // Over the mark if it fits, else under it; kept in the window.
+          const rect = mark.getBoundingClientRect();
+          const width = doc.documentElement.clientWidth;
+          const height = tip.offsetHeight;
+          const left = Math.min(
+            Math.max(8, rect.left + rect.width / 2 - tip.offsetWidth / 2),
+            Math.max(8, width - tip.offsetWidth - 8),
+          );
+          tip.style.left = `${left}px`;
+          tip.style.top = `${rect.top - height - 6 >= 8 ? rect.top - height - 6 : rect.bottom + 6}px`;
+        },
+      });
+      noteBindings.set(wrapper, binding);
+    }
+    p.append(v.text.slice(from));
+  };
+
   const verses = (passage: WidgetPassage): Node[] => {
     const nodes: Node[] = passage.verses.map((v) => {
       const p = doc.createElement("p");
@@ -444,7 +506,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         sup.textContent = v.number;
         p.append(sup, " ");
       }
-      p.append(v.text);
+      verseText(v, p);
       return p;
     });
     if (passage.more) nodes.push(status(options.strings.more));
@@ -646,6 +708,8 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   for (const [type, fn, capture] of listeners) doc.addEventListener(type, fn, capture ?? false);
   const reposition = () => {
     for (const panel of panels) place(panel);
+    // A note's tip is placed where it opened: it's let go when the page or the passage moves.
+    for (const binding of noteBindings.values()) binding.close();
   };
   window.addEventListener("resize", reposition);
   window.addEventListener("scroll", reposition, true);
@@ -668,6 +732,8 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         doc.removeEventListener(type, fn, capture ?? false);
       window.removeEventListener("resize", reposition);
       window.removeEventListener("scroll", reposition, true);
+      for (const binding of noteBindings.values()) binding.destroy();
+      noteBindings.clear();
       host.remove();
       mark.remove();
     },

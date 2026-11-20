@@ -8,7 +8,7 @@ import {
   passageToCanonical,
   type SchemeId,
 } from "@scripturetips/versification";
-import { editableText } from "../compilations/wording.ts";
+import { editableText, type Inline } from "../compilations/wording.ts";
 import { DATABASE, type Database } from "../database.ts";
 import { TranslationsService } from "../translations/translations.service.ts";
 
@@ -23,11 +23,26 @@ export interface WidgetTranslation {
   readonly direction: "ltr" | "rtl";
 }
 
+/** A translator's note on a verse: the mark's place in `text` (a character offset), and its words. */
+export interface WidgetNote {
+  readonly at: number;
+  /** The mark: the source's own caller, or a, b, c … through the passage. */
+  readonly letter: string;
+  readonly text: string;
+}
+
+export interface WidgetVerse {
+  readonly number: string;
+  readonly text: string;
+  /** In reading order; left out when the verse has none. Older readers ignore it. */
+  readonly notes?: readonly WidgetNote[];
+}
+
 export interface WidgetPassage {
   readonly translation: WidgetTranslation;
   /** The passage as it reads in this translation's numbering ("Psalm 51:3–5"). */
   readonly label: string;
-  readonly verses: readonly { readonly number: string; readonly text: string }[];
+  readonly verses: readonly WidgetVerse[];
   /** The passage goes on past the verses shown. */
   readonly more: boolean;
   /** What the license asks to be shown with the text (licenses.md), or null. */
@@ -36,6 +51,70 @@ export interface WidgetPassage {
     readonly statement: string;
     readonly links: readonly { readonly text: string; readonly url: string }[];
   } | null;
+}
+
+/** a, b … z, aa, ab …: note letters, as printed Bibles letter them. */
+const letter = (n: number): string =>
+  n < 26
+    ? String.fromCharCode(97 + n)
+    : letter(Math.floor(n / 26) - 1) + String.fromCharCode(97 + (n % 26));
+
+// Stand-ins for a note's place while the text is tidied (private-use characters).
+const MARK_OPEN = "\uE000";
+const MARK_CLOSE = "\uE001";
+
+/** A note's words: its text, without its own reference (`fr`, "23.2"). */
+function noteText(body: readonly Inline[]): string {
+  const words = (nodes: readonly Inline[]): string =>
+    nodes
+      .map((n) =>
+        typeof n === "string"
+          ? n
+          : n.type === "char" && n.marker === "fr"
+            ? ""
+            : n.type === "char" || n.type === "span"
+              ? words(n.content)
+              : "",
+      )
+      .join("");
+  return words(body).replace(/\s+/g, " ").trim();
+}
+
+/** The verse's words, tidied as for reading in a tooltip, and where its notes' marks fall in them. */
+function shownVerse(
+  content: readonly Inline[],
+  notes: readonly { position: number; caller: string; body: Inline[] }[],
+  lettered: { count: number },
+): { text: string; notes: WidgetNote[] } {
+  const byPosition = new Map(notes.map((n) => [n.position, n]));
+  const marked = (nodes: readonly Inline[]): string =>
+    nodes
+      .map((n) =>
+        typeof n === "string"
+          ? n
+          : n.type === "char" || n.type === "span"
+            ? marked(n.content)
+            : n.type === "note"
+              ? `${MARK_OPEN}${n.position}${MARK_CLOSE}`
+              : "",
+      )
+      .join("");
+  const tidy = marked(content).replace(/¶\s*/g, "").replace(/\s+/g, " ").trim();
+  let text = "";
+  const found: WidgetNote[] = [];
+  let last = 0;
+  for (const m of tidy.matchAll(new RegExp(`${MARK_OPEN}(\\d+)${MARK_CLOSE}`, "g"))) {
+    text += tidy.slice(last, m.index);
+    last = m.index + m[0].length;
+    const note = byPosition.get(Number(m[1]));
+    const words = note ? noteText(note.body) : "";
+    if (!note || words === "") continue;
+    const mark = note.caller !== "+" && note.caller !== "-" ? note.caller : letter(lettered.count);
+    lettered.count += 1;
+    found.push({ at: text.length, letter: mark, text: words });
+  }
+  text += tidy.slice(last);
+  return { text, notes: found };
 }
 
 /**
@@ -100,6 +179,7 @@ export class WidgetService {
     const counts = await this.translations.verseCounts(row.id);
     const here = passageFromCanonical(row.scheme as SchemeId, canonical) ?? canonical;
     const attribution = attributionFor(row.licenseKey);
+    const lettered = { count: 0 };
     return {
       translation: {
         id: row.catalogId,
@@ -109,15 +189,16 @@ export class WidgetService {
         direction: row.direction as "ltr" | "rtl",
       },
       label: formatPassage(here, { verses: counts }),
-      verses: found.slice(0, MAX_WIDGET_VERSES).map((v) => ({
-        // A psalm's heading is verse 0 and has no number.
-        number:
-          v.verse === 0 ? "" : (v.published ?? (v.to ? `${v.verse}–${v.to}` : String(v.verse))),
-        text: editableText(v.content as never)
-          .replace(/¶\s*/g, "")
-          .replace(/\s+/g, " ")
-          .trim(),
-      })),
+      verses: found.slice(0, MAX_WIDGET_VERSES).map((v): WidgetVerse => {
+        const shown = shownVerse(v.content as Inline[], v.notes as never, lettered);
+        return {
+          // A psalm's heading is verse 0 and has no number.
+          number:
+            v.verse === 0 ? "" : (v.published ?? (v.to ? `${v.verse}–${v.to}` : String(v.verse))),
+          text: shown.text,
+          ...(shown.notes.length > 0 ? { notes: shown.notes } : {}),
+        };
+      }),
       more: found.length > MAX_WIDGET_VERSES,
       attribution: attribution
         ? {

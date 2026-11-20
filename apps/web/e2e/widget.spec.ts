@@ -109,6 +109,65 @@ test("vision §3.6: hovering a reference shows the passage, in the visitor's bro
   await expect(pop).toBeHidden();
 });
 
+const LEB_PAGE = () =>
+  page$('ScriptureTips.setPreferences({ translation: "leb" });', "<p>Genesis 2:18 is a verse.</p>");
+
+test("vision §3.6: a translator's note's mark in the passage shows the note, which can be reached", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === "phone", "A phone has no hover: its tap is tested below.");
+  await open(page, LEB_PAGE());
+  await page.locator("#content a.st-ref", { hasText: "Genesis 2:18" }).hover();
+  const pop = tooltip(page);
+  await expect(pop).toContainText("Then");
+  const mark = pop.locator(".note-mark").first();
+  const note = pop.locator(".note-tip").first();
+  await expect(note).toBeHidden();
+  await mark.hover();
+  await expect(note).toBeVisible();
+  await expect(note).toHaveText("Or “And”");
+  await page.screenshot(shot("widget-note-tooltip"));
+  // The pointer can cross the gap to the note, and rest on it, without it closing.
+  const box = await note.boundingBox();
+  if (!box) throw new Error("the note has no box");
+  const x = box.x + box.width / 2;
+  await page.mouse.move(x, box.y + box.height + 3);
+  await page.waitForTimeout(100);
+  await page.mouse.move(x, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(600);
+  await expect(note).toBeVisible();
+  await expect(pop).toBeVisible();
+  await page.mouse.up();
+  // Escape closes the note, and leaves the passage.
+  await page.keyboard.press("Escape");
+  await expect(note).toBeHidden();
+  await expect(pop).toBeVisible();
+});
+
+test("vision §3.6: on a phone a tap on a note's mark shows the note", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "phone", "Touch only.");
+  await open(page, LEB_PAGE());
+  const link = page.locator("#content a.st-ref", { hasText: "Genesis 2:18" });
+  const pop = tooltip(page);
+  await expect(async () => {
+    await link.tap();
+    await expect(pop).toBeVisible({ timeout: 1000 });
+  }).toPass();
+  const note = pop.locator(".note-tip").first();
+  await pop.locator(".note-mark").first().tap();
+  await expect(note).toBeVisible();
+  await note.tap();
+  await page.waitForTimeout(600);
+  await expect(note).toBeVisible();
+  // A tap elsewhere in the tooltip puts the note away, and leaves the passage.
+  await pop.locator("footer").tap({ position: { x: 4, y: 4 } });
+  await expect(note).toBeHidden();
+  await expect(pop).toBeVisible();
+});
+
 test("vision §3.6: the tooltip switches translation, shows what the license asks, and tells the page", async ({
   page,
 }) => {

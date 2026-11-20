@@ -2050,6 +2050,54 @@ main:has(> .compilation) {
   padding: 0 0.1em;
 }
 
+/* Hover tips (`ui/HoverTip.tsx`): a body that opens over its trigger. Their open state is the
+   component's (a short delay on leaving, so the pointer can reach the body to select its text). */
+.hover-tip {
+  position: relative;
+}
+
+.hover-tip-body {
+  display: none;
+}
+
+.hover-tip[data-open] > .hover-tip-body {
+  display: block;
+}
+
+/* A translator's note over its mark. */
+.note-tip {
+  position: absolute;
+  z-index: 20;
+  bottom: 1.6em;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(20rem, 70vw);
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 0.25);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
+  text-align: start;
+  white-space: normal;
+}
+
+/* On a phone the tip is a panel along the bottom of the window, not clipped by the edges. */
+@media (max-width: 40rem) {
+  .note-tip {
+    position: fixed;
+    inset: auto 1rem 1rem;
+    transform: none;
+    width: auto;
+    max-width: none;
+  }
+}
+
 /* Translator's notes, below the passage */
 .notes {
   border-top: 1px solid var(--rule);
