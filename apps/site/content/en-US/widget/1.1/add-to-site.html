@@ -23,4 +23,4 @@ ScriptureTips.run("#content, .comments");</code></pre>
   onload="ScriptureTips.run('main')"&gt;&lt;/script&gt;</code></pre>
 
 <h2>Content security policy</h2>
-<p>If your site sends a content security policy, allow the script and its passage requests from <code>{{data}}</code> (<code>script-src</code> and <code>connect-src</code>). The tooltip's own styles are inside the tooltip and need <code>style-src 'unsafe-inline'</code>.</p>
+<p>If your site sends a content security policy, allow the script and its passage requests from <code>{{data}}</code> (<code>script-src</code> and <code>connect-src</code>). The tooltip and the search style themselves with constructable stylesheets, which a policy of <code>style-src 'self'</code> allows, so they need no <code>'unsafe-inline'</code> in current browsers. (A browser without constructable stylesheets falls back to a <code>&lt;style&gt;</code> element, which a strict policy blocks.)</p>

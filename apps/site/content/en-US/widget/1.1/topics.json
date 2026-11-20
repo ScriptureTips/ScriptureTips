@@ -113,6 +113,12 @@
             "keep open",
             "read more"
           ]
+        },
+        {
+          "id": "tooltip-demo",
+          "title": "Live demos of the tooltip",
+          "summary": "Working references on this page: translation menu, pin, notes, ignoring, your own links and text added later.",
+          "keywords": ["demo", "example", "try", "showcase", "live", "tooltip", "hover", "links"]
         }
       ]
     },

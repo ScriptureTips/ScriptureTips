@@ -6,11 +6,20 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-21
+
 ### Added
 - The website plugin (version 1.1) can put a search on any page: an empty `<div class="st-search"></div>` gets a field for passages, words and Strong's numbers, with suggestions as you type, results that scroll on, and a picked passage read in place. The field and the results can sit apart, and a page can give its own callback for what picking does. The search code loads only on pages that use it, and the help has a new Search section with live demos. A picked passage opens a reader in place: the blue bar with the previous and next chapter, a book picker, a translation picker, and *Read in context* and *Read the whole chapter*. A search can run as you type (`data-search-on-type`). A small "Powered by ScriptureTips" credit sits at the foot of a search. A search's long lists can load on scroll (the default), with a *Show more* button, or stop at the page size (`data-more`).
 - The reader has a search field beside Translation: a plain field with a magnifying glass. It grows over the Translation menu when you click it, with a Search button, and its suggestions (passages, and verses found by their words) open in the reader.
 - A note mark in the verse text shows the note in a tooltip when you hover or focus it (on a phone, tap it). The list of notes under the passage stays.
 - The passage tooltip of the website plugin and the browser extension marks translator's notes too: a note's mark in the verse shows the note on hover, focus or tap, and you can move onto it to select its text.
+- The plugin's help has live demos of the passage tooltip (references, translation menu and pin, notes, leaving parts out, your own links, text added later), beside the search demos.
+
+- A small "Powered by ScriptureTips" credit sits at the foot of the passage tooltip of the website plugin and the browser extension, as it does under a search.
+
+### Fixed
+- The passage tooltip of the website plugin is styled on pages whose content security policy blocks inline styles (`style-src 'self'`), such as the scripture.tips help: it adopts its styles as a constructable stylesheet instead of adding a `<style>` element.
+- The passage tooltip no longer closes while you use its translation list: the browser's list opens outside the tooltip, so picking a translation looked like the pointer leaving. The tooltip now stays open until the pointer comes back onto it and leaves again.
 
 ## [1.1.0] - 2026-11-20
 

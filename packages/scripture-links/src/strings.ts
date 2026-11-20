@@ -11,4 +11,5 @@ export const DEFAULT_STRINGS: Strings = {
   more: "…",
   tooltip: "Scripture passage",
   pin: "Keep open",
+  poweredBy: "Powered by ScriptureTips",
 };

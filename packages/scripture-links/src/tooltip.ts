@@ -85,6 +85,9 @@ const STYLES = `
   .attribution { margin-top: 0.5em; font-size: 0.85em; color: var(--st-muted, #5b6672); }
   footer { flex: none; padding: 0.5em 0.9em 0.75em; }
   .body:last-child { padding-bottom: 0.75em; }
+  .brand { flex: none; padding: 0 0.9em 0.55em; font-size: 0.75em; text-align: end; }
+  .brand a { color: var(--st-muted, #5b6672); text-decoration: none; opacity: 0.8; }
+  .brand a:hover, .brand a:focus-visible { color: var(--st-accent, #0054a5); text-decoration: underline; opacity: 1; }
   footer .source { color: var(--st-muted, #5b6672); }
   a { color: var(--st-accent, #0054a5); }
   .pin {
@@ -140,6 +143,8 @@ export interface TooltipOptions {
   readonly textScale?: number | undefined;
   /** Whether the page's `--st-*` custom properties may theme it (`LinksOptions.themable`). */
   readonly themable?: boolean | undefined;
+  /** Where the credit at the foot links to: the data server's home. */
+  readonly brand?: string | undefined;
 }
 
 export interface Tooltip {
@@ -180,17 +185,43 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   host.className = "st-host";
   isolate(host, options.themable ?? true);
   const root = host.attachShadow({ mode: "open" });
-  const style = doc.createElement("style");
-  style.textContent = STYLES;
-  root.append(style);
+  // The styles are a constructable stylesheet where the browser has one: a page's content security
+  // policy (`style-src 'self'`) blocks an inline <style> element but not an adopted sheet, so the
+  // tooltip is styled on such pages too. A <style> element is the fallback.
+  const adopt = (target: Document | ShadowRoot, css: string): (() => void) | null => {
+    try {
+      const view = doc.defaultView as (Window & typeof globalThis) | null;
+      const Sheet = view?.CSSStyleSheet;
+      if (!Sheet || !("replaceSync" in Sheet.prototype) || !("adoptedStyleSheets" in target))
+        return null;
+      const sheet = new Sheet();
+      sheet.replaceSync(css);
+      target.adoptedStyleSheets = [...target.adoptedStyleSheets, sheet];
+      return () => {
+        target.adoptedStyleSheets = target.adoptedStyleSheets.filter((x) => x !== sheet);
+      };
+    } catch {
+      return null;
+    }
+  };
+  if (!adopt(root, STYLES)) {
+    const style = doc.createElement("style");
+    style.textContent = STYLES;
+    root.append(style);
+  }
   doc.body.append(host);
   // The link whose tooltip is open is outlined, so it's clear which copy of a passage is being
   // looked at (the page's own styles can restyle it: `a.st-ref[aria-expanded="true"]`).
-  const mark = doc.createElement("style");
-  mark.className = "st-style";
-  mark.textContent =
+  const MARK =
     'a.st-ref[aria-expanded="true"] { outline: 2px solid var(--st-accent, #0054a5); outline-offset: 2px; border-radius: 2px; }';
-  doc.head.append(mark);
+  let removeMark = adopt(doc, MARK);
+  if (!removeMark) {
+    const mark = doc.createElement("style");
+    mark.className = "st-style";
+    mark.textContent = MARK;
+    doc.head.append(mark);
+    removeMark = () => mark.remove();
+  }
 
   /**
    * One tooltip. Only one is ever *unpinned* (the one the pointer or focus is on, which moves from
@@ -224,6 +255,14 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   };
   let openTimer: number | undefined;
   let leaveTimer: number | undefined;
+  /**
+   * The translation list is open (0: it isn't; 1: it is, and the pointer is still on the tooltip;
+   * 2: the pointer has gone from the tooltip, onto the list). The list is the browser's own popup,
+   * outside the tooltip, so going to it or picking from it looks like leaving; while it's held,
+   * nothing that leaves closes the tooltip, until the pointer comes back onto it (and then leaves
+   * again, as normal).
+   */
+  let listHeld: 0 | 1 | 2 = 0;
   let lastPointer = "mouse";
   let lastDownAt = 0;
   let lastKeyAt = 0;
@@ -338,6 +377,11 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       const label = doc.createElement("label");
       label.append(`${options.strings.translation} `);
       const select = doc.createElement("select");
+      // Opening the list holds the tooltip open (see `listHeld`).
+      select.addEventListener("pointerdown", () => {
+        listHeld = 1;
+        window.clearTimeout(leaveTimer);
+      });
       for (const t of translations) {
         const o = doc.createElement("option");
         o.value = t.id;
@@ -394,6 +438,16 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       }
       children.push(footer);
     }
+    // The credit always shows, quietly, whatever the passage or its link.
+    const brand = doc.createElement("div");
+    brand.className = "brand";
+    const home = doc.createElement("a");
+    home.href = options.brand ?? "https://scripture.tips/";
+    home.target = "_blank";
+    home.rel = "noopener";
+    home.textContent = options.strings.poweredBy;
+    brand.append(home);
+    children.push(brand);
     // The tooltip is rebuilt as the passage arrives or the translation changes: a select that had
     // the focus hands it to the new one, so the reader goes on using it.
     const { box } = panel;
@@ -569,6 +623,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
 
   /** Takes a tooltip away, pinned or not; its link is outlined no longer unless another has it. */
   const close = (panel: Panel) => {
+    listHeld = 0;
     window.clearTimeout(openTimer);
     window.clearTimeout(leaveTimer);
     panel.latest++;
@@ -603,6 +658,8 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
   const leave = () => {
     window.clearTimeout(openTimer);
     window.clearTimeout(leaveTimer);
+    // The translation list is open or was just used: the tooltip stays until the pointer returns.
+    if (listHeld) return;
     const current = unpinned();
     if (!current) return;
     leaveTimer = window.setTimeout(() => {
@@ -629,7 +686,11 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         const path = e.composedPath();
         if (path.some((n) => n === host)) {
           // On the unpinned tooltip, it stays; on a pinned one, nothing changes.
-          if (inside(path[0] ?? null)) window.clearTimeout(leaveTimer);
+          if (inside(path[0] ?? null)) {
+            window.clearTimeout(leaveTimer);
+            // The pointer is back from the translation list: leaving closes it as usual again.
+            if (listHeld === 2) listHeld = 0;
+          }
           return;
         }
         const link = linkOf(e.target);
@@ -651,6 +712,8 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
         const leftLink =
           linkOf(from) && linkOf(from) === current.anchor && linkOf(from) !== linkOf(to);
         const leftBox = inside(from) && !inside(to);
+        // Gone from the tooltip while the list is held: now only coming back releases it.
+        if (leftBox && listHeld === 1) listHeld = 2;
         if ((leftLink && !inside(to)) || leftBox) leave();
       },
     ],
@@ -735,7 +798,7 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
       for (const binding of noteBindings.values()) binding.destroy();
       noteBindings.clear();
       host.remove();
-      mark.remove();
+      removeMark?.();
     },
   };
 }

@@ -146,3 +146,67 @@ test.describe("the search widget's live demos", () => {
     expect(loaded.filter((u) => u.includes("scripturetips-search"))).toEqual([]);
   });
 });
+
+/** vision §3.6: the passage tooltip, on the help's live demo page (widget 1.1). */
+test.describe("the tooltip's live demos", () => {
+  test("references are linked, open a tooltip, and the page hears of it", async ({ page }) => {
+    await page.goto("/about/widget/1.1/tooltip-demo/");
+    const link = page.locator("#tooltip-demo a.st-ref", { hasText: "John 3:16" }).first();
+    const blocked: string[] = [];
+    page.on("console", (m) => {
+      if (m.text().includes("Content-Security-Policy")) blocked.push(m.text());
+    });
+    await link.hover();
+    const tip = page.getByRole("dialog", { name: "Scripture passage" });
+    await expect(tip).toContainText("For God so loved the world");
+    // The site's policy allows no inline style, and the tooltip is still styled (a fixed panel).
+    await expect(tip).toHaveCSS("position", "fixed");
+    expect(blocked).toEqual([]);
+    // The quiet credit at the foot.
+    await expect(tip.getByRole("link", { name: "Powered by ScriptureTips" })).toBeVisible();
+    await expect(page.locator("#demo-tip-log")).toContainText("John.3.16");
+  });
+
+  test("an abbreviation after a reference picks the translation, and your own links work", async ({
+    page,
+  }) => {
+    await page.goto("/about/widget/1.1/tooltip-demo/");
+    await page.locator("#tooltip-demo a.st-ref", { hasText: "Hebrews 11:1" }).first().hover();
+    const tip = page.getByRole("dialog", { name: "Scripture passage" });
+    await expect(tip).toContainText("LEB");
+    await page.locator("#tooltip-demo a.st-ref", { hasText: "the shepherd psalm" }).hover();
+    await expect(tip).toContainText("shepherd");
+  });
+
+  test("an ignored part and code are left alone, and added text is linked", async ({ page }) => {
+    await page.goto("/about/widget/1.1/tooltip-demo/");
+    await expect(page.locator("#tooltip-demo a.st-ref").first()).toBeVisible();
+    await expect(page.locator("#tooltip-demo .st-ignore a")).toHaveCount(0);
+    await expect(page.locator("#tooltip-demo code a")).toHaveCount(0);
+    await page.getByRole("button", { name: "Add a sentence" }).click();
+    await expect(page.locator("#demo-added a.st-ref")).toHaveCount(2);
+  });
+
+  test("the tooltip stays open while the translation list is used, until the pointer returns", async ({
+    page,
+  }) => {
+    await page.goto("/about/widget/1.1/tooltip-demo/");
+    await page.locator("#tooltip-demo a.st-ref", { hasText: "John 3:16" }).first().hover();
+    const tip = page.getByRole("dialog", { name: "Scripture passage" });
+    await expect(tip).toContainText("For God so loved the world");
+    const box = await tip.boundingBox();
+    if (!box) throw new Error("no tooltip");
+    const inside = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    // Press the translation menu (the browser's own list opens outside the page), then the pointer
+    // goes where the list is: off the tooltip.
+    await page.mouse.move(inside.x, inside.y);
+    await tip.locator("select").dispatchEvent("pointerdown");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height + 120);
+    await page.waitForTimeout(900);
+    await expect(tip).toBeVisible();
+    // Back over the tooltip, and away again: it closes as usual.
+    await page.mouse.move(inside.x, inside.y);
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height + 120);
+    await expect(tip).toBeHidden();
+  });
+});

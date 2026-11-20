@@ -13,6 +13,8 @@ export interface Strings {
   readonly tooltip: string;
   /** The pin that keeps the tooltip open (its on or off is `aria-pressed`, not the wording). */
   readonly pin: string;
+  /** The credit at the foot of the tooltip (it always shows; the words can be translated). */
+  readonly poweredBy: string;
 }
 
 /** A translation the plugin may show (`GET /api/widget/translations`). */

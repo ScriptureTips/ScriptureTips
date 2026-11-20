@@ -1,0 +1,37 @@
+<p>These are real passages on this page, linked by the plugin's own script. Hover a reference (or focus it with the keyboard, or tap it on a phone) to open its tooltip.</p>
+
+<div id="tooltip-demo">
+<h2>References found for you</h2>
+<pre><code>ScriptureTips.run("#content");</code></pre>
+<p>Book names in full or abbreviated are linked wherever they are written: John 3:16 is the best known verse, and Jn 1:1 and 1 Cor 13:4-7 are found the same way. A range such as Romans 5:8–10 shows all its verses, and a whole chapter such as Psalm 23 shows its first verses with <em>Read more</em>.</p>
+
+<h2>Translation menu and pin</h2>
+<p>Open the tooltip for Isaiah 53:5 and change the translation in its menu. The choice stays with that link in your browser. Pin the tooltip to keep it open while you read, or press Escape to close it.</p>
+
+<h2>One passage in another translation</h2>
+<pre><code>John 3:16 (LEB)</code></pre>
+<p>An abbreviation written after a reference opens that passage in that translation: Hebrews 11:1 (LEB), and in the page's own translation, Hebrews 11:1.</p>
+
+<h2>Translator's notes</h2>
+<p>Some translations carry notes. Hover the small mark in a verse of Genesis 1:1 (NET) to read the note without leaving the text.</p>
+
+<h2>Leaving a part out</h2>
+<pre><code>&lt;p class="st-ignore"&gt;…&lt;/p&gt;</code></pre>
+<p class="st-ignore">Our address is 3:16 John Street, and Mark 4 is not linked here. Code and links you wrote yourself are always left alone, too: <code>John 3:16</code>.</p>
+
+<h2>Your own links</h2>
+<p>A link you draw yourself gets the same tooltip when it names its passage:
+<a class="st-ref" href="#tooltip-demo" data-st-ref="Ps.23.1" data-st-text="Psalm 23:1">the shepherd psalm</a>.</p>
+
+<h2>Text added later</h2>
+<p>Text that appears after the page loads is linked too. <button type="button" id="demo-add-text">Add a sentence</button></p>
+<div id="demo-added"></div>
+
+<h2>Listening</h2>
+<p id="demo-tip-log">Open a tooltip and the page hears about it.</p>
+</div>
+
+<p>To make the tooltip match your site, see <a href="topic:theme">matching your site's look</a>; where the links go is in <a href="topic:destination">where links go</a>.</p>
+
+<script src="{{data}}/widget/scripturetips.js"></script>
+<script src="{{data}}/widget/demo.js" defer></script>

@@ -23,6 +23,15 @@ import { createTooltip } from "./tooltip.ts";
 import { chooseTranslation, DEFAULT_TRANSLATION } from "./translation.ts";
 import type { LinksEventName, LinksEvents, LinksOptions } from "./types.ts";
 
+/** The data server's home, from its API address (`https://scripture.tips/api`), or null. */
+function homeOf(api: string): string | undefined {
+  try {
+    return `${new URL(api, "https://scripture.tips").origin}/`;
+  } catch {
+    return undefined;
+  }
+}
+
 /** How long a burst of page changes settles before the new parts are scanned (ms). */
 const SETTLE_MS = 100;
 
@@ -106,6 +115,7 @@ export function createScriptureLinks(options: LinksOptions): ScriptureLinks {
     client,
     strings,
     site,
+    brand: homeOf(options.api),
     hoverDelayMs: options.hoverDelayMs ?? 300,
     translation: async (a) =>
       chooseTranslation(
