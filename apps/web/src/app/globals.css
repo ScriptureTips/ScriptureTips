@@ -2021,15 +2021,79 @@ main:has(> .compilation) {
   color: inherit;
 }
 
-.note-mark {
+.note-mark,
+.user-note-mark {
   font-family: var(--sans);
   font-size: 0.65em;
   line-height: 0;
 }
 
-.note-mark a {
+.note-mark a,
+.user-note-mark a {
   text-decoration: none;
   padding: 0 0.1em;
+}
+
+/* Notes of translations not on the page, under a verse in the compilation's column (compare and
+   edit): below a rule (study/StudyOtherNotes.tsx). */
+.other-notes {
+  display: block;
+  margin-top: 0.35rem;
+  padding-top: 0.2rem;
+  border-top: 1px solid var(--rule);
+  line-height: 1.6;
+}
+
+.other-notes .other-note-slot + .other-note-slot {
+  margin-left: 0.25rem;
+}
+
+/* The user's notes, by collection, then by the translation they're pinned in. */
+.notes .note-collection h3 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.notes .note-translation h4 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted, inherit);
+}
+
+/* Jumping to a note or its mark stops below the reading head, which is held at the top of the
+   window. */
+.reading .note-mark a,
+.reading .user-note-mark a,
+.reading .notes li,
+.reading .verse-words {
+  scroll-margin-top: calc(var(--reading-head, 6.75rem) + 1rem);
+}
+
+/* The verse a footer note's letter jumps to: sky blue for a second, then fading out over two
+   (study/StudyLayers.tsx). */
+.verse-flash {
+  animation: verse-flash 3s linear;
+  /* Reaches into the leading above and below each line, so the lines' color meets (padding on an
+     inline box moves nothing). */
+  padding-block: 0.36em;
+}
+
+@keyframes verse-flash {
+  0%,
+  33.33% {
+    background-color: skyblue;
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verse-flash {
+    animation: none;
+  }
 }
 
 /* Hover tips (`ui/HoverTip.tsx`): a body that opens over its trigger. Their open state is the
@@ -2048,11 +2112,12 @@ main:has(> .compilation) {
 
 /* A translator's note over its mark. */
 .note-tip {
-  position: absolute;
+  /* Placed by `ui/HoverTip.tsx` when it opens (top and left). */
+  position: fixed;
+  /* Never left to its static position, which is inside the passage's columns. */
+  top: 0;
+  left: 0;
   z-index: 20;
-  bottom: 1.6em;
-  left: 50%;
-  transform: translateX(-50%);
   width: max-content;
   max-width: min(20rem, 70vw);
   padding: 0.5rem 0.7rem;
@@ -2067,6 +2132,8 @@ main:has(> .compilation) {
   line-height: 1.4;
   text-align: start;
   white-space: normal;
+  /* Not the paragraph's first-line indent or poetry's hanging one, which it would inherit. */
+  text-indent: 0;
 }
 
 /* On a phone the tip is a panel along the bottom of the window, not clipped by the edges. */
@@ -2088,9 +2155,30 @@ main:has(> .compilation) {
   font-size: 0.95rem;
 }
 
+/* In columns like the reading area's (one on a phone). Headings of a whole list or a collection
+   span them; a note isn't split between columns, and a translation's heading stays with its first. */
+.notes {
+  columns: 22rem;
+  column-gap: 2.5rem;
+}
+
 .notes h2 {
   font-size: 1rem;
   color: var(--muted);
+}
+
+.notes h2,
+.notes .note-collection h3 {
+  column-span: all;
+}
+
+.notes h3,
+.notes h4 {
+  break-after: avoid;
+}
+
+.notes li {
+  break-inside: avoid;
 }
 
 .notes ol {
@@ -3687,6 +3775,66 @@ html[data-study-docked] .study-dock {
   flex: none;
   margin: 0;
   cursor: pointer;
+}
+
+/* The footer's checkboxes: each label opens a tooltip on hover, fixed over the window's edge so the
+   window doesn't clip it (study/StudyLayers.tsx places it above the label). */
+.layer-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.layer-toggle input:disabled,
+.layer-toggle input:disabled + span {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.layer-tip {
+  position: fixed;
+  z-index: 40;
+  width: max-content;
+  max-width: calc(100vw - 1rem);
+  max-height: 60vh;
+  overflow: auto;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 3px 12px rgb(0 0 0 / 0.25);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.layer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layer-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.layer-empty {
+  margin: 0;
+  max-width: 16rem;
+}
+
+/* Hidden by the footer's checkboxes (study/StudyLayers.tsx). */
+[data-layer-hidden] {
+  display: none !important;
 }
 
 /* What the colors mean: the words flow along and wrap. */

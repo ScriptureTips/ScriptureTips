@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { collectionShown, DEFAULT_COLLECTION, LAYERS_CHANGED, readLayers } from "./layers.ts";
 import { type Anchor, hoverLinks, LINK_HIGHLIGHT, LINK_HOVER, paintLinks } from "./linkAnchor.ts";
 import { canonicalSpan } from "./selection.ts";
 
@@ -24,7 +25,13 @@ export function StudyLinkMarks({ slug }: { slug: string }) {
   useEffect(() => {
     let links: Pinned[] = [];
     let current = true;
-    const draw = () => paintLinks(document.documentElement, slug, links);
+    // The links are the default collection's (the user's annotations in no other collection).
+    const draw = () =>
+      paintLinks(
+        document.documentElement,
+        slug,
+        collectionShown(readLayers(), DEFAULT_COLLECTION) ? links : [],
+      );
     const load = () => {
       // The chapter's verses as the page names them (canonical), first to last.
       const span = canonicalSpan(document.documentElement);
@@ -63,6 +70,7 @@ export function StudyLinkMarks({ slug }: { slug: string }) {
     document.addEventListener("mouseleave", clearHover);
     window.addEventListener("scroll", clearHover, true);
     window.addEventListener(LINKS_CHANGED, load);
+    window.addEventListener(LAYERS_CHANGED, draw);
     window.addEventListener("resize", draw);
     return () => {
       current = false;
@@ -73,6 +81,7 @@ export function StudyLinkMarks({ slug }: { slug: string }) {
       document.removeEventListener("mouseleave", clearHover);
       window.removeEventListener("scroll", clearHover, true);
       window.removeEventListener(LINKS_CHANGED, load);
+      window.removeEventListener(LAYERS_CHANGED, draw);
       window.removeEventListener("resize", draw);
       if (typeof CSS !== "undefined" && "highlights" in CSS) {
         CSS.highlights.delete(LINK_HIGHLIGHT);

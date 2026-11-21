@@ -1,5 +1,12 @@
 import { expect as baseExpect, type Page, test } from "@playwright/test";
-import { arriveFromOwnAddress, openNewCompilation, openStudy, shot, signUp } from "./support.ts";
+import {
+  arriveFromOwnAddress,
+  openNewCompilation,
+  openStudy,
+  rememberStudyWindow,
+  shot,
+  signUp,
+} from "./support.ts";
 
 arriveFromOwnAddress();
 
@@ -465,6 +472,7 @@ test("vision §3.2: study mode paints each tagged word by its kind, and moves no
   await create(page, "Study Words", "Lexis");
   await page.goto("/compilations/lexis?book=Gen&chapter=4&mode=compare");
   await settled(page);
+  await rememberStudyWindow(page);
   const own = page.locator("td.compare-own");
   await expect(own.first()).toContainText("Adam knew Eve his wife");
   await expect(page.locator("td .study-word")).toHaveCount(0);
@@ -512,7 +520,8 @@ test("vision §3.2: study mode paints each tagged word by its kind, and moves no
     "title",
     /יָדַע · H3045/,
   );
-  // What the colors mean is in the menu, which stays open: its words flow along in a row.
+  // What the colors mean is the tooltip of the footer's Word types: its words flow along in a row.
+  await menu.getByText("Word types", { exact: true }).hover();
   const legend = menu.getByRole("list", { name: /^What the .{6,7} mean$/ });
   await expect(legend).toBeVisible();
   const chips = legend.getByRole("listitem");
@@ -644,6 +653,8 @@ test("vision §3.2: selecting words in study mode opens a tooltip with what they
 }) => {
   test.setTimeout(120_000);
   await create(page, "Pick Words", "Pickup");
+  // The window starts as the bar, off the columns dragged across below.
+  await rememberStudyWindow(page);
   await page.goto("/compilations/pickup?book=Gen&chapter=4&mode=compare&study=1");
   await settled(page);
   const own = page.locator("td.compare-own").first();
@@ -1253,6 +1264,7 @@ test("vision §3.2: study mode starts its window as a bar, which expands to a wi
   await create(page, "Study Dock", "Dock");
   await page.goto("/compilations/dock?book=Gen&chapter=4&mode=compare");
   await settled(page);
+  await rememberStudyWindow(page);
   const study = page.getByRole("dialog", { name: "Study" });
   await expect(study).toHaveCount(0);
 
@@ -1359,4 +1371,326 @@ test("vision §3.2: study mode starts its window as a bar, which expands to a wi
       .getByRole("dialog", { name: "Study" })
       .getByRole("button", { name: "Expand the study window" }),
   ).toBeVisible();
+});
+
+/** The four default sizes of the study window, by the viewport's width (study/box.ts). */
+const defaultStudySize = (width: number) =>
+  width >= 1920
+    ? { w: 1000, h: 600 }
+    : width >= 1280
+      ? { w: 720, h: 440 }
+      : width >= 768
+        ? { w: 480, h: 360 }
+        : { w: 320, h: 280 };
+
+test("vision §3.2: opening a compilation from the list starts the study window expanded, centered, at its default size", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await create(page, "Study Fresh", "Fresh");
+  await settled(page);
+  // A place remembered from before is forgotten when the compilation is opened from the list.
+  await rememberStudyWindow(page);
+  await page.goto("/compilations");
+  // The card's link forgets the place once the page's scripts have run.
+  await settled(page);
+  await page.getByRole("link", { name: "Study Fresh" }).click();
+  await expect(page).toHaveURL(/\/compilations\/fresh$/);
+  await settled(page);
+  expect(await page.evaluate(() => localStorage.getItem("study-menu-box"))).toBeNull();
+
+  await page.getByRole("button", { name: "Study", exact: true }).click();
+  const study = page.getByRole("dialog", { name: "Study" });
+  await expect(study.getByRole("button", { name: "Minimise" })).toBeVisible();
+  await expect(study.getByRole("combobox", { name: "Search" })).toBeVisible();
+  const view = page.viewportSize();
+  const box = await study.boundingBox();
+  if (!view || !box) throw new Error("No window.");
+  const size = defaultStudySize(view.width);
+  expect(Math.round(box.width)).toBe(size.w);
+  expect(Math.round(box.height)).toBe(Math.min(size.h, view.height - 16));
+  expect(Math.abs(box.x + box.width / 2 - view.width / 2)).toBeLessThan(2);
+  expect(Math.abs(box.y + box.height / 2 - view.height / 2)).toBeLessThan(2);
+  await page.screenshot(shot("study-window-centered"));
+});
+
+test("vision §3.2: the study window's footer shows or hides word types, translator's notes and your notes, with a tooltip for each", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await create(page, "Study Layers", "Layers");
+  // The LEB read whole: its notes are marked in the verses and listed under the passage.
+  await page.goto("/compilations/layers?book=Gen&chapter=1&mode=read&read=leb&study=1");
+  await settled(page);
+  const study = page.getByRole("dialog", { name: "Study" });
+  await expect(study).toBeVisible();
+  const expand = study.getByRole("button", { name: "Expand the study window" });
+  if (await expand.isVisible()) await expand.click();
+  await expect(study).not.toHaveClass(/moving/);
+  const marks = page.locator(".reading .note-mark");
+  const list = page.locator(".reading .notes").first();
+  await expect(marks.first()).toBeVisible();
+  await expect(list).toBeVisible();
+
+  // Word types: hovering the label shows what the colors mean.
+  await study.getByText("Word types", { exact: true }).hover();
+  await expect(page.locator(".layer-tip .study-legend")).toBeVisible();
+  await page.screenshot(shot("study-footer-word-types"));
+
+  // Translator's notes: the translations with notes in view, each with its own checkbox.
+  await page.mouse.move(5, 5);
+  await study.getByText("Translator's notes", { exact: true }).hover();
+  const leb = page.locator(".layer-tip").getByRole("checkbox", { name: "LEB" });
+  await expect(leb).toBeVisible();
+  await expect(leb).toBeChecked();
+  await page.screenshot(shot("study-footer-translators-notes"));
+  // Unchecked, the LEB's marks and its list go; checked, they come back.
+  await leb.uncheck();
+  await expect(marks.first()).toBeHidden();
+  await expect(list).toBeHidden();
+  await leb.check();
+  await expect(marks.first()).toBeVisible();
+  await expect(list).toBeVisible();
+  // The footer's own checkbox hides them all.
+  const notes = study.getByRole("checkbox", { name: "Translator's notes" });
+  await expect(notes).toBeEnabled();
+  await notes.uncheck();
+  await expect(marks.first()).toBeHidden();
+  await expect(list).toBeHidden();
+  // It's remembered.
+  await page.reload();
+  await settled(page);
+  await expect(marks.first()).toBeHidden();
+  // Study mode is in the address: the window is back (expanded, since no place is remembered).
+  await page
+    .getByRole("dialog", { name: "Study" })
+    .getByRole("checkbox", { name: "Translator's notes" })
+    .check();
+  await expect(marks.first()).toBeVisible();
+
+  // A note's tooltip has no indent of its paragraph's. (Whose note it is shows where a compilation
+  // takes verses from translations; a translation read whole names none.)
+  await marks.first().hover();
+  const tip = page.locator(".note-tip").first();
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveCSS("text-indent", "0px");
+
+  // Your notes: the collections, for now the default one.
+  await page.mouse.move(5, 5);
+  await page
+    .getByRole("dialog", { name: "Study" })
+    .getByText("Your notes", { exact: true })
+    .hover();
+  await expect(
+    page.locator(".layer-tip").getByRole("checkbox", { name: "Default collection" }),
+  ).toBeChecked();
+  await page.screenshot(shot("study-footer-your-notes"));
+});
+
+test("vision §3.2: your notes are lettered marks with a list, pinned to the compilation, in read, compare and edit", async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  await create(page, "Your Notes", "Mine");
+  await page.goto("/compilations/mine?book=Gen&chapter=4&mode=compare&study=1");
+  await settled(page);
+  const own = page.locator("td.compare-own").first();
+  const eve = own.locator('.study-word[data-strong="H2332"]').first();
+  const tip = page.getByRole("dialog", { name: "The selected words" });
+  await dragAcross(page, eve);
+  await tip.getByRole("button", { name: "Link", exact: true }).click();
+  await tip.getByRole("combobox", { name: "Passage to link these words to" }).fill("Gen 4:25");
+  await tip
+    .getByRole("option", { name: /^Genesis 4:25 / })
+    .first()
+    .click();
+  await expect(tip.getByRole("list", { name: "Links" })).toContainText("4:25");
+  await page.keyboard.press("Escape");
+  await page.mouse.click(5, 5);
+
+  // Made in the compilation's column, the link is pinned to the compilation, though the verse
+  // is the KJV's unchanged.
+  const anchors = await page.evaluate(async () => {
+    const res = await fetch("/api/links?ref=Gen.4.1");
+    const body = (await res.json()) as { links: { anchor: { in: string } | null }[] };
+    return body.links.map((l) => l.anchor?.in);
+  });
+  expect(anchors).toEqual(["@compilation"]);
+
+  // A lettered mark at the end of the verse, in the compilation's column only.
+  // (The phone's list is in the page too, hidden at this width.)
+  const mark = page.locator(".user-note-mark").filter({ visible: true });
+  await expect(mark).toHaveCount(1);
+  await expect(mark.locator(":scope > a")).toHaveText("A");
+  await expect(own.locator(".user-note-mark")).toHaveCount(1);
+  // Its tooltip quotes the words and links the passage, beside its mark.
+  await mark.hover();
+  const markTip = mark.locator(".note-tip");
+  await expect(markTip).toBeVisible();
+  await expect(markTip).toContainText("Eve");
+  await expect(markTip.getByRole("link", { name: "Genesis 4:25" })).toBeVisible();
+  const [m, t] = [await mark.boundingBox(), await markTip.boundingBox()];
+  if (!m || !t) throw new Error("No tooltip.");
+  expect(Math.abs(t.x + t.width / 2 - (m.x + m.width / 2))).toBeLessThan(t.width / 2 + 2);
+  expect(t.y + t.height).toBeLessThanOrEqual(m.y + 1);
+
+  // Listed under the table: your notes, by collection, then by the compilation's abbreviation.
+  await page.mouse.move(5, 5);
+  const yours = page.getByRole("region", { name: "Your notes" });
+  await expect(yours.getByRole("heading", { name: "Default collection" })).toBeVisible();
+  await expect(yours.getByRole("heading", { name: "Mine" })).toBeVisible();
+  const entry = yours.getByRole("listitem").first();
+  await expect(entry).toContainText("4:1");
+  await expect(entry).toContainText("Eve");
+  await page.screenshot(shot("study-your-notes-compare"));
+  // Its letter goes to the verse, and the verse flashes.
+  await entry.getByRole("link", { name: "A", exact: true }).click();
+  await expect(own.locator(".verse-words.verse-flash")).toHaveCount(1);
+
+  // The footer hides them: marks and list. (Study mode is on: its window is open.)
+  const study = page.getByRole("dialog", { name: "Study" });
+  const expandIt = study.getByRole("button", { name: "Expand the study window" });
+  if (await expandIt.isVisible()) await expandIt.click();
+  await study.getByRole("checkbox", { name: "Your notes" }).uncheck();
+  await expect(mark).toHaveCount(0);
+  await expect(yours).toHaveCount(0);
+  await study.getByRole("checkbox", { name: "Your notes" }).check();
+  await expect(mark).toHaveCount(1);
+
+  // Edit mode draws the mark again in its rebuilt cells.
+  await page
+    .getByRole("navigation", { name: "Reading mode" })
+    .getByRole("link", { name: "Edit" })
+    .click();
+  await expect(page).toHaveURL(/mode=edit/);
+  await settled(page);
+  await expect(page.locator("td.compare-own .user-note-mark")).toHaveCount(1);
+
+  // Read mode: the mark at the end of the verse, and the list under the passage.
+  await page
+    .getByRole("navigation", { name: "Reading mode" })
+    .getByRole("link", { name: "Read" })
+    .click();
+  await expect(page).toHaveURL(/mode=read/);
+  await settled(page);
+  await expect(page.locator(".reading .user-note-mark").filter({ visible: true })).toHaveCount(1);
+  const readList = page.locator(".passage .user-notes");
+  await expect(readList.getByRole("heading", { name: "Your notes" })).toBeVisible();
+  await expect(readList.getByRole("listitem")).toHaveCount(1);
+  await page.screenshot(shot("study-your-notes-read"));
+});
+
+test("vision §3.1: the base translation can be a compare column beside the compilation", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await create(page, "Base Column", "Beside");
+  await page.goto("/compilations/beside?book=Gen&chapter=1&mode=compare");
+  await settled(page);
+  const first = page.getByRole("combobox", { name: "Translation for column 1" });
+  await first.selectOption("eng-kjv");
+  await expect(
+    page.getByRole("table", { name: "Genesis 1" }).getByRole("columnheader").nth(1),
+  ).toContainText("KJV");
+});
+
+test("vision §3.2: the notes of translations not on the page can be shown: at the end of each verse when reading, under the compilation's verse when comparing", async ({
+  page,
+}) => {
+  test.setTimeout(150_000);
+  await create(page, "Other Notes", "Others");
+  await rememberStudyWindow(page);
+  await page.goto("/compilations/others?book=Gen&chapter=1&mode=read&study=1");
+  await settled(page);
+  const study = await (async () => {
+    const dialog = page.getByRole("dialog", { name: "Study" });
+    const expand = dialog.getByRole("button", { name: "Expand the study window" });
+    await expect(expand).toBeVisible();
+    await expand.click();
+    await expect(dialog.getByRole("button", { name: "Minimise" })).toBeVisible();
+    await expect(dialog).not.toHaveClass(/moving/);
+    return dialog;
+  })();
+
+  // The footer's tooltip lists the translations with notes on the chapter; those not on the page
+  // start unchecked. The LEB isn't on the page (the compilation is the KJV's).
+  await study.getByText("Translator's notes", { exact: true }).hover();
+  const leb = page.locator(".layer-tip").getByRole("checkbox", { name: "LEB", exact: true });
+  await expect(leb).toBeVisible();
+  await expect(leb).not.toBeChecked();
+  await expect(page.locator('[data-note-source="leb"]')).toHaveCount(0);
+  await leb.check();
+
+  // Read: a mark at the end of each verse with an LEB note, and a list under the passage.
+  const marks = page.locator('.passage [data-note-source="leb"] .note-mark');
+  await expect(marks.first()).toBeVisible();
+  const list = page.locator(".passage .other-notes-list");
+  await expect(list.getByRole("heading", { name: "LEB" })).toBeVisible();
+  await expect(list.getByRole("listitem").first()).toContainText("1:");
+  await marks.first().hover();
+  await expect(marks.first().locator(".note-tip")).toContainText("(LEB)");
+  await page.screenshot(shot("study-other-notes-read"));
+  // The letters run on with the page's own marks: no letter twice in the passage.
+  const letters = await page
+    .locator(".passage .note-mark > a")
+    .evaluateAll((as) => as.filter((a) => a.getClientRects().length > 0).map((a) => a.textContent));
+  expect(new Set(letters).size).toBe(letters.length);
+
+  // Compare: under a rule below the verse in the compilation's column.
+  await page.mouse.move(5, 5);
+  await page
+    .getByRole("navigation", { name: "Reading mode" })
+    .getByRole("link", { name: "Compare" })
+    .click();
+  await expect(page).toHaveURL(/mode=compare/);
+  await settled(page);
+  // A translation with notes that isn't a column here: the first unchecked in the tooltip.
+  const dialog = page.getByRole("dialog", { name: "Study" });
+  await dialog.getByText("Translator's notes", { exact: true }).hover();
+  // The KJV 2006 isn't a column here (the default columns are the ASV, BSB and DRA).
+  const name = "KJV2006";
+  const other = page.locator(".layer-tip").getByRole("checkbox", { name, exact: true });
+  await expect(other).not.toBeChecked();
+  await other.check();
+  const under = page.locator("td.compare-own .other-notes .note-mark");
+  await expect(under.first()).toBeVisible();
+  await expect(page.getByRole("region", { name: "Translator's notes" })).toContainText(`(${name})`);
+  await page.mouse.move(5, 5);
+  // Under the verse, after switching view too (not left above a re-rendered verse).
+  const underLast = () =>
+    page
+      .locator("td.compare-own .other-notes")
+      .evaluateAll((boxes) => boxes.every((b) => b.parentElement?.lastElementChild === b));
+  await expect.poll(underLast).toBe(true);
+  await page.screenshot(shot("study-other-notes-compare"));
+  // Each note once (not again for the layout hidden at this width).
+  const entries = await page
+    .getByRole("region", { name: "Translator's notes" })
+    .getByRole("listitem")
+    .allTextContents();
+  expect(new Set(entries).size).toBe(entries.length);
+  // Lettered through the table, so each letter names one note.
+  const lettersInList = await page
+    .getByRole("region", { name: "Translator's notes" })
+    .locator(".note-letter")
+    .allTextContents();
+  expect(new Set(lettersInList).size).toBe(lettersInList.length);
+
+  await page
+    .getByRole("navigation", { name: "Reading mode" })
+    .getByRole("link", { name: "Edit" })
+    .click();
+  await expect(page).toHaveURL(/mode=edit/);
+  await expect(under.first()).toBeVisible();
+  await expect.poll(underLast).toBe(true);
+
+  // Unchecked, its notes go (the LEB's, chosen in the read tab, stay where it isn't a column);
+  // the footer's own checkbox takes them all.
+  const before = await under.count();
+  await dialog.getByText("Translator's notes", { exact: true }).hover();
+  await page.locator(".layer-tip").getByRole("checkbox", { name, exact: true }).uncheck();
+  await expect.poll(() => under.count()).toBeLessThan(before);
+  await page.mouse.move(5, 5);
+  await dialog.getByRole("checkbox", { name: "Translator's notes" }).uncheck();
+  await expect(under).toHaveCount(0);
 });

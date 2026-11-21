@@ -6,6 +6,22 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ## [Unreleased]
 
+### Added
+- Opening a compilation from your list starts the study window expanded, centered on the screen, at a size that suits it (four sizes, by screen width, up to 1000 × 600).
+- The study window's footer has three checkboxes: *Word types*, *Translator's notes* and *Your notes*. Hover each for what the colors mean, the translations with notes on screen, or your note collections, each with its own checkbox to show or hide it. Your choices are remembered.
+- In study mode, translator's notes are marked in the compare and edit views too, and each note says which translation it's from.
+- Your notes (your scripture links) are marked in the text with letters (A, B …), and listed under the passage (or under the table in compare and edit), grouped by collection, then by translation. Translator's notes are listed apart.
+- A note's letter in a list takes you to the start of its verse, which flashes sky blue; a mark takes you to its note in the list. References in notes show the ScriptureTips passage tooltip.
+- In study mode, the notes of translations that aren't on the page can be shown too: the footer lists every translation with notes on the chapter (off until you tick them). In read mode their marks go at the end of each verse; in compare and edit, under a line below the verse in your compilation's column. They're listed with the other notes.
+- A compilation's base translation can be a compare column, to see the compilation beside the translation it started from.
+
+### Changed
+- A link made in a compilation's own text is pinned to the compilation, even where the verse is taken unchanged from a translation, so it no longer shows in that translation's column.
+
+### Fixed
+- Note tooltips stay beside their mark across the reading columns and in the comparison table, without the paragraph's indent.
+- Jumping to a note or its mark no longer hides it behind the reading head.
+
 ## [1.2.0] - 2026-11-21
 
 ### Added

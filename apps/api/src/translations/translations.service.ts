@@ -92,6 +92,16 @@ export type PassageOutcome =
   | { readonly ok: false; readonly reason: "invalid-reference"; readonly error: ParseError }
   | { readonly ok: false; readonly reason: "too-many-verses"; readonly limit: number };
 
+/** Most notes `notesOn` answers with: a chapter's, across every translation, with room to spare. */
+export const MAX_NOTES = 3000;
+
+/** One translation's notes on a span of canonical verses (`notesOn`). */
+export interface TranslationNotes {
+  readonly id: string;
+  readonly abbreviation: string;
+  readonly notes: { canonical: string[]; caller: string; body: unknown }[];
+}
+
 @Injectable()
 export class TranslationsService {
   /** Each translation's verse counts, read once: the reference parser needs them. */
@@ -246,6 +256,43 @@ export class TranslationsService {
           body: n.body,
         })),
     }));
+  }
+
+  /**
+   * Every translation's translator's notes on the canonical verses in `range` (a chapter, for
+   * study mode), by translation, in verse order: each note with the canonical verses of the verse
+   * it's on, its caller and its body. At most `MAX_NOTES` notes.
+   */
+  async notesOn(range: OrdinalRange): Promise<TranslationNotes[]> {
+    const rows = await this.db
+      .select({
+        id: translation.catalogId,
+        abbreviation: translation.abbreviation,
+        canonical: verseText.canonical,
+        caller: translatorNote.caller,
+        body: translatorNote.body,
+      })
+      .from(translatorNote)
+      .innerJoin(verseText, eq(verseText.id, translatorNote.verseTextId))
+      .innerJoin(translation, eq(translation.id, verseText.translationId))
+      .where(sql`${verseText.canonicalRange} && int4range(${range.start}, ${range.end}, '[]')`)
+      .orderBy(
+        asc(translation.abbreviation),
+        asc(verseText.chapter),
+        asc(verseText.verse),
+        asc(translatorNote.position),
+      )
+      .limit(MAX_NOTES);
+    const byTranslation = new Map<string, TranslationNotes>();
+    for (const r of rows) {
+      let t = byTranslation.get(r.id);
+      if (!t) {
+        t = { id: r.id, abbreviation: r.abbreviation, notes: [] };
+        byTranslation.set(r.id, t);
+      }
+      t.notes.push({ canonical: r.canonical, caller: r.caller, body: r.body });
+    }
+    return [...byTranslation.values()];
   }
 
   /** A translation's chapters and verses, read once: the reference parser needs them. */

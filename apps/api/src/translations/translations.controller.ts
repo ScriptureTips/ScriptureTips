@@ -9,12 +9,14 @@ import {
   Res,
 } from "@nestjs/common";
 
+import { parseOsisPassage, toOrdinalRange } from "@scripturetips/passage";
 import { z } from "zod";
 import type { FastifyReplyLike } from "../auth/tokens.ts";
 import { ZodPipe } from "../zod-pipe.ts";
 import {
   type PassageResult,
   type TranslationBookSummary,
+  type TranslationNotes,
   type TranslationSummary,
   TranslationsService,
 } from "./translations.service.ts";
@@ -40,6 +42,28 @@ export class TranslationsController {
   ): Promise<{ translations: TranslationSummary[] }> {
     reply.header("cache-control", "public, max-age=300");
     return { translations: await this.translations.list() };
+  }
+
+  /**
+   * Every translation's translator's notes on a span of canonical verses (`?ref=Gen.1.1-Gen.1.31`,
+   * canonical OSIS, a chapter at most), for study mode: the notes of translations not on the page.
+   */
+  @Get("notes")
+  async notes(
+    @Query(new ZodPipe(PassageQuery)) query: z.infer<typeof PassageQuery>,
+    @Res({ passthrough: true }) reply: FastifyReplyLike,
+  ): Promise<{ translations: TranslationNotes[] }> {
+    let range: { start: number; end: number };
+    try {
+      range = toOrdinalRange(parseOsisPassage(query.ref));
+    } catch {
+      throw new BadRequestException({ code: "bad-passage" });
+    }
+    // Within one chapter (ordinals count chapters in ten thousands).
+    if (Math.floor(range.start / 10_000) !== Math.floor(range.end / 10_000))
+      throw new BadRequestException({ code: "too-many-verses" });
+    reply.header("cache-control", "public, max-age=3600");
+    return { translations: await this.translations.notesOn(range) };
   }
 
   /** The books a translation has text for, with their chapters, for the reader's book list. */

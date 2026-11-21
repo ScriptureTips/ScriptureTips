@@ -4,6 +4,7 @@ import {
   longPress,
   openNewCompilation,
   openStudy,
+  rememberStudyWindow,
   shot,
   signUp,
   tapAt,
@@ -508,6 +509,9 @@ test("vision §3.2: study mode on a phone paints the verses' tagged words, and m
     );
   const before = await boxes();
 
+  // The word types are paint only. (Study mode also marks translator's notes in the verses, which
+  // adds marks to the text: they're switched off here, as the footer can.)
+  await page.evaluate(() => localStorage.setItem("study-layers", JSON.stringify({ notes: false })));
   const opened = await openStudy(page);
   await expect(opened.getByRole("switch")).toBeChecked();
   await expect(page).toHaveURL(/mode=compare&study=1/);
@@ -528,6 +532,8 @@ test("vision §3.2: on a phone, study mode in the read tab marks the words and k
 }) => {
   test.setTimeout(120_000);
   await create(page, "Read Phone", "Chapter");
+  // The window starts as the bar, out of the menu's way.
+  await rememberStudyWindow(page);
   await page.goto("/compilations/chapter?book=Gen&chapter=4&mode=read&study=1");
   await page.waitForLoadState("networkidle");
   await expect(
@@ -717,7 +723,8 @@ test("domain-model §3.1: on a phone, three links on nested words are drawn in f
           target,
           quote: text,
           anchor: {
-            in: unit.dataset["wordsIn"],
+            // Pinned as the tooltip pins it: in the compilation's own text, to the compilation.
+            in: unit.dataset["linkIn"] ?? unit.dataset["wordsIn"],
             compilation: "nest",
             start: { verse: verseKey, offset: from },
             end: { verse: verseKey, offset: from + text.length },
@@ -799,6 +806,7 @@ test("vision §3.2: on a phone, study mode moves the modes into the ⋮ menu, an
   await create(page, "Study Menu", "Modes");
   await page.goto("/compilations/modes?book=Gen&chapter=1&mode=compare");
   await page.waitForLoadState("networkidle");
+  await rememberStudyWindow(page);
   const head = page.locator(".reading-head");
   const modes = head.getByRole("navigation", { name: "Reading mode" });
   // Without study mode the modes stay in the head.

@@ -145,11 +145,25 @@ export async function touchDrag(
  * Turns study mode on and opens its window out of the bar it starts as. Returns the window.
  * Study mode starts with the window minimized, to a bar at the far left of the reading head.
  */
+/**
+ * Remembers a place for the study window, as for someone who has moved it before: study mode then
+ * starts it as the bar. Without one (a new browser, or a compilation just opened from the list),
+ * it starts expanded. Call it once the page has loaded.
+ */
+export async function rememberStudyWindow(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    localStorage.setItem("study-menu-box", JSON.stringify({ x: 120, y: 180, w: 384, h: null })),
+  );
+}
+
 export async function openStudy(page: Page): Promise<Locator> {
   await page.getByRole("button", { name: "Study", exact: true }).click();
   const study = page.getByRole("dialog", { name: "Study" });
   await expect(study).toBeVisible();
-  await study.getByRole("button", { name: "Expand the study window" }).click();
+  // It starts as the bar where a place is remembered, else expanded.
+  const expand = study.getByRole("button", { name: "Expand the study window" });
+  await expect(expand.or(study.getByRole("button", { name: "Minimise" }))).toBeVisible();
+  if (await expand.isVisible()) await expand.click();
   await expect(study.getByRole("button", { name: "Minimise" })).toBeVisible();
   // Its size settles once it has traveled out of the bar.
   await expect(study).not.toHaveClass(/moving/);

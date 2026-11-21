@@ -475,6 +475,7 @@ export function CompareGrid({
                           verse={r.verse}
                           number={verseLabel(r.verse)}
                           source={r.verse.source}
+                          inCompilation
                         />
                         {tag ? <small className="compare-tag"> {tag}</small> : null}
                       </button>
@@ -484,6 +485,7 @@ export function CompareGrid({
                           verse={r.verse}
                           number={verseLabel(r.verse)}
                           source={r.verse.source}
+                          inCompilation
                         />
                         {tag ? <small className="compare-tag"> {tag}</small> : null}
                       </>

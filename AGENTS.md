@@ -35,6 +35,7 @@ The repo is mounted at `/workspace` and commands run as your own user ID, so fil
 | [apps/site/AGENTS.md](apps/site/AGENTS.md) | The `scripture.tips` site: help for the extension and plugin, its versioned addresses, caching |
 | [docs/testing.md](docs/testing.md) | Test layers, commands, definition of done |
 | [docs/book-designer.md](docs/book-designer.md) | Editions and print/PDF output |
+| [docs/study-mode.md](docs/study-mode.md) | Study mode: the study window, marked words, search, selection tooltip, links |
 | [docs/branding.md](docs/branding.md) | Logo, palette, artwork and its rights, type |
 | [docs/licenses.md](docs/licenses.md), [docs/sources.md](docs/sources.md) | Translation and data licensing, ingestion |
 | [docs/license-evidence/](docs/license-evidence/) | Captured license terms and file hashes per source |

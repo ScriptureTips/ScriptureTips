@@ -16,6 +16,7 @@ import { createPortal } from "react-dom";
 import { useHydrated } from "../hydrated.ts";
 import { type Box, clampBox, movedBox, readBox, resizedBox, startBox } from "./box.ts";
 import { onOpenStudyMenu } from "./menuBus.ts";
+import { type LayerLabels, StudyLayers } from "./StudyLayers.tsx";
 import { STUDY_SEARCH, StudySearch } from "./StudySearch.tsx";
 import { holdSelection } from "./selection.ts";
 
@@ -45,6 +46,15 @@ function stored(): Box | null {
   }
 }
 
+/** Forgets where the window was left, so the next study session starts expanded under the button. */
+export function forgetStudyBox(): void {
+  try {
+    window.localStorage.removeItem(STORED);
+  } catch {
+    // Nothing to forget.
+  }
+}
+
 function store(box: Box): void {
   try {
     window.localStorage.setItem(STORED, JSON.stringify(box));
@@ -71,23 +81,27 @@ export function StudyMenu({
   on,
   href,
   label,
-  switchLabel,
   closeLabel,
   expandLabel,
   searchTranslations,
+  names,
+  layerLabels,
   children,
 }: {
   on: boolean;
   /** The address with study mode the other way round. */
   href: string;
   label: string;
-  switchLabel: string;
   /** The × (it minimizes the window). */
   closeLabel: string;
   /** The expand icon, once it's a bar. */
   expandLabel: string;
   /** The translations the window's search covers (catalog IDs): those in view. */
   searchTranslations: readonly string[];
+  /** Translation IDs to the names they go by (for the notes list). */
+  names: Readonly<Record<string, string>>;
+  layerLabels: LayerLabels;
+  /** What the word colors mean: the tooltip of the word types. */
   children?: ReactNode;
 }) {
   const router = useRouter();
@@ -204,6 +218,11 @@ export function StudyMenu({
     if (on) {
       // A fresh start: what was searched in an earlier study session goes, and the welcome shows.
       getSearch(STUDY_SEARCH).clear();
+      if (!stored()) {
+        // No remembered place (a compilation was just opened): start expanded.
+        setOpen(true);
+        return;
+      }
       minRef.current = true;
       document.documentElement.dataset["studyDocked"] = "on";
       setOpen(true);
@@ -252,16 +271,11 @@ export function StudyMenu({
     [],
   );
 
-  // First opened: where it was left, or under the button.
+  // First opened: where it was left, or centered in the viewport.
   useLayoutEffect(() => {
     if (!open || box) return;
-    const anchor = button.current?.getBoundingClientRect();
     const saved = stored();
-    setBox(
-      saved
-        ? clampBox(saved, viewNow())
-        : startBox(anchor ?? { right: window.innerWidth - 8, bottom: 48 }, viewNow()),
-    );
+    setBox(saved ? clampBox(saved, viewNow()) : startBox(viewNow()));
   }, [open, box]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `minimize` only uses refs and setters.
@@ -396,18 +410,14 @@ export function StudyMenu({
                 <StudySearch />
               </div>
               <footer className="study-menu-footer">
-                <input
-                  ref={switchBox}
-                  type="checkbox"
-                  role="switch"
-                  className="study-switch"
-                  aria-label={switchLabel}
-                  title={switchLabel}
-                  aria-checked={types}
-                  checked={types}
-                  onChange={() => setTypes(!types)}
+                <StudyLayers
+                  types={types}
+                  onTypes={setTypes}
+                  typesRef={switchBox}
+                  legend={children}
+                  names={names}
+                  labels={layerLabels}
                 />
-                {children}
               </footer>
               {/* biome-ignore lint/a11y/noStaticElementInteractions: the corner handle resizes the window by pointer; it has no keyboard use. */}
               <div

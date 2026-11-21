@@ -24,9 +24,16 @@ export interface Anchor {
 }
 
 /** What isn't counted: it's drawn inside `.verse-words` but isn't the verse's wording. */
-const SKIPPED = ".note-mark, .designation, .idiom-mark";
+const SKIPPED = ".note-mark, .user-note-mark, .designation, .idiom-mark";
 
 const WORDS = ".verse-words";
+
+/**
+ * The wording a link pinned in a verse belongs to: the compilation's own text (`@compilation`,
+ * even where its verse is taken unchanged from a translation), or the translation shown.
+ */
+export const linkIn = (unit: Element): string | undefined =>
+  unit.getAttribute("data-link-in") ?? unit.getAttribute("data-words-in") ?? undefined;
 const UNIT = ".verse-unit[data-canonical]";
 
 /** The text nodes of a verse's words that count, in order. */
@@ -94,12 +101,12 @@ export function readAnchor(scope: Element, range: Range, compilation: string): A
     range.intersectsNode(u),
   );
   const first = touched[0];
-  const wording = first?.dataset["wordsIn"];
+  const wording = first ? linkIn(first) : undefined;
   if (!first || !wording) return null;
   // The column the selection starts in: a drag down a column also passes through the others.
   const column = columnOf(first);
   const units = touched.filter(
-    (u) => columnOf(u) === column && u.dataset["wordsIn"] === wording && wordsOf(u),
+    (u) => columnOf(u) === column && linkIn(u) === wording && wordsOf(u),
   );
   const start = units[0];
   const end = units[units.length - 1];
@@ -142,7 +149,7 @@ export function anchorRanges(
     (u) =>
       // The phone's list and the table are both in the page, one hidden by the screen's width.
       (wordsOf(u)?.getClientRects().length ?? 0) > 0 &&
-      u.dataset["wordsIn"] === anchor.in &&
+      linkIn(u) === anchor.in &&
       (anchor.in !== "@compilation" || anchor.compilation === compilation),
   );
   const columns = new Map<number | null, HTMLElement[]>();

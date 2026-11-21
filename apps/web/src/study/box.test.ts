@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type Box,
   clampBox,
+  defaultSize,
   MIN_H,
   MIN_W,
   movedBox,
@@ -14,15 +15,26 @@ const view = { w: 1000, h: 700 };
 const box: Box = { x: 100, y: 100, w: 384, h: null };
 
 describe("the study menu's window", () => {
-  it("opens under its button, their right edges together, and on screen", () => {
-    expect(startBox({ right: 900, bottom: 80 }, view)).toEqual({ x: 516, y: 86, w: 384, h: null });
-    // A button near the left edge can't pull it off screen.
-    expect(startBox({ right: 100, bottom: 80 }, view).x).toBe(8);
+  it("opens centered in the viewport at its default size", () => {
+    expect(startBox(view)).toEqual({ x: 260, y: 170, w: 480, h: 360 });
+  });
+
+  it("is shortened to fit a short viewport, and stays centered", () => {
+    expect(startBox({ w: 1280, h: 380 })).toEqual({ x: 280, y: 8, w: 720, h: 364 });
+  });
+
+  it("starts at one of four default sizes by viewport width, the largest 1000 x 600", () => {
+    const size = (w: number) => defaultSize(w);
+    expect(size(2560)).toEqual({ w: 1000, h: 600 });
+    expect(size(1920)).toEqual({ w: 1000, h: 600 });
+    expect(size(1280)).toEqual({ w: 720, h: 440 });
+    expect(size(1024)).toEqual({ w: 480, h: 360 });
+    expect(size(390)).toEqual({ w: 320, h: 280 });
   });
 
   it("fits a phone: no wider than the screen less its margins", () => {
     const phone = { w: 360, h: 640 };
-    expect(startBox({ right: 330, bottom: 80 }, phone)).toMatchObject({ x: 8, w: 344 });
+    expect(startBox(phone)).toMatchObject({ x: 20, w: 320, h: 280 });
   });
 
   it("is dragged by the point held, and kept wholly on screen", () => {

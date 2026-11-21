@@ -8,12 +8,16 @@ import { type ChapterRef, neighbors } from "../reader/books.ts";
 import { ChapterBar } from "../reader/ChapterBar.tsx";
 import { Passage } from "../reader/Passage.tsx";
 import { studyWords } from "../study/api.ts";
+import type { NoteListLabels } from "../study/NoteGroups.tsx";
 import { StudyLegend } from "../study/StudyLegend.tsx";
 import { StudyLinkMarks } from "../study/StudyLinkMarks.tsx";
 import { StudyMenu } from "../study/StudyMenu.tsx";
+import { StudyNotesList } from "../study/StudyNotesList.tsx";
+import { StudyOtherNotes } from "../study/StudyOtherNotes.tsx";
 import { StudyPassagePopups } from "../study/StudyPassagePopups.tsx";
 import { StudyProvider } from "../study/StudyProvider.tsx";
 import { StudySelection } from "../study/StudySelection.tsx";
+import { StudyUserNotes } from "../study/StudyUserNotes.tsx";
 import type { StudyWords } from "../study/types.ts";
 import { strongsIn } from "../study/units.ts";
 import { type MenuPreferences, translationOptions } from "../translations/menu.ts";
@@ -51,19 +55,30 @@ function StudyParts({
   slug,
   base,
   favorite,
+  names,
+  labels,
+  notesList,
   children,
 }: {
+  /** The compare and edit views: their notes are listed under the table. */
+  notesList?: boolean;
   words: StudyWords;
+  /** The headings of the lists of notes. */
+  labels: NoteListLabels;
+  names: Record<string, string>;
   slug: string;
   base: string;
   favorite: string | undefined;
   children: React.ReactNode;
 }) {
   return (
-    <StudyProvider words={words}>
+    <StudyProvider words={words} names={names}>
       {children}
+      {notesList ? <StudyNotesList labels={labels} /> : null}
       <StudySelection slug={slug} base={base} />
       <StudyLinkMarks slug={slug} />
+      <StudyUserNotes labels={labels} base={base} />
+      <StudyOtherNotes heading={labels.otherTranslators} />
       <StudyPassagePopups base={base} {...(favorite ? { favorite } : {})} />
     </StudyProvider>
   );
@@ -112,6 +127,14 @@ export async function ReadingArea({
   const picker = mode !== "read" && books;
   const favorite = preferences?.favoriteTranslations[0];
   const t = await getTranslations("reading");
+  const noteLabels: NoteListLabels = {
+    translators: t("studyNotes"),
+    otherTranslators: t("studyOtherNotes"),
+    yours: t("studyYours"),
+    defaultCollection: t("studyDefaultCollection"),
+    // The compilation's own text goes by its abbreviation.
+    ownWording: c.abbreviation,
+  };
   const bookName = english.name(osis, "full", "one");
   const ref = `${bookName} ${chapter}`;
   const { previous, next } = neighbors(order, osis, chapter, chapter);
@@ -124,7 +147,8 @@ export async function ReadingArea({
     if (!columnIds.includes(x.id)) columnIds.push(x.id);
   }
 
-  const options = translationOptions(others, preferences, columnIds);
+  // Any translation can be a column, the base too: the compilation's own text can differ from it.
+  const options = translationOptions(all, preferences, columnIds);
   const abbreviations = new Map(all.map((x) => [x.id, x.abbreviation]));
   let body: React.ReactNode;
   if (mode === "read") {
@@ -147,7 +171,9 @@ export async function ReadingArea({
             canon={canon}
             sources={result.sources}
             showLabel={false}
-            study={words ? { words, wordsIn: result.translation.id } : undefined}
+            study={
+              words ? { words, wordsIn: result.translation.id, inCompilation: !read } : undefined
+            }
           />
         ))}
       </div>
@@ -155,7 +181,14 @@ export async function ReadingArea({
     body = !text ? (
       <p className="error">{t("unavailable")}</p>
     ) : words ? (
-      <StudyParts words={words} slug={c.slug} base={c.base.id} favorite={favorite}>
+      <StudyParts
+        words={words}
+        names={Object.fromEntries(all.map((x) => [x.id, x.abbreviation]))}
+        labels={noteLabels}
+        slug={c.slug}
+        base={c.base.id}
+        favorite={favorite}
+      >
         {text}
       </StudyParts>
     ) : (
@@ -194,7 +227,15 @@ export async function ReadingArea({
     body = !grid ? (
       <p className="error">{t("unavailable")}</p>
     ) : words ? (
-      <StudyParts words={words} slug={c.slug} base={c.base.id} favorite={favorite}>
+      <StudyParts
+        words={words}
+        names={Object.fromEntries(all.map((x) => [x.id, x.abbreviation]))}
+        labels={noteLabels}
+        notesList
+        slug={c.slug}
+        base={c.base.id}
+        favorite={favorite}
+      >
         {grid}
       </StudyParts>
     ) : (
@@ -235,9 +276,18 @@ export async function ReadingArea({
             on={study}
             href={readingHref(osis, chapter, mode, read, !study)}
             label={t("studyToggle")}
-            switchLabel={t("studySwitch")}
             closeLabel={t("studyClose")}
             expandLabel={t("studyExpand")}
+            names={Object.fromEntries(all.map((x) => [x.id, x.abbreviation]))}
+            layerLabels={{
+              types: t("studyTypes"),
+              typesSwitch: t("studySwitch"),
+              notes: t("studyNotes"),
+              yours: t("studyYours"),
+              noNotes: t("studyNoNotes"),
+              defaultCollection: t("studyDefaultCollection"),
+              ownWording: c.abbreviation,
+            }}
             searchTranslations={
               mode === "read" ? [read ?? c.base.id] : [...new Set([c.base.id, ...columnIds])]
             }

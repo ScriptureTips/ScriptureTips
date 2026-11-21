@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { currentAccount } from "../../account/api.ts";
 import { myCompilations } from "../../compilations/api.ts";
 import { CompositionChart } from "../../compilations/Composition.tsx";
+import { ForgetStudyBoxLink } from "../../compilations/ForgetStudyBoxLink.tsx";
 import { NewCompilationForm } from "../../compilations/forms.tsx";
 import { ModalButton } from "../../compilations/ModalButton.tsx";
 import { translations } from "../../reader/api.ts";
@@ -48,9 +49,12 @@ export default async function Compilations() {
               </div>
               <div className="compilation-card-body">
                 {/* The link covers the whole card (globals.css). */}
-                <a href={`/compilations/${c.slug}`} className="compilation-card-title">
+                <ForgetStudyBoxLink
+                  href={`/compilations/${c.slug}`}
+                  className="compilation-card-title"
+                >
                   {c.title}
-                </a>
+                </ForgetStudyBoxLink>
                 <CompositionChart slug={c.slug} base={c.base.id} choices="" />
               </div>
             </li>

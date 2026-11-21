@@ -46,6 +46,8 @@ export interface PlacedNote {
   note: Note;
   /** In a compilation: the translation the note's verse came from (catalog ID). */
   source?: string;
+  /** In a compilation: the verse's wording is the compilation's own (so are its notes' marks). */
+  own?: boolean;
 }
 
 export interface Laid {
@@ -62,6 +64,21 @@ export function letter(n: number): string {
 
 const verseLabel = (v: Verse) => v.published ?? (v.to ? `${v.verse}–${v.to}` : String(v.verse));
 
+/** The abbreviation a translation (catalog ID) goes by, to name whose a note is. */
+export type SourceName = (id: string) => string | undefined;
+
+/** A note's body for its tip, ending with whose note it is: " (KJV)". */
+const noted = (
+  body: readonly Inline[],
+  v: Verse,
+  nameOf: SourceName,
+  fallback?: string,
+): Shown[] => {
+  const source = v.source ?? fallback;
+  const name = source ? nameOf(source) : undefined;
+  return name ? [...noteBody(body), ` (${name})`] : noteBody(body);
+};
+
 /** The designation a verse's text must be followed by, and the site it links to. */
 export type DesignationOf = (v: Verse) => { text: string; url?: string } | undefined;
 
@@ -73,6 +90,7 @@ export function layOut(
   verses: readonly Verse[],
   prefix: string,
   designationOf: DesignationOf = () => undefined,
+  nameOf: SourceName = () => undefined,
 ): Laid {
   const blocks: Block[] = [];
   const notes: PlacedNote[] = [];
@@ -101,8 +119,9 @@ export function layOut(
         verse: `${v.chapter}:${verseLabel(v)}`,
         note,
         ...(v.source ? { source: v.source } : {}),
+        ...(v.edit || v.rendering ? { own: true } : {}),
       });
-      return { type: "mark", letter: l, noteId: id, body: noteBody(note.body) };
+      return { type: "mark", letter: l, noteId: id, body: noted(note.body, v, nameOf) };
     };
     const show = (nodes: readonly Inline[]): Shown[] =>
       nodes.flatMap((n): Shown[] => {
@@ -191,4 +210,43 @@ export function noteBody(nodes: readonly Inline[]): Shown[] {
     if (n.type === "char" || n.type === "span") return [{ ...n, content: noteBody(n.content) }];
     return [];
   });
+}
+
+/**
+ * One verse's words with its note marks in place, lettered from "a" within the verse (for the
+ * compare and edit views, which have no list of notes under the text: the marks' tips hold them).
+ * `prefix` makes the marks' ids unique on the page.
+ */
+export function withNoteMarks(
+  verse: Verse,
+  prefix: string,
+  nameOf: SourceName = () => undefined,
+  /** The translation a column's verses are from, when they don't name it themselves. */
+  source?: string,
+): Shown[] {
+  const byPosition = new Map(verse.notes.map((n) => [n.position, n]));
+  const placed = new Set<Note>();
+  let count = 0;
+  const mark = (position: number): Shown | undefined => {
+    const note = byPosition.get(position);
+    if (!note || placed.has(note)) return undefined;
+    placed.add(note);
+    const l = note.caller !== "+" && note.caller !== "-" ? note.caller : letter(count);
+    const noteId = `${prefix}-n${count++}`;
+    return { type: "mark", letter: l, noteId, body: noted(note.body, verse, nameOf, source) };
+  };
+  const show = (nodes: readonly Inline[]): Shown[] =>
+    nodes.flatMap((n): Shown[] => {
+      if (typeof n === "string") return [n];
+      if (n.type === "note") return [mark(n.position)].filter((m): m is Shown => m !== undefined);
+      if (n.type === "char" || n.type === "span") return [{ ...n, content: show(n.content) }];
+      return [];
+    });
+  const shown = show(verse.content);
+  // A note the markup doesn't mark is still shown, so none is ever hidden.
+  for (const n of verse.notes) {
+    const m = mark(n.position);
+    if (m) shown.push(m);
+  }
+  return shown;
 }

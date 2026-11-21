@@ -146,6 +146,43 @@ describe("GET /api/translations/:translation/passages", () => {
   });
 });
 
+describe("GET /api/translations/notes", () => {
+  it("returns every translation's notes on canonical verses, by translation", async () => {
+    // KJV Joel 2:28 is canonical Joel 3:1.
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/translations/notes?ref=Joel.3.1-Joel.3.5",
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json() as {
+      translations: { id: string; abbreviation: string; notes: { canonical: string[] }[] }[];
+    };
+    expect(body.translations).toHaveLength(1);
+    expect(body.translations[0]?.id).toBe("kjv");
+    expect(body.translations[0]?.abbreviation).toBe("KJV");
+    expect(body.translations[0]?.notes[0]?.canonical).toEqual(["Joel.3.1"]);
+    expect(res.headers["cache-control"]).toBe("public, max-age=3600");
+  });
+
+  it("finds none where no verse has notes", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/translations/notes?ref=Joel.3.2-Joel.3.5",
+    });
+    expect(res.json()).toEqual({ translations: [] });
+  });
+
+  it("rejects an unreadable reference, and a span past one chapter", async () => {
+    expect(
+      (await app.inject({ method: "GET", url: "/api/translations/notes?ref=nonsense" })).statusCode,
+    ).toBe(400);
+    expect(
+      (await app.inject({ method: "GET", url: "/api/translations/notes?ref=Joel.2.1-Joel.3.5" }))
+        .statusCode,
+    ).toBe(400);
+  });
+});
+
 describe("GET /api/translations/:translation/books", () => {
   it("lists the books with text and their chapters", async () => {
     const res = await get("/api/translations/kjv/books");

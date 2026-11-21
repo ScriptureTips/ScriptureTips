@@ -46,6 +46,8 @@ export const VERSE_MARKS: Readonly<Record<VerseMark, string>> = {
 export interface PassageStudy {
   words: StudyWords;
   wordsIn: string;
+  /** The compilation's own text is read (not a translation): links made here are pinned to it. */
+  inCompilation?: boolean;
 }
 
 /**
@@ -69,6 +71,7 @@ function VerseWords({
       className="verse-unit"
       data-canonical={unit.canonical.length > 0 ? unit.canonical.join(" ") : undefined}
       data-words-in={wordsIn}
+      data-link-in={study.inCompilation ? "@compilation" : wordsIn}
     >
       <span className="verse-words">
         <ShownText nodes={nodes} study={STUDY_SOURCES.has(wordsIn) ? study.words : null} />
@@ -151,7 +154,12 @@ export async function Passage({
   const tc = await getTranslations("canons");
   // A passage's verses all come from its first book (translations.service `versesIn`).
   const place = standing(passage.entered.split(".")[0] ?? "", canon);
-  const { blocks, notes } = layOut(passage.verses, `p${index}`, designationOf);
+  const { blocks, notes } = layOut(
+    passage.verses,
+    `p${index}`,
+    designationOf,
+    (id) => sources?.find((x) => x.id === id)?.abbreviation,
+  );
   return (
     <article className="passage" dir={direction}>
       {showLabel ? <h1 className="passage-label">{passage.label}</h1> : null}
@@ -182,12 +190,23 @@ export async function Passage({
           <h2>{t("notes")}</h2>
           <ol>
             {notes.map((n) => (
-              <li key={n.id} id={n.id}>
+              <li
+                key={n.id}
+                id={n.id}
+                data-words-in={n.own ? "@compilation" : (n.source ?? study?.wordsIn)}
+              >
                 <a className="note-letter" href={`#${n.id}-mark`}>
                   {n.letter}
                 </a>{" "}
                 <span className="note-verse">{n.verse}</span>{" "}
                 <ShownText nodes={noteBody(n.note.body)} />
+                {/* An adapted or own note already says whose it is. */}
+                {!n.note.origin && sources?.find((s) => s.id === n.source)?.abbreviation ? (
+                  <small className="note-source">
+                    {" "}
+                    ({sources?.find((s) => s.id === n.source)?.abbreviation})
+                  </small>
+                ) : null}
                 {n.note.origin ? (
                   <small className="note-origin">
                     {" "}

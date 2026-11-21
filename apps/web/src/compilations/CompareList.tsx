@@ -205,6 +205,7 @@ export function CompareList({
                     key={`${v.chapter}.${v.verse}`}
                     verse={v}
                     source={column?.id ?? v.source}
+                    inCompilation={!column}
                     number={
                       v.chapter === r.verse.chapter
                         ? verseLabel(v)

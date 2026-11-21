@@ -19,9 +19,29 @@ export interface View {
 /** The smallest the window can be. */
 export const MIN_W = 256;
 export const MIN_H = 128;
-/** The widest it starts, and the space kept around it. */
-const START_W = 384;
+/** The space kept around it. */
 const GAP = 8;
+
+/**
+ * The four default sizes, by the viewport's width (breakpoints, not calculations): each is about a
+ * quarter of its viewport's area, the largest being 1000 x 600. Listed widest first.
+ */
+export const DEFAULT_SIZES: readonly {
+  readonly minView: number;
+  readonly w: number;
+  readonly h: number;
+}[] = [
+  { minView: 1920, w: 1000, h: 600 },
+  { minView: 1280, w: 720, h: 440 },
+  { minView: 768, w: 480, h: 360 },
+  { minView: 0, w: 320, h: 280 },
+];
+
+/** The default size for a viewport width. */
+export function defaultSize(viewWidth: number): { w: number; h: number } {
+  const size = DEFAULT_SIZES.find((s) => viewWidth >= s.minView) ?? DEFAULT_SIZES[3];
+  return { w: size?.w ?? 320, h: size?.h ?? 280 };
+}
 /** Keeps a window wholly on screen, and within its limits: its corner can always be reached. */
 export function clampBox(box: Box, view: View): Box {
   const room = Math.max(1, view.w - 2 * GAP);
@@ -34,10 +54,12 @@ export function clampBox(box: Box, view: View): Box {
   return { x, y, w, h };
 }
 
-/** Where it first opens: under its button, with their right edges together. */
-export function startBox(anchor: { right: number; bottom: number }, view: View): Box {
-  const w = Math.min(START_W, view.w - 2 * GAP);
-  return clampBox({ x: anchor.right - w, y: anchor.bottom + 6, w, h: null }, view);
+/** Where it first opens: its default size, centered in the viewport (whatever the button's place). */
+export function startBox(view: View): Box {
+  const size = defaultSize(view.w);
+  const w = Math.min(size.w, view.w - 2 * GAP);
+  const h = Math.min(size.h, Math.max(MIN_H, view.h - 2 * GAP));
+  return clampBox({ x: (view.w - w) / 2, y: (view.h - h) / 2, w, h }, view);
 }
 
 /** Dragged so the point held (`grab`, from the window's corner) is at `to`. */

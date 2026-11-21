@@ -1,9 +1,10 @@
 "use client";
 
+import { useId } from "react";
 import type { Verse } from "../reader/api.ts";
-import { noteBody } from "../reader/layout.ts";
+import { noteBody, withNoteMarks } from "../reader/layout.ts";
 import { ShownText } from "../reader/ShownText.tsx";
-import { useStudy } from "../study/StudyProvider.tsx";
+import { useSourceNames, useStudy } from "../study/StudyProvider.tsx";
 import { STUDY_SOURCES } from "../study/types.ts";
 
 /** A verse's number as printed: its own label, or its range. */
@@ -32,24 +33,38 @@ export function VerseText({
   verse,
   number,
   source,
+  inCompilation = false,
 }: {
+  /** The verse is the compilation's own (its column): links made in it are pinned to it. */
+  inCompilation?: boolean;
   verse: Verse;
   number: string;
   /** The translation the words are from (catalog ID): study mode marks only some. */
   source?: string | undefined;
 }) {
   const words = useStudy();
+  const prefix = useId();
+  const names = useSourceNames();
   const study = words && source && STUDY_SOURCES.has(source) ? words : null;
   return (
     <span
       className="verse-unit"
       data-canonical={verse.canonical.length > 0 ? verse.canonical.join(" ") : undefined}
       data-words-in={verse.edit || verse.rendering ? "@compilation" : source}
+      data-link-in={inCompilation ? "@compilation" : undefined}
     >
       <VerseHeadings verse={verse} />
       <sup className="compare-number">{number}</sup>{" "}
       <span className="verse-words">
-        <ShownText nodes={noteBody(verse.content)} study={study} />
+        {/* In study mode the translators' notes show as marks too (the window's footer hides them). */}
+        <ShownText
+          nodes={
+            words
+              ? withNoteMarks(verse, prefix, (id) => names[id], source)
+              : noteBody(verse.content)
+          }
+          study={study}
+        />
       </span>
     </span>
   );

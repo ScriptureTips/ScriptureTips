@@ -21,6 +21,8 @@ export function StudyPassagePopups({ base, favorite }: { base: string; favorite?
   useEffect(() => {
     const popups = createScriptureLinks({ api: "/api", scheme: "canonical", translation: base });
     if (favorite) popups.setPreferences({ translation: favorite });
+    // The references written in a translator's note (its tooltip, and the list under a passage).
+    popups.run(".note-tip, .reading .notes:not(.user-notes, .compare-notes)");
     return () => popups.destroy();
   }, [base, favorite]);
   return null;
