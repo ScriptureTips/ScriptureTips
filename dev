@@ -2,8 +2,9 @@
 # Start or stop the local development stack (testing.md §2): ./dev up, ./dev down, ./dev logs,
 # ./dev migrate (applies pending database migrations to the development database), ./dev site
 # (builds the scripture.tips site's pages again, apps/site), ./dev launch [--app=NAME] [--print]
-# (opens one of the sites in the browser) and ./dev config.launchers (lists them as JSON, for
-# LanProjectsControlPanel's launch buttons).
+# (opens one of the sites in the browser), ./dev config.launchers (lists them as JSON, for
+# LanProjectsControlPanel's launch buttons) and ./dev config.logs (lists the log sources as JSON,
+# for its log viewer).
 # The stack is served through Caddy as https://dev.scripturetips.com (the web app) and
 # https://dev.scripture.tips (the data server), whose public DNS records point at this machine's
 # network address. `./dev up --lan` listens on the network (to try it on a phone or tablet);
@@ -101,6 +102,20 @@ config_launchers() {
   printf ']\n'
 }
 
+# `./dev config.logs`: the log sources as a JSON array, and nothing else on stdout. The project
+# writes no log files (every service logs to its container's output), so each source is a command
+# that follows that output; LanProjectsControlPanel runs it in this directory. The first is the one the viewer opens on.
+config_logs() {
+  cat <<'EOF'
+[{"id":"containers","title":"All containers","cmd":"docker compose --profile dev logs -f --tail=200"},
+ {"id":"api","title":"API (accounts and compilations)","cmd":"docker compose --profile dev logs -f --tail=200 api"},
+ {"id":"api-data","title":"Data server API (scripture.tips)","cmd":"docker compose --profile dev logs -f --tail=200 api-data"},
+ {"id":"web","title":"Web app","cmd":"docker compose --profile dev logs -f --tail=200 web"},
+ {"id":"caddy","title":"Caddy (both sites, access log)","cmd":"docker compose --profile dev logs -f --tail=200 caddy"},
+ {"id":"pdf-worker","title":"PDF worker","cmd":"docker compose --profile dev logs -f --tail=200 pdf-worker"}]
+EOF
+}
+
 # `./dev launch [--app=NAME] [--print]`: prints the launcher's URL and opens it (not with --print).
 launch() {
   local want="" print="" app title url class found=""
@@ -179,12 +194,13 @@ case "${1:-}" in
   site) site ;;
   launch) shift; launch "$@" ;;
   config.launchers) config_launchers ;;
+  config.logs) config_logs ;;
   config.*)
     echo "./dev: unknown config key: ${1#config.}" >&2
     exit 2
     ;;
   *)
-    echo "Usage: ./dev up [--lan | --bind=IP] [--local-bind=IP] | down | logs [service] | migrate | site | launch [--app=NAME] [--print] | config.launchers" >&2
+    echo "Usage: ./dev up [--lan | --bind=IP] [--local-bind=IP] | down | logs [service] | migrate | site | launch [--app=NAME] [--print] | config.launchers | config.logs" >&2
     exit 1
     ;;
 esac
