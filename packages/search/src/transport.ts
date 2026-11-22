@@ -7,6 +7,7 @@ export function queryString(query: string, scope: SearchScope, offset = 0): stri
   if (scope.kinds && scope.kinds.length > 0) params.set("kinds", scope.kinds.join(","));
   if (scope.translations && scope.translations.length > 0)
     params.set("translations", scope.translations.join(","));
+  if (scope.showIn) params.set("showIn", scope.showIn);
   if (scope.limit !== undefined) params.set("limit", String(scope.limit));
   if (scope.previewLength !== undefined) params.set("previewLength", String(scope.previewLength));
   if (offset > 0) params.set("offset", String(offset));

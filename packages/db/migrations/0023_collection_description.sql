@@ -1,0 +1,1 @@
+ALTER TABLE "annotation_collection" ADD COLUMN "description" text;

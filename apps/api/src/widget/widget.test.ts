@@ -59,6 +59,7 @@ async function addTranslation(
       canonicalRange: range(cc, cv),
       headings: [],
       content: [text, { type: "note", position: 0 }],
+      plain: text,
     })),
   );
 }
@@ -201,6 +202,18 @@ describe("vision §3.6: what website plugins read", () => {
     const res = await passage("kjv", "Joel.1.1-Joel.1.20");
     expect(res.json().verses).toHaveLength(MAX_WIDGET_VERSES);
     expect(res.json().more).toBe(true);
+  });
+
+  it("finds verses by any translation's words, shown in one that may be shown here", async () => {
+    // The LEB's Joel 2:28 (canonical 3:1) shown in the KJV: the KJV's verse, in its numbering.
+    const kjv = await get("/api/widget/search?q=LEB&kinds=text&showIn=kjv");
+    expect(kjv.statusCode).toBe(200);
+    expect(kjv.json().results).toEqual([
+      expect.objectContaining({ id: "text:kjv:Joel.2.28", label: "Joel 2:28" }),
+    ]);
+    // One that may not be shown here is ignored: the verse comes as found, never in its words.
+    const hidden = await get("/api/widget/search?q=LEB&kinds=text&showIn=unrecorded");
+    expect(hidden.json().results.map((r: { id: string }) => r.id)).toEqual(["text:leb:Joel.2.28"]);
   });
 
   it("answers a translation it won't show, or a reference it can't use, with a code", async () => {

@@ -18,6 +18,7 @@ import {
   writeLayers,
 } from "./layers.ts";
 import { linkIn } from "./linkAnchor.ts";
+import { useCollections } from "./yourNotes.ts";
 
 export interface LayerLabels {
   readonly types: string;
@@ -293,7 +294,8 @@ export function StudyLayers({
   const others = chapterNotes.filter((t) => !sources.includes(t.id));
 
   const sourceName = (s: string) => (s === "@compilation" ? labels.ownWording : (names[s] ?? s));
-  const collection = DEFAULT_COLLECTION;
+  // The user's collections, by title, after the default one (the notes in no other).
+  const collections = useCollections();
 
   return (
     <>
@@ -361,21 +363,27 @@ export function StudyLayers({
         onChange={(on) => change({ ...layers, yours: on })}
         tip={
           <ul className="layer-list">
-            <ListItem
-              label={labels.defaultCollection}
-              checked={collectionShown(layers, collection)}
-              onChange={(on) =>
-                change({
-                  ...layers,
-                  yours: layers.yours || on,
-                  hiddenCollections: layers.yours
-                    ? toggled(layers.hiddenCollections, collection, on)
-                    : on
-                      ? []
-                      : [collection],
-                })
-              }
-            />
+            {[{ id: DEFAULT_COLLECTION, title: labels.defaultCollection }, ...collections].map(
+              (c) => (
+                <ListItem
+                  key={c.id}
+                  label={c.title}
+                  checked={collectionShown(layers, c.id)}
+                  onChange={(on) =>
+                    change({
+                      ...layers,
+                      yours: layers.yours || on,
+                      // Choosing one while all are off turns the layer on for it alone.
+                      hiddenCollections: layers.yours
+                        ? toggled(layers.hiddenCollections, c.id, on)
+                        : [DEFAULT_COLLECTION, ...collections.map((x) => x.id)].filter(
+                            (x) => x !== c.id || !on,
+                          ),
+                    })
+                  }
+                />
+              ),
+            )}
           </ul>
         }
       />

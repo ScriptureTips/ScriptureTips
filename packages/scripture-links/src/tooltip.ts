@@ -573,6 +573,10 @@ export function createTooltip(doc: Document, options: TooltipOptions): Tooltip {
     const mine = ++panel.latest;
     panel.anchor = link;
     link.setAttribute("aria-expanded", "true");
+    // In a modal dialog, the page outside it can't be seen or used: the tooltip goes into it
+    // (and back to the page after, the dialog having gone).
+    const home = link.closest("dialog[open]") ?? doc.body;
+    if (host.parentNode !== home) home.append(host);
     const osis = link.getAttribute(REF_ATTRIBUTE) ?? "";
     let translations: readonly WidgetTranslation[] = [];
     let chosen = "";

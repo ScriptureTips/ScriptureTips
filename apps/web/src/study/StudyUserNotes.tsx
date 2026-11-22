@@ -11,20 +11,13 @@ import { type ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { letter } from "../reader/layout.ts";
 import { HoverTip } from "../ui/HoverTip.tsx";
-import { collectionShown, DEFAULT_COLLECTION, LAYERS_CHANGED, readLayers } from "./layers.ts";
-import { type Anchor, linkIn } from "./linkAnchor.ts";
-import { type NoteListLabels, UserNoteGroups } from "./NoteGroups.tsx";
-import { LINKS_CHANGED } from "./StudyLinkMarks.tsx";
+import { linkIn } from "./linkAnchor.ts";
+import { type NoteListLabels, UserNoteGroups, useLayers } from "./NoteGroups.tsx";
 import { AUTO_LINK } from "./StudyPassagePopups.tsx";
 import { canonicalSpan } from "./selection.ts";
+import { NOTES_CHANGED, noteShown, type YourNote, yourNotesOn } from "./yourNotes.ts";
 
-/** apps/api `LinkView`, as far as these marks need. */
-interface Note {
-  id: string;
-  quote: string | null;
-  anchor: Anchor | null;
-  other: { osis: string; label: string };
-}
+type Note = YourNote;
 
 /** Where a note is drawn: a mark at the end of a verse's words, lettered within its group (a passage, or the comparison table). */
 interface Slot {
@@ -47,10 +40,18 @@ const verseOf = (canonical: string): string => canonical.split(".").slice(1).joi
 const markId = (key: string): string => `user-note-mark-${key.replace(/[^\w-]/g, "-")}`;
 
 /**
- * What the mark's tip and the list under the passage say: the words, and where they lead, the
- * passage drawn as a link of the plugin (`StudyPassagePopups`), so it shows its text on hover.
+ * What the mark's tip and the list under the passage say: the words, then an annotation's text,
+ * or where a link leads (the passage drawn as a link of the plugin, `StudyPassagePopups`, so it
+ * shows its text on hover) and its note.
  */
 function NoteText({ note, base }: { note: Note; base: string }) {
+  if (note.kind === "annotation")
+    return (
+      <>
+        {note.quote ? `“${note.quote}” ` : null}
+        <span className="user-note-body">{note.body}</span>
+      </>
+    );
   return (
     <>
       {note.quote ? `“${note.quote}” ` : null}→{" "}
@@ -66,43 +67,46 @@ function NoteText({ note, base }: { note: Note; base: string }) {
       >
         {note.other.label}
       </a>
+      {note.note ? (
+        <>
+          {" "}
+          <span className="user-note-body">{note.note}</span>
+        </>
+      ) : null}
     </>
   );
 }
 
-/** The marks and list of the user's notes (today the scripture links in the default collection). */
+/**
+ * The marks and list of the user's notes: their links and annotations, in the collections the
+ * footer shows (one in no collection goes with the default collection).
+ */
 export function StudyUserNotes({ labels, base }: { labels: NoteListLabels; base: string }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [lists, setLists] = useState<{ el: HTMLElement; items: Slot[] }[]>([]);
-  const [layers, setLayers] = useState(readLayers);
+  const layers = useLayers();
 
   useEffect(() => {
     let current = true;
     const load = () => {
       const span = canonicalSpan(document.documentElement);
       if (!span) return;
-      fetch(`/api/links?ref=${encodeURIComponent(span)}`)
-        .then((res) => (res.ok ? (res.json() as Promise<{ links: Note[] }>) : null))
-        .catch(() => null)
-        .then((found) => {
-          if (current && found) setNotes(found.links);
-        });
+      void yourNotesOn(span).then((found) => {
+        if (current && found) setNotes(found);
+      });
     };
     load();
-    const read = () => setLayers(readLayers());
-    window.addEventListener(LINKS_CHANGED, load);
-    window.addEventListener(LAYERS_CHANGED, read);
+    window.addEventListener(NOTES_CHANGED, load);
     return () => {
       current = false;
-      window.removeEventListener(LINKS_CHANGED, load);
-      window.removeEventListener(LAYERS_CHANGED, read);
+      window.removeEventListener(NOTES_CHANGED, load);
     };
   }, []);
 
   // Finds where each shown note goes as the page fills in, and keeps the places it makes.
   useEffect(() => {
-    const shown = collectionShown(layers, DEFAULT_COLLECTION) ? notes : [];
+    const shown = notes.filter((n) => noteShown(layers, n.collections));
     const made = new Map<string, HTMLElement>();
     let timer: number | undefined;
     const place = () => {
@@ -136,6 +140,8 @@ export function StudyUserNotes({ labels, base }: { labels: NoteListLabels; base:
             made.set(key, el);
           }
           if (el.parentElement !== words) words.append(el);
+          // The compare and edit list groups the notes by collection from their marks.
+          el.dataset["collections"] = note.collections.join(" ");
           next.push({ key, el, note, number: 0, verse: verseOf(a.end.verse) });
         }
       }
@@ -242,8 +248,10 @@ export function StudyUserNotes({ labels, base }: { labels: NoteListLabels; base:
           items={l.items}
           labels={labels}
           wordsIn={(s) => s.note.anchor?.in ?? ""}
-          render={(s) => (
-            <li key={s.key} id={`${markId(s.key)}-note`}>
+          collectionsOf={(s) => s.note.collections}
+          keyOf={(s) => s.key}
+          render={(s, first) => (
+            <li key={s.key} id={first ? `${markId(s.key)}-note` : undefined}>
               <a className="note-letter" href={`#${markId(s.key)}`}>
                 {mark(s.number)}
               </a>{" "}

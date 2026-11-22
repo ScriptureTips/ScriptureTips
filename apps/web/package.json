@@ -17,6 +17,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@scripturetips/canon": "workspace:*",
     "@scripturetips/countries": "workspace:*",
+    "@scripturetips/dialogs": "workspace:*",
     "@scripturetips/licenses": "workspace:*",
     "@scripturetips/passage": "workspace:*",
     "@scripturetips/reference": "workspace:*",

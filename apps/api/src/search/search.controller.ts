@@ -18,6 +18,11 @@ export const SearchParams = z.object({
   kinds: List(/^[a-z][a-z-]{0,19}$/),
   /** Which translations to search (catalog IDs); all if left out. */
   translations: List(/^[A-Za-z0-9_-]{1,40}$/),
+  /** The translation to show the verses in, whichever translation's words matched (a catalog ID). */
+  showIn: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,40}$/)
+    .optional(),
   limit: z.coerce.number().int().min(1).max(50).default(10),
   /** Verses to skip, for the next page of verses (a longer list is read in pages). */
   offset: z.coerce.number().int().min(0).max(500).default(0),
@@ -56,6 +61,7 @@ export class SearchController {
       q: p.q,
       kinds: known,
       translations: p.translations ?? null,
+      showIn: p.showIn ?? null,
       limit: p.limit,
       offset: p.offset,
       previewLength: p.previewLength,

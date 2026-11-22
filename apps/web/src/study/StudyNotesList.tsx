@@ -19,6 +19,8 @@ interface Entry {
   yours: boolean;
   /** The wording its verse is in (a translation's ID, or `@compilation`). */
   wordsIn: string;
+  /** For the user's: the collections it's in (none: the default collection). */
+  collections: string[];
 }
 
 /** `Gen.1.20` as `1:20`. */
@@ -54,11 +56,19 @@ export function StudyNotesList({ labels }: { labels: NoteListLabels }) {
           html: mark.querySelector(":scope > [role='tooltip']")?.innerHTML ?? "",
           yours: mark.classList.contains("user-note-mark"),
           wordsIn: linkIn(unit) ?? "",
+          collections: (mark.closest<HTMLElement>(".user-note-slot")?.dataset["collections"] ?? "")
+            .split(" ")
+            .filter(Boolean),
         });
       }
       setEntries((was) =>
         was.length === next.length &&
-        was.every((e, i) => e.markId === next[i]?.markId && e.html === next[i]?.html)
+        was.every(
+          (e, i) =>
+            e.markId === next[i]?.markId &&
+            e.html === next[i]?.html &&
+            e.collections.join() === next[i]?.collections.join(),
+        )
           ? was
           : next,
       );
@@ -90,8 +100,8 @@ export function StudyNotesList({ labels }: { labels: NoteListLabels }) {
   }, []);
 
   if (entries.length === 0) return null;
-  const item = (e: Entry) => (
-    <li key={e.markId} id={e.id}>
+  const item = (e: Entry, first = true) => (
+    <li key={e.markId} id={first ? e.id : undefined}>
       <a className="note-letter" href={`#${e.markId}`}>
         {e.letter}
       </a>{" "}
@@ -107,12 +117,19 @@ export function StudyNotesList({ labels }: { labels: NoteListLabels }) {
       {translators.length > 0 ? (
         <section className="notes compare-notes" aria-label={labels.translators}>
           <h2>{labels.translators}</h2>
-          <ol>{translators.map(item)}</ol>
+          <ol>{translators.map((e) => item(e))}</ol>
         </section>
       ) : null}
       {yours.length > 0 ? (
         <section className="notes compare-notes" aria-label={labels.yours}>
-          <UserNoteGroups items={yours} labels={labels} wordsIn={(e) => e.wordsIn} render={item} />
+          <UserNoteGroups
+            items={yours}
+            labels={labels}
+            wordsIn={(e) => e.wordsIn}
+            collectionsOf={(e) => e.collections}
+            keyOf={(e) => e.markId}
+            render={item}
+          />
         </section>
       ) : null}
     </>

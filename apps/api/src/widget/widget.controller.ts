@@ -66,10 +66,14 @@ export class WidgetController {
     @Query(new ZodPipe(SearchParams)) p: z.infer<typeof SearchParams>,
   ): Promise<SearchResponse> {
     const { known, unknown } = kindsOf(p.kinds);
+    const translations = await this.allowed(p.translations);
+    // Shown in a translation only if it may be shown here; one that may not is ignored.
+    const showIn = p.showIn ? ((await this.allowed([p.showIn]))[0] ?? null) : null;
     const found = await this.search.search({
       q: p.q,
       kinds: known,
-      translations: await this.allowed(p.translations),
+      translations,
+      showIn,
       limit: p.limit,
       offset: p.offset,
       previewLength: p.previewLength,

@@ -58,6 +58,40 @@ export function resolveConfirm(options: ConfirmOptions): Resolved {
   };
 }
 
+/** One of the ways a choice prompt offers to go ahead. */
+export interface Choice<T extends string> {
+  /** What the prompt answers when it's chosen. */
+  readonly value: T;
+  /** Its button's words. */
+  readonly label: string;
+  /** What it does, shown under the message beside its name. */
+  readonly description?: string;
+}
+
+/** What a choice prompt asks: one of several ways to go ahead, or none. */
+export interface ChoiceOptions<T extends string> {
+  readonly title: string;
+  readonly message?: string;
+  /** The ways to go ahead, in order; the focus starts on the first. At least one. */
+  readonly choices: readonly Choice<T>[];
+  /** The button that doesn't ("Cancel"). */
+  readonly cancelLabel?: string;
+}
+
+export function resolveChoice<T extends string>(options: ChoiceOptions<T>) {
+  if (options.choices.length === 0) throw new Error("A choice prompt needs a choice.");
+  return {
+    title: options.title,
+    message: options.message ?? "",
+    cancelLabel: options.cancelLabel ?? "Cancel",
+    choices: options.choices.map((c) => ({
+      value: c.value,
+      label: c.label,
+      description: c.description ?? "",
+    })),
+  };
+}
+
 /** What a modal holding content of the caller's own asks for. */
 export interface ModalOptions {
   readonly title: string;

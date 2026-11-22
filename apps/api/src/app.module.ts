@@ -1,4 +1,8 @@
 import { type DynamicModule, Inject, Module, type OnApplicationShutdown } from "@nestjs/common";
+import { AnnotationsController } from "./annotations/annotations.controller.ts";
+import { AnnotationsService } from "./annotations/annotations.service.ts";
+import { CollectionsController } from "./annotations/collections.controller.ts";
+import { CollectionsService } from "./annotations/collections.service.ts";
 import { AuthModule } from "./auth/auth.module.ts";
 import type { AccountSettings } from "./auth/config.ts";
 import { AuthorshipService } from "./compilations/authorship.service.ts";
@@ -30,6 +34,8 @@ import { WidgetService } from "./widget/widget.service.ts";
     StudyController,
     SearchController,
     LinksController,
+    AnnotationsController,
+    CollectionsController,
     WidgetController,
   ],
   providers: [
@@ -41,6 +47,8 @@ import { WidgetService } from "./widget/widget.service.ts";
     StudyService,
     SearchService,
     LinksService,
+    AnnotationsService,
+    CollectionsService,
     WidgetService,
   ],
 })

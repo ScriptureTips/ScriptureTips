@@ -985,3 +985,95 @@ export const scriptureLink = pgTable(
     index("scripture_link_target_idx").using("gist", t.targetRange),
   ],
 );
+
+/** Selected words pinned in a wording, as a link or an annotation keeps them (apps/api `Anchor`). */
+export interface WordAnchor {
+  in: string;
+  compilation: string;
+  start: { verse: string; offset: number };
+  end: { verse: string; offset: number };
+}
+
+/**
+ * The user's own text on selected words (domain-model §3.4, `Annotation`): made like a link in
+ * study mode, from words selected in a wording, with text typed instead of a passage. The words'
+ * verses are stored as canonical OSIS and their ordinal range, the words themselves as the quote
+ * and the anchor, the same as a link's source end. Private to its owner for now. A lemma subject
+ * (a word study) comes later.
+ */
+export const annotation = pgTable(
+  "annotation",
+  {
+    id: id(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sourceStart: text("source_start").notNull(),
+    sourceEnd: text("source_end").notNull(),
+    sourceRange: int4range("source_range").notNull(),
+    /** The words selected, as they read then (whitespace squashed); null where none were. */
+    quote: text("quote"),
+    /** Where those words are pinned, as a link's (`scripture_link.anchor`). */
+    anchor: jsonb("anchor").$type<WordAnchor>(),
+    body: text("body").notNull(),
+    visibility: text("visibility", { enum: ["private"] })
+      .notNull()
+      .default("private"),
+    ...timestamps,
+  },
+  (t) => [
+    index("annotation_owner_idx").on(t.ownerId),
+    index("annotation_source_idx").using("gist", t.sourceRange),
+  ],
+);
+
+/**
+ * A named set of the user's links and annotations (domain-model §3.6, `AnnotationCollection`),
+ * for the reading view's layers now, and publications and editions later. Hand-picked only: the
+ * rules (smart collections), visibility and priority come later. Its description (at most 2000
+ * characters, null when it has none) is the preface for the translation it's printed or published
+ * with. The user's links and annotations in no collection make up the **default collection**,
+ * which isn't stored.
+ */
+export const annotationCollection = pgTable(
+  "annotation_collection",
+  {
+    id: id(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    ...timestamps,
+  },
+  (t) => [unique().on(t.ownerId, t.title)],
+);
+
+/**
+ * A link or an annotation in a collection (domain-model §3.6, `AnnotationCollectionItem`). The
+ * item is referenced, not copied: one item can be in several collections, and an edit shows in
+ * all of them. Exactly one of `link_id` and `annotation_id` is set; deleting the item or the
+ * collection deletes the row.
+ */
+export const annotationCollectionItem = pgTable(
+  "annotation_collection_item",
+  {
+    id: id(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => annotationCollection.id, { onDelete: "cascade" }),
+    linkId: uuid("link_id").references(() => scriptureLink.id, { onDelete: "cascade" }),
+    annotationId: uuid("annotation_id").references(() => annotation.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique().on(t.collectionId, t.linkId),
+    unique().on(t.collectionId, t.annotationId),
+    index("annotation_collection_item_link_idx").on(t.linkId),
+    index("annotation_collection_item_annotation_idx").on(t.annotationId),
+    check(
+      "annotation_collection_item_one",
+      sql`(${t.linkId} IS NULL) <> (${t.annotationId} IS NULL)`,
+    ),
+  ],
+);

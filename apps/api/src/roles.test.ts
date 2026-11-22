@@ -64,6 +64,9 @@ const ACCOUNT_ROUTES = [
   ["GET", "/api/compilations"],
   ["GET", "/api/publications/someone/something/books"],
   ["GET", "/api/links?ref=Joel.2.27"],
+  ["GET", "/api/annotations?ref=Joel.2.27"],
+  ["GET", "/api/collections"],
+  ["GET", "/api/collections/items"],
 ] as const;
 
 describe("vision §7.2: the data server", () => {

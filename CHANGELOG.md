@@ -6,6 +6,8 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-22
+
 ### Added
 - Opening a compilation from your list starts the study window expanded, centered on the screen, at a size that suits it (four sizes, by screen width, up to 1000 × 600).
 - The study window's footer has three checkboxes: *Word types*, *Translator's notes* and *Your notes*. Hover each for what the colors mean, the translations with notes on screen, or your note collections, each with its own checkbox to show or hide it. Your choices are remembered.
@@ -14,11 +16,18 @@ The platform's version is its git tag, `vMAJOR.MINOR.PATCH`. Tagging builds the 
 - A note's letter in a list takes you to the start of its verse, which flashes sky blue; a mark takes you to its note in the list. References in notes show the ScriptureTips passage tooltip.
 - In study mode, the notes of translations that aren't on the page can be shown too: the footer lists every translation with notes on the chapter (off until you tick them). In read mode their marks go at the end of each verse; in compare and edit, under a line below the verse in your compilation's column. They're listed with the other notes.
 - A compilation's base translation can be a compare column, to see the compilation beside the translation it started from.
+- Annotations: in study mode, select words and choose *Annotate* in the tooltip to write your own note on them. They're marked, listed and highlighted like your links.
+- An *Annotations* page in the account menu lists your links and annotations by collection. Each collection opens to a scrolling list, one line per item, and what you just did is confirmed in a toast at the foot of the window. Rename or delete a collection in its box, and make one with **+ New collection**, which takes a description too: the preface for the translation it's printed or published with (up to 2,000 characters).
+- On the *Annotations* page, add an annotation or link with an open collection's **+ Add** (choose a translation and a passage, select the words, then add a comment, a link or both). Open one to edit its text, or a link's note and target. Drag its handle onto another collection (or press the handle, then choose the collection) to copy, link or move it there: a link puts the same item in both, a move takes it out of the collection it was in, and a copy is one of its own to reword. Its trash icon takes it out of that collection: it stays in the others, and is deleted (once you confirm) only from its last one.
+- Press an item's translation abbreviation to see its verse in full and move or copy it to another translation (or your compilation's own wording), on the words you select there. A link not pinned to words shows an abbreviation too: open it to pin the link to words in any translation.
+- The passages on the *Annotations* page show the ScriptureTips passage tooltip, in the translation the annotation is in. A link's window starts with its verse in full, finds a new target as you type (pick a suggestion to fill it in), and explains with a **?** where its note is used. Its target search matches your words in every translation and shows each verse in the translation the link is in, so you can find a verse by the wording you know.
+- The study window's *Your notes* lists your collections, each shown or hidden on its own.
 
 ### Changed
 - A link made in a compilation's own text is pinned to the compilation, even where the verse is taken unchanged from a translation, so it no longer shows in that translation's column.
 
 ### Fixed
+- The website plugin's passage tooltip can be used on links inside a modal dialog (it was behind the dialog).
 - Note tooltips stay beside their mark across the reading columns and in the comparison table, without the paragraph's indent.
 - Jumping to a note or its mark no longer hides it behind the reading head.
 

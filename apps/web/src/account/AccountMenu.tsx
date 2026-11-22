@@ -6,7 +6,7 @@ import { signOut } from "./AccountForm.tsx";
 
 /**
  * The signed-in person's menu at the top right of the header: the handle opens a drop-down with
- * their profile, compilations and settings, and the sign-out button in its footer. It closes on
+ * their profile, compilations, annotations (and the trial of its next design) and settings, and the sign-out button in its footer. It closes on
  * Escape, on a press outside it, and when focus leaves it; the arrow keys move between its items.
  */
 export function AccountMenu({ label, compilations }: { label: string; compilations: boolean }) {
@@ -66,9 +66,14 @@ export function AccountMenu({ label, compilations }: { label: string; compilatio
             {t("profile")}
           </a>
           {compilations ? (
-            <a role="menuitem" href="/compilations">
-              {t("compilations")}
-            </a>
+            <>
+              <a role="menuitem" href="/compilations">
+                {t("compilations")}
+              </a>
+              <a role="menuitem" href="/annotations">
+                {t("annotations")}
+              </a>
+            </>
           ) : null}
           <a role="menuitem" href="/account#settings">
             {t("settings")}

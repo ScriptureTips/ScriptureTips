@@ -9,6 +9,13 @@ export interface SearchScope {
   readonly kinds?: readonly string[];
   /** The translations to search (catalog IDs). The server's default (every one) when left out. */
   readonly translations?: readonly string[];
+  /**
+   * The translation to show the verses in (a catalog ID), whichever translation's words matched:
+   * each verse found is listed once, in its numbering and words (the query's words flagged only
+   * where it has them), and a verse it lacks is left out. A passage the query names is read in it
+   * too. Each verse in a translation that matched when left out.
+   */
+  readonly showIn?: string;
   /** The most results of each kind. */
   readonly limit?: number;
   /**

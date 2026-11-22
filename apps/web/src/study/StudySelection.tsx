@@ -13,9 +13,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { errorCode, useErrorText } from "../compilations/errors.ts";
 import { linksAt } from "./linkAnchor.ts";
-import { isVerses, LINK_SEARCH, postLink, type ScriptureLink } from "./links.ts";
+import { isVerses, LINK_SEARCH, MAX_TEXT, postAnnotation, postLink } from "./links.ts";
 import { openStudyMenu } from "./menuBus.ts";
-import { LINKS_CHANGED } from "./StudyLinkMarks.tsx";
 import { AUTO_LINK } from "./StudyPassagePopups.tsx";
 import { useStudy } from "./StudyProvider.tsx";
 import { STUDY_SEARCH } from "./StudySearch.tsx";
@@ -28,6 +27,13 @@ import {
   SCOPE,
   type StudyPick,
 } from "./selection.ts";
+import {
+  type AnnotationNote,
+  type LinkNote,
+  NOTES_CHANGED,
+  type YourNote,
+  yourNotesOn,
+} from "./yourNotes.ts";
 
 /** apps/api `StudyLemma`: a word in full. */
 interface Lemma {
@@ -36,11 +42,17 @@ interface Lemma {
 }
 
 /**
- * Mouse down in the tooltip keeps the selection, except in its text field, which takes the focus.
- * The field is inside the search element's shadow root, so the press is looked for in its path.
+ * Mouse down in the tooltip keeps the selection, except in its text fields, which take the focus.
+ * The link field is inside the search element's shadow root, so the press is looked for in its
+ * path.
  */
 const keepSelection = (e: { nativeEvent: Event; preventDefault: () => void }) => {
-  if (!e.nativeEvent.composedPath().some((n) => n instanceof HTMLInputElement)) e.preventDefault();
+  if (
+    !e.nativeEvent
+      .composedPath()
+      .some((n) => n instanceof HTMLInputElement || n instanceof HTMLTextAreaElement)
+  )
+    e.preventDefault();
 };
 
 /** The most words the tooltip lists; a long selection says how many more. */
@@ -85,13 +97,16 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
   // The links pinned to the words that were clicked, when the selection is a click on words a
   // link is pinned to: only those are listed. Null for any other selection.
   const only = useRef<string[] | null>(null);
-  // Whether the form is open, for the selection handler: focusing its field lets the browser's
+  // The selection whose annotation form is open (a new selection starts closed), and its text.
+  const [annotating, setAnnotating] = useState<StudyPick | null>(null);
+  const [annotation, setAnnotation] = useState("");
+  // Whether a form is open, for the selection handler: focusing its field lets the browser's
   // selection go, which mustn't close the tooltip. (The words are held for it.)
   const linkOpen = useRef(false);
-  linkOpen.current = picked !== null && linking === picked;
-  // The user's links with the selected verses at either end; null when there are none to show
-  // (signed out, or the verses can't be told).
-  const [links, setLinks] = useState<{ source: string; list: ScriptureLink[] } | null>(null);
+  linkOpen.current = picked !== null && (linking === picked || annotating === picked);
+  // The user's links (with the selected verses at either end) and annotations (on words in them);
+  // null when there are none to show (signed out, or the verses can't be told).
+  const [links, setLinks] = useState<{ source: string; list: YourNote[] } | null>(null);
 
   useEffect(() => {
     // The passage pop-up a link's label opens (the website plugin's, outside this tooltip) is
@@ -226,12 +241,9 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
     setLinks(null);
     if (!source) return;
     let current = true;
-    fetch(`/api/links?ref=${encodeURIComponent(source)}`)
-      .then((res) => (res.ok ? (res.json() as Promise<{ links: ScriptureLink[] }>) : null))
-      .catch(() => null)
-      .then((found) => {
-        if (current && found) setLinks({ source, list: found.links });
-      });
+    void yourNotesOn(source).then((found) => {
+      if (current && found) setLinks({ source, list: found });
+    });
     return () => {
       current = false;
     };
@@ -278,9 +290,13 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
     ? { left, bottom: window.innerHeight - rect.top + 8, maxHeight }
     : { left, top: rect.bottom + 8, maxHeight };
   const canLink = links !== null && picked.source !== null;
-  const shownLinks = (links?.list ?? []).filter(
-    (l) => !only.current || only.current.includes(l.id),
-  );
+  const shown = (links?.list ?? []).filter((l) => !only.current || only.current.includes(l.id));
+  const shownLinks = shown.filter((l): l is LinkNote => l.kind === "link");
+  const shownAnnotations = shown.filter((l): l is AnnotationNote => l.kind === "annotation");
+  const forget = (id: string) => {
+    setLinks((now) => (now ? { ...now, list: now.list.filter((l) => l.id !== id) } : now));
+    window.dispatchEvent(new Event(NOTES_CHANGED));
+  };
   const listed = picked.strongs.slice(0, MOST);
   const text = picked.text.length > 120 ? `${picked.text.slice(0, 120)}…` : picked.text;
 
@@ -331,11 +347,28 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
                 aria-label={t("tip.unlink", { passage: link.other.label })}
                 onClick={() => {
                   void fetch(`/api/links/${link.id}`, { method: "DELETE" }).then((res) => {
-                    if (!res.ok) return;
-                    setLinks((now) =>
-                      now ? { ...now, list: now.list.filter((l) => l.id !== link.id) } : now,
-                    );
-                    window.dispatchEvent(new Event(LINKS_CHANGED));
+                    if (res.ok) forget(link.id);
+                  });
+                }}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {shownAnnotations.length > 0 ? (
+        <ul className="study-tip-links" aria-label={t("tip.annotations")}>
+          {shownAnnotations.map((a) => (
+            <li key={a.id}>
+              <Quote text={a.quote} /> <span className="study-tip-annotation">{a.body}</span>
+              <button
+                type="button"
+                className="study-tip-remove"
+                aria-label={t("tip.removeAnnotation")}
+                onClick={() => {
+                  void fetch(`/api/annotations/${a.id}`, { method: "DELETE" }).then((res) => {
+                    if (res.ok) forget(a.id);
                   });
                 }}
               >
@@ -377,10 +410,10 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
         setLinkError(errorText(await errorCode(res)));
         return;
       }
-      const made = (await res.json()) as ScriptureLink;
+      const made: YourNote = { ...((await res.json()) as Omit<LinkNote, "kind">), kind: "link" };
       if (only.current) only.current = [...only.current, made.id];
       setLinks((now) => ({ source: picked.source ?? "", list: [made, ...(now?.list ?? [])] }));
-      window.dispatchEvent(new Event(LINKS_CHANGED));
+      window.dispatchEvent(new Event(NOTES_CHANGED));
       setLinking(null);
     } catch {
       setLinkError(errorText("unavailable"));
@@ -389,7 +422,67 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
     }
   };
 
-  const actions = formOpen ? (
+  const annotateOpen = annotating !== null && annotating === picked;
+  const saveAnnotation = async () => {
+    const body = annotation.trim();
+    if (!body || adding) return;
+    setAdding(true);
+    setLinkError(null);
+    try {
+      const res = await postAnnotation(slug, picked, body);
+      if (!res.ok) {
+        setLinkError(errorText(await errorCode(res)));
+        return;
+      }
+      const made: YourNote = {
+        ...((await res.json()) as Omit<AnnotationNote, "kind">),
+        kind: "annotation",
+      };
+      if (only.current) only.current = [...only.current, made.id];
+      setLinks((now) => ({ source: picked.source ?? "", list: [...(now?.list ?? []), made] }));
+      window.dispatchEvent(new Event(NOTES_CHANGED));
+      setAnnotating(null);
+      setAnnotation("");
+    } catch {
+      setLinkError(errorText("unavailable"));
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const actions = annotateOpen ? (
+    <form
+      className="study-tip-actions study-tip-annotate"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void saveAnnotation();
+      }}
+    >
+      <textarea
+        className="study-tip-textarea"
+        aria-label={t("tip.annotationText")}
+        maxLength={MAX_TEXT}
+        rows={3}
+        // biome-ignore lint/a11y/noAutofocus: the form opens to be typed in.
+        autoFocus
+        value={annotation}
+        onChange={(e) => setAnnotation(e.target.value)}
+      />
+      <button type="submit" className="study-tip-button" disabled={adding || !annotation.trim()}>
+        {t("tip.save")}
+      </button>
+      <button
+        type="button"
+        className="study-tip-button"
+        onClick={() => {
+          setAnnotating(null);
+          setLinkError(null);
+        }}
+      >
+        {t("tip.cancel")}
+      </button>
+    </form>
+  ) : formOpen ? (
     <form className="study-tip-actions study-tip-link" onSubmit={(e) => e.preventDefault()}>
       <st-search-input
         ref={field}
@@ -459,6 +552,21 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
           {t("tip.link")}
         </button>
       ) : null}
+      {canLink ? (
+        <button
+          type="button"
+          className="study-tip-button"
+          onClick={() => {
+            // Typing in the field lets the browser's selection go: the words are held instead.
+            holdSelection(picked);
+            setLinkError(null);
+            setAnnotation("");
+            setAnnotating(picked);
+          }}
+        >
+          {t("tip.annotate")}
+        </button>
+      ) : null}
     </div>
   );
 
@@ -473,9 +581,9 @@ export function StudySelection({ slug, base }: { slug: string; base: string }) {
         className="study-tip study-tip-bar"
         onMouseDown={keepSelection}
       >
-        {explained === picked || formOpen ? (
+        {explained === picked || formOpen || annotateOpen ? (
           explanation
-        ) : shownLinks.length > 0 ? (
+        ) : shown.length > 0 ? (
           <div className="study-tip-body">{linkList}</div>
         ) : null}
         {actions}

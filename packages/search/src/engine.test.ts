@@ -505,6 +505,7 @@ describe("the API transport", () => {
       queryString("jn 3:16", {
         kinds: ["reference", "text"],
         translations: ["kjv"],
+        showIn: "eng-wyc",
         limit: 5,
         previewLength: 400,
       }),
@@ -513,6 +514,7 @@ describe("the API transport", () => {
       q: "jn 3:16",
       kinds: "reference,text",
       translations: "kjv",
+      showIn: "eng-wyc",
       limit: "5",
       previewLength: "400",
     });

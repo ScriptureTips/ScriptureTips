@@ -54,7 +54,7 @@ Three checkboxes, each remembered in this browser (`study/layers.ts`). Hovering 
 |---|---|---|
 | **Word types** | What the colors mean (the legend) | The word colors (§4) |
 | **Translator's notes** | Each translation with notes on screen, with its own checkbox (the compilation's own text goes by its abbreviation), then every other translation with notes on the chapter, unchecked until chosen (`GET /api/translations/notes`) | That translation's note marks and its entries in the lists under the text; the footer's box, all of them. Disabled when nothing on screen has notes. |
-| **Your notes** | The user's note collections, each with a checkbox: today only the **default collection**, which holds the annotations in no other collection (the scripture links, §7) | Their marks, lists and amber highlights |
+| **Your notes** | The user's collections (from the annotations page), each with a checkbox, after the **default collection**, which holds the links and annotations in no other collection (§7) | Their marks, lists and amber highlights. An item in several collections shows while any of them is checked. With *Your notes* off, choosing a collection turns it on with only that collection. |
 
 Letters run on over what's shown: hiding a translation's notes re-letters the rest (a, b …), and showing all puts the translation's own letters back.
 
@@ -71,25 +71,26 @@ Select words in the compare table (or double-click one) and a tooltip opens by t
 - **Search for this:** opens the window and searches the words;
 - **Copy:** copies the selected text;
 - **Link** (signed in, and the verses can be told): links the selected words to a verse or run of verses found with a search field of its own (§7).
+- **Annotate** (likewise): a text box for the user's own text on the selected words, with *Save* and *Cancel* (§7). Typing in it keeps the selection and the tooltip.
 
 On a phone the selection is made by a long press, and the tooltip opens when the selection stops changing. The tooltip fits the room on the side of the selection with more, and hides while its selection is scrolled out of sight.
 
 ## 7. Links
 
-A link joins the selected words to a passage. Links are private, and listed from either end.
+A link joins the selected words to a passage. Links are private, and listed from either end. An **annotation** is the user's own text on selected words; it's made, drawn, listed and removed like a link, and has no other end. Both are managed on the annotations page (`/annotations`, the account menu: vision §3.7.2).
 
-- The tooltip lists the user's links on the selected verses, each with the quoted words, and a × to remove it.
+- The tooltip lists the user's links and annotations on the selected verses, each with the quoted words, and a × to remove it.
 - Linked words are drawn in amber (one color for all of them). With a mouse, the linked words under the pointer are drawn stronger.
 - Clicking linked words selects them and opens the tooltip with only the links pinned there.
 - Each link keeps its quoted words and an anchor (the wording, the verse and character offsets), so it is found again if the wording moves.
 - The link's passage opens in a tooltip with the plugin's translation switcher and *Read more*.
-- The relationship type and a note have no form yet.
+- The relationship type has no form yet; a link's note is written on the annotations page.
 
 ## 7.1 Notes in the text
 
 - **Translator's notes** are lettered marks (a, b …) in the read tab, and in study mode in the compare and edit views too (lettered through the whole table there, in reading order, so each letter in the list under it names one note). A mark's tooltip shows the note, ending with the abbreviation of the translation it's from, in a compilation.
 - **Other translations' notes.** A note whose translation's own wording of that verse isn't on screen (no column for it, and the verse isn't taken from it) has no words to sit in, so once chosen in the footer: in the read tab each note is a mark at the end of its verse, lettered on with the page's own; in compare and edit the marks sit under a rule below the verse in the compilation's column (`study/StudyOtherNotes.tsx`). The read tab lists them under the passage, by translation, each entry ending with its abbreviation; compare and edit list them with the other translator's notes.
-- **Your notes** (today, the scripture links) are capital-lettered marks (A, B …) at the end of the verse their words are pinned in, in the wording they were made in only. A mark's tooltip quotes the words and links the passage.
+- **Your notes** (links and annotations) are capital-lettered marks (A, B …) at the end of the verse their words are pinned in, in the wording they were made in only. A mark's tooltip quotes the words, then gives an annotation's text, or a link's passage (and its note).
 - **Pinned to the compilation.** A link made in the compilation's own text (its column in compare and edit, or the read tab reading it) is pinned to the compilation (`@compilation`, the `data-link-in` of the verse), even where the verse is taken unchanged from a translation. A link made in a translation's column is pinned to that translation. Links made before this change stay pinned to the translation.
 - **Lists.** The read tab lists each passage's notes under it; compare and edit list the chapter's notes under the table. *Translator's notes* come first; *Your notes* follow, grouped by collection, then by the translation (or the compilation's abbreviation) they're pinned in, in verse order. Each entry has its letter, its verse and its text. The lists flow in columns as wide as the reading area's (one on a phone).
 - **Jumps.** A mark jumps to its list entry. An entry's letter jumps to the start of its verse, below the reading head, and flashes the verse sky blue for a second, fading out over two more (not with reduced motion).
@@ -116,4 +117,4 @@ Any translation can be a compare column, the compilation's base too, so the comp
 
 - `apps/web/src/study/box.test.ts`: the window's placement, the four default sizes, dragging and resizing.
 - `apps/web/src/study/units.test.ts`: idiom runs and Strong's numbers.
-- Playwright: the compilation specs (`e2e/compilations.spec.ts`, `e2e/reading-area*.spec.ts`): the window's centered start, the footer's checkboxes and tooltips, your notes' marks and lists in read, compare and edit, and the base as a compare column. `rememberStudyWindow` (`e2e/support.ts`) gives a test a remembered place, so the window starts as the bar. Native touch selection can't be made in the e2e browser, so the test makes the selection the way the phone would.
+- Playwright: the compilation specs (`e2e/compilations.spec.ts`, `e2e/reading-area*.spec.ts`): the window's centered start, the footer's checkboxes and tooltips, your notes' marks and lists in read, compare and edit, and the base as a compare column; `e2e/annotations.spec.ts`: annotating in the tooltip (mark, list, highlight, removing), the annotations page, and a copy pinned to words chosen in another translation, drawn there. `rememberStudyWindow` (`e2e/support.ts`) gives a test a remembered place, so the window starts as the bar. Native touch selection can't be made in the e2e browser, so the test makes the selection the way the phone would.

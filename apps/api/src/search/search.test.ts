@@ -219,6 +219,36 @@ describe("vision §3.14: scripture text search", () => {
     expect(mixed.body.results.every((r: { also?: unknown }) => r.also === undefined)).toBe(true);
   });
 
+  it("finds verses by any translation's words and shows each once, in the translation asked for", async () => {
+    // "dwelt" is the KJV's word for John 1:14, "only begotten" its words for John 3:16: shown in
+    // the WEB, which has neither, in the WEB's words and numbering.
+    const dwelt = await find("q=dwelt&kinds=text&showIn=web");
+    expect(dwelt.body.results).toEqual([
+      expect.objectContaining({
+        id: "text:web:John.1.14",
+        label: "John 1:14",
+        reference: "John.1.14",
+        translation: { id: "web", abbreviation: "WEB" },
+      }),
+    ]);
+    const text = dwelt.body.results[0].snippet.map((p: { t: string }) => p.t).join("");
+    expect(text).toBe("The Word became flesh and lived among us");
+    // A verse found in several translations is listed once.
+    const world = await find("q=world&kinds=text&showIn=web");
+    expect(world.body.results.map((r: { id: string }) => r.id)).toEqual(["text:web:John.3.16"]);
+    // A verse the translation shown lacks is left out (the WEB has no John 3:17 here).
+    expect(world.body.results.map((r: { label: string }) => r.label)).not.toContain("John 3:17");
+    // Words split between translations are found together, and shown in the one asked for.
+    const split = await find("q=dwelt+became+zebedee&kinds=text&showIn=kjv");
+    expect(split.body.results).toEqual([
+      expect.objectContaining({ id: "text:kjv:John.1.14", missing: ["zebedee"] }),
+    ]);
+    expect(split.body.results[0].also).toBeUndefined();
+    // A passage the query names is read in it too.
+    const named = await find("q=John+1:14&kinds=reference&showIn=web");
+    expect(named.body.results[0]).toMatchObject({ translation: { id: "web" } });
+  });
+
   it("indexes every word: 'before' is an ordinary word, and the words closest together come first", async () => {
     const { body } = await find("q=shoot+before&kinds=text");
     expect(body.results.map((r: { label: string }) => r.label)).toEqual(["John 6:2", "John 6:1"]);

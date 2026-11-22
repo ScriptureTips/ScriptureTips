@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { messagePieces, resolveAlert, resolveConfirm, resolveModal } from "./options.ts";
+import {
+  messagePieces,
+  resolveAlert,
+  resolveChoice,
+  resolveConfirm,
+  resolveModal,
+} from "./options.ts";
 
 describe("vision §3.6: the shared dialogs' words and focus", () => {
   it("an alert has one button, with its focus", () => {
@@ -24,6 +30,31 @@ describe("vision §3.6: the shared dialogs' words and focus", () => {
       danger: true,
       focus: "cancel",
     });
+  });
+});
+
+describe("vision §3.6: a choice of ways to go ahead", () => {
+  it("offers each choice, with what it does, and Cancel", () => {
+    expect(
+      resolveChoice({
+        title: "Copy or link?",
+        choices: [
+          { value: "copy", label: "Copy", description: "One of its own." },
+          { value: "link", label: "Link" },
+        ],
+      }),
+    ).toEqual({
+      title: "Copy or link?",
+      message: "",
+      cancelLabel: "Cancel",
+      choices: [
+        { value: "copy", label: "Copy", description: "One of its own." },
+        { value: "link", label: "Link", description: "" },
+      ],
+    });
+  });
+  it("needs at least one choice", () => {
+    expect(() => resolveChoice({ title: "Nothing?", choices: [] })).toThrow();
   });
 });
 

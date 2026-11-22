@@ -27,6 +27,13 @@ export interface SearchParams {
   readonly kinds: ReadonlySet<SearchKind>;
   /** The translations to search (catalog IDs); null for every one. */
   readonly translations: readonly string[] | null;
+  /**
+   * The translation the verses are shown in (a catalog ID), whichever translation's words matched:
+   * each verse found is listed once, in its numbering and words (the query's words flagged where
+   * it has them), and a verse it lacks is left out. A passage the query names is read in it too.
+   * Null: each verse in a translation that matched.
+   */
+  readonly showIn: string | null;
   /** The most results of each kind. */
   readonly limit: number;
   /** Verses to skip, for the next page of text results (reference and original words don't page). */
@@ -108,6 +115,9 @@ const HEADLINE = `StartSel=${HIT_OPEN}, StopSel=${HIT_CLOSE}, MaxFragments=1, Ma
 const clip = (text: string, length: number) =>
   text.length > length ? `${text.slice(0, length).replace(/\s+\S*$/, "")}…` : text;
 
+/** A query matching any of the words (for flagging each one a verse holds). */
+const websearch_or = (words: readonly string[]) => words.join(" or ");
+
 const list = (values: readonly string[]) =>
   sql.join(
     values.map((v) => sql`${v}`),
@@ -142,13 +152,14 @@ export class SearchService {
     };
   }
 
-  /** The passage the query names, if it names one, in the first translation searched. */
+  /** The passage the query names, if it names one, in the first translation searched (or shown). */
   private async reference({
     q,
     translations,
+    showIn,
     previewLength,
   }: SearchParams): Promise<ReferenceResult[]> {
-    const id = translations?.[0] ?? (await this.translations.list())[0]?.id;
+    const id = showIn ?? translations?.[0] ?? (await this.translations.list())[0]?.id;
     if (!id) return [];
     const found = await this.translations.passage(id, q);
     if (!found.ok) return [];
@@ -190,8 +201,23 @@ export class SearchService {
     };
   }
 
-  private async exactText({ q, translations, limit }: SearchParams): Promise<TextResult[]> {
+  private async exactText({ q, translations, showIn, limit }: SearchParams): Promise<TextResult[]> {
     const scope = translations ? sql`and t.catalog_id in (${list(translations)})` : sql``;
+    // Shown in one translation: each verse found is that translation's verse holding its canonical
+    // start (or the verse itself, without one, when it's that translation's), once.
+    const picked = showIn
+      ? sql`picked as (
+          select distinct on (s.id) st.catalog_id, st.abbreviation, s.book, s.chapter, s.verse,
+                 s.plain, o.tsq, o.best
+          from once o
+          join translation st on st.catalog_id = ${showIn}
+          join verse_text s on s.translation_id = st.id
+            and (s.canonical_range @> o.place or s.id = o.vid)
+          order by s.id, o.best desc
+        )`
+      : sql`picked as (
+          select catalog_id, abbreviation, book, chapter, verse, plain, tsq, best from once
+        )`;
     const order = translations?.length ? sql`array[${list(translations)}]` : sql`array[]`;
     // The words a plain query leaves out are dropped here; a quoted phrase keeps every word.
     const query = withoutStopWords(q);
@@ -206,6 +232,7 @@ export class SearchService {
       with q as (select websearch_to_tsquery('scripture', ${query}) as tsq),
       found as (
         select t.catalog_id, t.abbreviation, v.book, v.chapter, v.verse, v.plain, q.tsq,
+               v.id as vid, lower(v.canonical_range) as place,
                coalesce(lower(v.canonical_range)::text, v.id::text) as grp,
                ts_rank_cd(v.search, q.tsq) as rank,
                array_position(${order}::text[], t.catalog_id) as preferred,
@@ -220,10 +247,10 @@ export class SearchService {
         -- match): the limit counts verses, not their copies in every translation.
         select distinct on (grp) * from found
         order by grp, preferred nulls last, rank desc, catalog_id
-      )
+      ), ${picked}
       select catalog_id as translation, abbreviation, book, chapter, verse,
              ts_headline('scripture', plain, tsq, ${HEADLINE}) as headline
-      from once
+      from picked
       order by best desc, catalog_id, chapter, verse
       limit ${limit}`);
     return rows.map((r) => ({
@@ -243,11 +270,27 @@ export class SearchService {
    * place is by itself.
    */
   private async combinedText(
-    { translations }: SearchParams,
+    { translations, showIn }: SearchParams,
     words: readonly string[],
     room: number,
   ): Promise<TextResult[]> {
     const scope = translations ? sql`and t.catalog_id in (${list(translations)})` : sql``;
+    const either = websearch_or(words);
+    // Shown in one translation: each verse chosen is that translation's verse holding its
+    // canonical start (or the verse itself, when it's that translation's); one it lacks goes.
+    const shown = showIn
+      ? sql`select distinct on (c.grp) c.grp, st.catalog_id, st.abbreviation, s.book, s.chapter,
+                   s.verse, ts_headline('scripture', s.plain,
+                     websearch_to_tsquery('scripture', ${either}), ${HEADLINE}) as headline
+            from chosen c
+            join translation st on st.catalog_id = ${showIn}
+            join verse_text s on s.translation_id = st.id
+              and (s.canonical_range @> c.place or s.id::text = c.grp)
+            order by c.grp, s.chapter, s.verse`
+      : sql`select null::text as grp, null::text as catalog_id, null::text as abbreviation,
+                   null::text as book, null::int as chapter, null::int as verse,
+                   null::text as headline
+            where false`;
     const rows = await this.db.execute<{
       translation: string;
       abbreviation: string;
@@ -258,6 +301,12 @@ export class SearchService {
       found: number[];
       live: number[];
       headline: string;
+      shown_translation: string | null;
+      shown_abbreviation: string | null;
+      shown_book: string | null;
+      shown_chapter: number | null;
+      shown_verse: number | null;
+      shown_headline: string | null;
     }>(sql`
       with terms as (
         select x.ord, websearch_to_tsquery('scripture', x.word) as tsq
@@ -293,14 +342,18 @@ export class SearchService {
           and best < (select count(*) from live)
         order by covered desc, best desc, place nulls last, grp
         limit ${room}
-      )
+      ), shown as (${shown})
       select pv.catalog_id as translation, pv.abbreviation, pv.book, pv.chapter, pv.verse, pv.grp,
              pv.found, (select array_agg(ord order by ord) from live) as live,
              ts_headline('scripture', vt.plain,
-               websearch_to_tsquery('scripture', ${words.join(" or ")}), ${HEADLINE}) as headline
+               websearch_to_tsquery('scripture', ${either}), ${HEADLINE}) as headline,
+             sh.catalog_id as shown_translation, sh.abbreviation as shown_abbreviation,
+             sh.book as shown_book, sh.chapter as shown_chapter, sh.verse as shown_verse,
+             sh.headline as shown_headline
       from chosen c
       join per_verse pv on pv.grp = c.grp
       join verse_text vt on vt.id = pv.id
+      left join shown sh on sh.grp = c.grp
       order by c.covered desc, c.best desc, c.place nulls last, c.grp,
                cardinality(pv.found) desc, pv.catalog_id`);
 
@@ -322,6 +375,26 @@ export class SearchService {
         translation: { id: r.translation, abbreviation: r.abbreviation },
         snippet: snippetOf(r.headline),
       });
+      if (showIn) {
+        // The verse in the translation shown, alone: the words are found in others.
+        const s = first;
+        if (!s.shown_book || s.shown_chapter === null || s.shown_verse === null) return [];
+        const reference = `${s.shown_book}.${s.shown_chapter}.${s.shown_verse}`;
+        return [
+          {
+            kind: "text" as const,
+            id: `text:${s.shown_translation}:${reference}`,
+            label: `${english.name(s.shown_book, "full", "one")} ${s.shown_chapter}:${s.shown_verse}`,
+            reference,
+            translation: {
+              id: s.shown_translation ?? "",
+              abbreviation: s.shown_abbreviation ?? "",
+            },
+            snippet: snippetOf(s.shown_headline ?? ""),
+            ...(missing.length > 0 ? { missing } : {}),
+          },
+        ];
+      }
       return [
         {
           kind: "text" as const,

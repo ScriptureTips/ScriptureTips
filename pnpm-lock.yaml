@@ -314,6 +314,9 @@ importers:
       '@scripturetips/countries':
         specifier: workspace:*
         version: link:../../packages/countries
+      '@scripturetips/dialogs':
+        specifier: workspace:*
+        version: link:../../packages/dialogs
       '@scripturetips/licenses':
         specifier: workspace:*
         version: link:../../packages/licenses

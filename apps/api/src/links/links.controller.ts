@@ -7,6 +7,7 @@ import {
   HttpCode,
   Inject,
   Param,
+  Patch,
   Post,
   Query,
 } from "@nestjs/common";
@@ -17,53 +18,38 @@ import { AUTH } from "../auth/tokens.ts";
 import { DATABASE, type Database } from "../database.ts";
 import { ZodPipe } from "../zod-pipe.ts";
 import { LinksService, type LinkView } from "./links.service.ts";
+import { AnchorSchema, CompilationSlug, MAX_TEXT, Osis, Quote, TranslationId } from "./words.ts";
 
-/** A canonical passage in OSIS: `Gen.1.1`, `Isa.53.4-Isa.53.6`, `Rev.13.1!a`. */
-const Osis = z
-  .string()
-  .regex(
-    /^[1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?(-[1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?)?$/,
-  );
-
-const TranslationId = z.string().regex(/^[A-Za-z0-9_-]{1,40}$/);
-
-const Point = z
-  .object({
-    verse: z
-      .string()
-      .regex(
-        /^([1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?)( [1-3A-Za-z]{2,10}\.\d{1,3}\.\d{1,3}(![a-z])?)*$/,
-      ),
-    offset: z.number().int().min(0).max(100_000),
-  })
-  .strict();
-
-/** The wording the selected words were in (a catalog ID or `@compilation`), and where they sit. */
-const Anchor = z
-  .object({
-    in: z.string().regex(/^(@compilation|[A-Za-z0-9_-]{1,40})$/),
-    compilation: z.string().regex(/^[a-z0-9]{2,12}$/i),
-    start: Point,
-    end: Point,
-  })
-  .strict();
-
-/** The most characters of selected words a link keeps. */
-const MAX_QUOTE = 500;
+/** What a link goes to: a reference as typed, or a passage picked from search results. */
+const Target = z.union([
+  z.string().trim().min(1).max(200),
+  z.object({ reference: Osis, translation: TranslationId }).strict(),
+]);
 
 const NewLink = z
   .object({
     /** The compilation whose numbering the target is typed in. */
-    compilation: z.string().regex(/^[a-z0-9]{2,12}$/i),
+    compilation: CompilationSlug,
     source: Osis,
     /** A reference as typed, or a passage picked from search results (`reference` in OSIS). */
-    target: z.union([
-      z.string().trim().min(1).max(200),
-      z.object({ reference: Osis, translation: TranslationId }).strict(),
-    ]),
+    target: Target,
     /** The words selected, and where they're pinned (the link itself is verse to verse). */
-    quote: z.string().trim().min(1).max(MAX_QUOTE).optional(),
-    anchor: Anchor.optional(),
+    quote: Quote.optional(),
+    anchor: AnchorSchema.optional(),
+    /** A note made with it (the annotations page's add). */
+    note: z.string().trim().min(1).max(MAX_TEXT).optional(),
+    /** The collections it's put in (none: the default collection). */
+    collections: z.array(z.uuid()).max(100).optional(),
+  })
+  .strict();
+
+const LinkChanges = z
+  .object({
+    /** Its note: text, or null (or empty) to remove it. */
+    note: z.string().max(MAX_TEXT).nullable().optional(),
+    /** Where it goes: typed in the numbering of `compilation`, or picked from search results. */
+    target: Target.optional(),
+    compilation: CompilationSlug.optional(),
   })
   .strict();
 
@@ -95,6 +81,22 @@ export class LinksController {
       target: body.target,
       quote: body.quote,
       anchor: body.anchor,
+      note: body.note,
+      collections: body.collections,
+    });
+  }
+
+  /** Changes a link's note, or the passage it goes to. */
+  @Patch(":id")
+  async update(
+    @Headers() headers: Record<string, string>,
+    @Param("id", new ZodPipe(z.uuid())) id: string,
+    @Body(new ZodPipe(LinkChanges)) body: z.infer<typeof LinkChanges>,
+  ): Promise<LinkView> {
+    return this.links.update(await this.user(headers), id, {
+      note: body.note,
+      target: body.target,
+      ...(body.compilation ? { slug: body.compilation } : {}),
     });
   }
 

@@ -155,6 +155,20 @@
       "when": 1795085319110,
       "tag": "0021_scripture_search",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795274724234,
+      "tag": "0022_annotations",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795325331075,
+      "tag": "0023_collection_description",
+      "breakpoints": true
     }
   ]
 }

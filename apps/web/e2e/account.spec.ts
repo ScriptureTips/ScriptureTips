@@ -96,7 +96,7 @@ test("a wrong code is answered in words", async ({ page }) => {
   );
 });
 
-test("the handle at the top right opens a menu: profile, compilations, settings, and sign out in its footer", async ({
+test("the handle at the top right opens a menu: profile, compilations, annotations, settings, and sign out in its footer", async ({
   page,
   isMobile,
 }) => {
@@ -129,6 +129,7 @@ test("the handle at the top right opens a menu: profile, compilations, settings,
   await expect(menu.getByRole("menuitem")).toHaveText([
     "Profile",
     "Compilations",
+    "Annotations",
     "Settings",
     "Sign out",
   ]);
