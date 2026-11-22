@@ -38,6 +38,23 @@ steps:
       GARAGE_RPC_SECRET: 483d6e7676f649fcc7ca9cbbd7cc4af430b259aec4543e0612c3b3ae4f57652a
       GARAGE_ADMIN_TOKEN: development-only-garage-admin-token
 
+  # As in compose.yaml, the test server needn't keep its data through a crash, so it doesn't wait
+  # for the disk: without this, CI's many test databases made it slow enough for tests to time out.
+  # Set through ALTER SYSTEM, all three taking effect on a reload, because Woodpecker 3.9 rejects a
+  # service's entrypoint (f27b126).
+  - name: postgres-test-settings
+    image: postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    environment:
+      PGPASSWORD: scripturetips
+    commands:
+      - for i in $(seq 60); do pg_isready -q -h postgres-test -U scripturetips && break; sleep 1; done
+      - >-
+        psql -h postgres-test -U scripturetips -d postgres -v ON_ERROR_STOP=1
+        -c "ALTER SYSTEM SET fsync = off"
+        -c "ALTER SYSTEM SET synchronous_commit = off"
+        -c "ALTER SYSTEM SET full_page_writes = off"
+        -c "SELECT pg_reload_conf()"
+
   - name: verify
     image: *node
     environment:
